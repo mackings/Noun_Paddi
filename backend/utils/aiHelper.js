@@ -4,18 +4,41 @@ const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const APIUsage = require('../models/APIUsage');
 
 // Initialize Google Gemini AI
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const fileManager = new GoogleAIFileManager(process.env.GEMINI_API_KEY);
 
-async function summarizeText(text, pdfUrl = null) {
+// Helper function to track API usage
+async function trackAPIUsage(operationType, result, materialId = null, userId = null, success = true, errorMessage = null) {
+  try {
+    const usageMetadata = result?.response?.usageMetadata || {};
+
+    await APIUsage.create({
+      operationType,
+      model: 'gemini-2.5-flash',
+      materialId,
+      userId,
+      inputTokens: usageMetadata.promptTokenCount || 0,
+      outputTokens: usageMetadata.candidatesTokenCount || 0,
+      totalTokens: usageMetadata.totalTokenCount || 0,
+      success,
+      errorMessage,
+    });
+  } catch (error) {
+    console.error('Error tracking API usage:', error.message);
+    // Don't throw - tracking shouldn't break the main flow
+  }
+}
+
+async function summarizeText(text, pdfUrl = null, materialId = null, userId = null) {
   try {
     console.log('Starting text summarization with Gemini...');
 
     // If we have a PDF URL, use the File API for better results
     if (pdfUrl) {
-      return await summarizePDFDirectly(pdfUrl);
+      return await summarizePDFDirectly(pdfUrl, materialId, userId);
     }
 
     console.log('Original text length:', text.length);
@@ -61,16 +84,23 @@ Please provide a well-structured summary:`;
     console.log('Summarization successful');
     console.log('Summary length:', summary.length);
 
+    // Track API usage
+    await trackAPIUsage('summarize', result, materialId, userId, true);
+
     return summary;
   } catch (error) {
     console.error('Summarization error:', error);
     console.error('Error details:', error.message);
+
+    // Track failed API usage
+    await trackAPIUsage('summarize', null, materialId, userId, false, error.message);
+
     throw new Error(error.message || 'Failed to generate summary');
   }
 }
 
 // New function to handle PDF summarization using File API
-async function summarizePDFDirectly(pdfUrl) {
+async function summarizePDFDirectly(pdfUrl, materialId = null, userId = null) {
   let tempFilePath = null;
 
   try {
@@ -130,6 +160,9 @@ Please provide a well-structured, comprehensive summary:`
     console.log('Summary generated successfully');
     console.log('Summary length:', summary.length);
 
+    // Track API usage
+    await trackAPIUsage('summarize', result, materialId, userId, true);
+
     // Clean up temp file
     if (tempFilePath && fs.existsSync(tempFilePath)) {
       fs.unlinkSync(tempFilePath);
@@ -141,6 +174,9 @@ Please provide a well-structured, comprehensive summary:`
   } catch (error) {
     console.error('PDF summarization error:', error);
     console.error('Error details:', error.message);
+
+    // Track failed API usage
+    await trackAPIUsage('summarize', null, materialId, userId, false, error.message);
 
     // Clean up temp file on error
     if (tempFilePath && fs.existsSync(tempFilePath)) {
@@ -155,13 +191,13 @@ Please provide a well-structured, comprehensive summary:`
   }
 }
 
-async function generateQuestions(text, pdfUrl = null) {
+async function generateQuestions(text, pdfUrl = null, materialId = null, userId = null) {
   try {
     console.log('Starting question generation with Gemini...');
 
     // If we have a PDF URL, use the File API
     if (pdfUrl) {
-      return await generateQuestionsFromPDF(pdfUrl);
+      return await generateQuestionsFromPDF(pdfUrl, materialId, userId);
     }
 
     // Clean and prepare text
@@ -213,11 +249,17 @@ Generate 50 questions:`;
 
     console.log('Question generation successful');
 
+    // Track API usage
+    await trackAPIUsage('generate_questions', result, materialId, userId, true);
+
     // Return the generated text - it will be parsed by formatQuestionsToMCQ
     return { generated_text: questionsText };
   } catch (error) {
     console.error('Question generation error:', error);
     console.error('Error details:', error.message);
+
+    // Track failed API usage
+    await trackAPIUsage('generate_questions', null, materialId, userId, false, error.message);
 
     // Fallback to simple questions
     console.log('Falling back to simple question extraction...');
@@ -226,7 +268,7 @@ Generate 50 questions:`;
 }
 
 // New function to generate questions from PDF using File API
-async function generateQuestionsFromPDF(pdfUrl) {
+async function generateQuestionsFromPDF(pdfUrl, materialId = null, userId = null) {
   let tempFilePath = null;
 
   try {
@@ -294,6 +336,9 @@ Generate 50 questions:`
     const questionsText = result.response.text();
     console.log('Question generation successful');
 
+    // Track API usage
+    await trackAPIUsage('generate_questions', result, materialId, userId, true);
+
     // Clean up temp file
     if (tempFilePath && fs.existsSync(tempFilePath)) {
       fs.unlinkSync(tempFilePath);
@@ -303,6 +348,9 @@ Generate 50 questions:`
 
   } catch (error) {
     console.error('PDF question generation error:', error);
+
+    // Track failed API usage
+    await trackAPIUsage('generate_questions', null, materialId, userId, false, error.message);
 
     // Clean up temp file on error
     if (tempFilePath && fs.existsSync(tempFilePath)) {

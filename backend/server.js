@@ -32,6 +32,7 @@ app.use('/api/departments', require('./routes/department'));
 app.use('/api/courses', require('./routes/course'));
 app.use('/api/materials', require('./routes/material'));
 app.use('/api/questions', require('./routes/question'));
+app.use('/api/stats', require('./routes/stats'));
 
 // Root route
 app.get('/', (req, res) => {

@@ -194,10 +194,6 @@ const CourseDetail = () => {
 
                       {selectedMaterial.hasSummary ? (
                         <div className="summary-content">
-                          <div className="summary-badge-top">
-                            <FiFileText />
-                            AI-Generated Summary
-                          </div>
                           <div className="summary-text">
                             {selectedMaterial.summary}
                           </div>
@@ -206,7 +202,7 @@ const CourseDetail = () => {
                         <div className="no-summary-placeholder">
                           <FiFileText size={48} />
                           <h3>No Summary Available</h3>
-                          <p>An AI-generated summary has not been created for this material yet.</p>
+                          <p>A study summary has not been created for this material yet.</p>
                           <p>You can still download and read the original PDF file.</p>
                         </div>
                       )}

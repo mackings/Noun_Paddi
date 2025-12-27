@@ -36,14 +36,16 @@ const Navbar = () => {
               <>
                 {user.role === 'student' && (
                   <>
+                    <Link to="/dashboard" className="nav-link">Dashboard</Link>
                     <Link to="/explore" className="nav-link">Explore Courses</Link>
                     <Link to="/practice" className="nav-link">Practice Exam</Link>
                   </>
                 )}
                 {user.role === 'admin' && (
                   <>
-                    <Link to="/admin/upload" className="nav-link">Upload Materials</Link>
-                    <Link to="/admin/manage" className="nav-link">Manage Content</Link>
+                    <Link to="/admin/dashboard" className="nav-link">Dashboard</Link>
+                    <Link to="/admin/materials" className="nav-link">Materials</Link>
+                    <Link to="/admin/upload" className="nav-link">Upload</Link>
                   </>
                 )}
                 <button
@@ -94,6 +96,9 @@ const Navbar = () => {
                 </div>
                 {user.role === 'student' && (
                   <>
+                    <Link to="/dashboard" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>
+                      Dashboard
+                    </Link>
                     <Link to="/explore" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>
                       Explore Courses
                     </Link>
@@ -104,11 +109,14 @@ const Navbar = () => {
                 )}
                 {user.role === 'admin' && (
                   <>
-                    <Link to="/admin/upload" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>
-                      Upload Materials
+                    <Link to="/admin/dashboard" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>
+                      Dashboard
                     </Link>
-                    <Link to="/admin/manage" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>
-                      Manage Content
+                    <Link to="/admin/materials" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>
+                      Materials
+                    </Link>
+                    <Link to="/admin/upload" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>
+                      Upload
                     </Link>
                   </>
                 )}

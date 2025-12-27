@@ -8,6 +8,9 @@ import Login from './pages/Login';
 import Explore from './pages/Explore';
 import Practice from './pages/Practice';
 import AdminUpload from './pages/AdminUpload';
+import AdminDashboard from './pages/AdminDashboard';
+import AdminMaterials from './pages/AdminMaterials';
+import StudentDashboard from './pages/StudentDashboard';
 import CourseDetail from './pages/CourseDetail';
 import './App.css';
 
@@ -47,7 +50,7 @@ const Home = () => {
   }
 
   if (user) {
-    return <Navigate to={user.role === 'admin' ? '/admin/upload' : '/explore'} />;
+    return <Navigate to={user.role === 'admin' ? '/admin/dashboard' : '/explore'} />;
   }
 
   return <Navigate to="/login" />;
@@ -66,6 +69,14 @@ function App() {
               <Route path="/login" element={<Login />} />
 
               {/* Student Routes */}
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <StudentDashboard />
+                  </ProtectedRoute>
+                }
+              />
               <Route
                 path="/explore"
                 element={
@@ -93,10 +104,26 @@ function App() {
 
               {/* Admin Routes */}
               <Route
+                path="/admin/dashboard"
+                element={
+                  <ProtectedRoute adminOnly>
+                    <AdminDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/admin/upload"
                 element={
                   <ProtectedRoute adminOnly>
                     <AdminUpload />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/materials"
+                element={
+                  <ProtectedRoute adminOnly>
+                    <AdminMaterials />
                   </ProtectedRoute>
                 }
               />

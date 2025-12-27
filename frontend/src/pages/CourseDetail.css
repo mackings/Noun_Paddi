@@ -289,9 +289,25 @@
   color: #2d3748;
   white-space: pre-wrap;
   background: #f7fafc;
-  padding: 24px;
+  padding: 32px;
   border-radius: 12px;
   border-left: 4px solid #667eea;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  text-align: justify;
+}
+
+.summary-text::selection {
+  background: transparent;
+  color: inherit;
+}
+
+.summary-text::-moz-selection {
+  background: transparent;
+  color: inherit;
 }
 
 .no-summary-placeholder,

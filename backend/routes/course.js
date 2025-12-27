@@ -6,6 +6,8 @@ const {
   searchCourses,
   createCourse,
   getCourseMaterials,
+  getCourse,
+  deleteCourse,
 } = require('../controllers/courseController');
 const { protect, authorize } = require('../middleware/auth');
 
@@ -16,5 +18,9 @@ router.route('/')
 router.get('/search', searchCourses);
 router.get('/department/:departmentId', getCoursesByDepartment);
 router.get('/:courseId/materials', getCourseMaterials);
+
+router.route('/:id')
+  .get(getCourse)
+  .delete(protect, authorize('admin'), deleteCourse);
 
 module.exports = router;

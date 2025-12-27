@@ -82,7 +82,7 @@ exports.generateSummary = async (req, res) => {
     }
 
     // Generate summary using AI with File API (pass PDF URL directly)
-    const summaryText = await summarizeText(null, material.cloudinaryUrl);
+    const summaryText = await summarizeText(null, material.cloudinaryUrl, material._id, req.user._id);
 
     // Save summary
     const summary = await Summary.create({
@@ -117,7 +117,7 @@ exports.generateQuestionsForMaterial = async (req, res) => {
     }
 
     // Generate questions using AI with File API (pass PDF URL directly)
-    const generatedQuestions = await generateQuestions(null, material.cloudinaryUrl);
+    const generatedQuestions = await generateQuestions(null, material.cloudinaryUrl, material._id, req.user._id);
     const mcqQuestions = formatQuestionsToMCQ(generatedQuestions, '');
 
     // Save questions to database
@@ -226,6 +226,45 @@ exports.getCourseMaterials = async (req, res) => {
       success: true,
       count: materialsWithSummaries.length,
       data: materialsWithSummaries,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// @desc    Get all materials (admin)
+// @route   GET /api/materials
+// @access  Private/Admin
+exports.getAllMaterials = async (req, res) => {
+  try {
+    const materials = await Material.find()
+      .sort({ createdAt: -1 })
+      .populate('courseId', 'courseCode courseName')
+      .populate('uploadedBy', 'name');
+
+    // For each material, get its summary status
+    const materialsWithStatus = await Promise.all(
+      materials.map(async (material) => {
+        const [summary, questionsCount] = await Promise.all([
+          Summary.findOne({ materialId: material._id }),
+          Question.countDocuments({ materialId: material._id })
+        ]);
+
+        return {
+          ...material.toObject(),
+          hasSummary: !!summary,
+          questionsCount,
+        };
+      })
+    );
+
+    res.status(200).json({
+      success: true,
+      count: materialsWithStatus.length,
+      data: materialsWithStatus,
     });
   } catch (error) {
     res.status(500).json({

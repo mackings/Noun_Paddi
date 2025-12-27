@@ -1,0 +1,143 @@
+.student-dashboard-container {
+  min-height: calc(100vh - 70px);
+  padding: 40px 0;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.progress-section {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+.progress-card {
+  background: white;
+  padding: 32px;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.progress-card h2 {
+  font-size: 20px;
+  color: #1a202c;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.progress-items {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.progress-item {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.progress-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+}
+
+.progress-item-header span {
+  color: #4a5568;
+}
+
+.progress-item-header strong {
+  color: #1a202c;
+  font-size: 16px;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 12px;
+  background: #e2e8f0;
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 20px;
+  transition: width 0.3s ease;
+}
+
+.progress-fill-blue {
+  background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
+}
+
+.progress-fill-green {
+  background: linear-gradient(90deg, #43e97b 0%, #38f9d7 100%);
+}
+
+.recent-materials-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.recent-material-item {
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  background: #f7fafc;
+  border-radius: 12px;
+  border-left: 4px solid #667eea;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  color: inherit;
+}
+
+.recent-material-item:hover {
+  background: #edf2f7;
+  transform: translateX(4px);
+}
+
+.recent-material-icon {
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  flex-shrink: 0;
+}
+
+.recent-material-content {
+  flex: 1;
+}
+
+.recent-material-content h4 {
+  font-size: 16px;
+  color: #1a202c;
+  margin-bottom: 4px;
+}
+
+.recent-material-content p {
+  font-size: 14px;
+  color: #4a5568;
+  margin-bottom: 6px;
+}
+
+.recent-material-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #a0aec0;
+}
+
+@media (max-width: 768px) {
+  .progress-section {
+    grid-template-columns: 1fr;
+  }
+}
