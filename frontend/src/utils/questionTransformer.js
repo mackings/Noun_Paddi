@@ -177,33 +177,68 @@ export const getBalancedQuestions = (questions) => {
 };
 
 /**
- * Simple transformer: Convert 50% to True/False, keep 50% as single-answer
+ * Balanced transformer: 50% Multiple Choice, 30% True/False, 20% Multi-Select
  */
 export const convertHalfToTrueFalse = (questions) => {
   if (!questions || questions.length === 0) return [];
 
   const transformed = [];
-  const numToConvert = Math.floor(questions.length * 0.5);
+  const totalQuestions = questions.length;
+
+  // Calculate how many of each type
+  const numTrueFalse = Math.floor(totalQuestions * 0.3); // 30%
+  const numMultiSelect = Math.floor(totalQuestions * 0.2); // 20%
+  // Remaining will be multiple choice
 
   // Shuffle indices to randomly select which questions to convert
-  const indices = Array.from({ length: questions.length }, (_, i) => i);
+  const indices = Array.from({ length: totalQuestions }, (_, i) => i);
   for (let i = indices.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [indices[i], indices[j]] = [indices[j], indices[i]];
   }
 
-  const trueFalseIndices = new Set(indices.slice(0, numToConvert));
+  const trueFalseIndices = new Set(indices.slice(0, numTrueFalse));
+  const multiSelectIndices = new Set(indices.slice(numTrueFalse, numTrueFalse + numMultiSelect));
 
   questions.forEach((question, index) => {
-    // Only convert if question has correct answer and 4 options
+    // Detect if question text explicitly asks for multiple answers
+    const questionText = question.questionText || '';
+    const hasMultiSelectIndicator =
+      questionText.toLowerCase().includes('select all') ||
+      questionText.toLowerCase().includes('choose all') ||
+      questionText.toLowerCase().includes('select two') ||
+      questionText.toLowerCase().includes('choose two') ||
+      questionText.toLowerCase().includes('which of the following are') ||
+      Array.isArray(question.correctAnswer);
+
+    // If question already indicates multi-select or has array of correct answers
+    if (hasMultiSelectIndicator) {
+      transformed.push({
+        ...question,
+        questionType: 'multi-select',
+        questionText: questionText.includes('Select all') || questionText.includes('select all')
+          ? questionText
+          : `${questionText} (Select all that apply)`,
+        // Ensure correctAnswer is an array
+        correctAnswer: Array.isArray(question.correctAnswer)
+          ? question.correctAnswer
+          : [question.correctAnswer],
+      });
+      return;
+    }
+
+    // Only convert if question has correct answer and enough options
     const canTransform = question.correctAnswer !== undefined &&
                         question.correctAnswer !== null &&
                         question.options &&
-                        question.options.length === 4;
+                        question.options.length >= 4;
 
     if (canTransform && trueFalseIndices.has(index)) {
       // Convert to True/False
       transformed.push(convertToTrueFalse(question));
+    } else if (canTransform && multiSelectIndices.has(index)) {
+      // Convert to Multi-Select
+      transformed.push(convertToMultiSelect(question));
     } else {
       // Keep as regular single-answer question
       transformed.push({

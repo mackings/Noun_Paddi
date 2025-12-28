@@ -78,25 +78,51 @@ const Practice = () => {
     // Validate that an answer is selected
     if (selectedAnswer === null || selectedAnswer === undefined) return;
 
+    // For multi-select, ensure at least one answer is selected
+    if (questionType === 'multi-select' && (!Array.isArray(selectedAnswer) || selectedAnswer.length === 0)) {
+      return;
+    }
+
     try {
-      // Check if this is a transformed True/False question (has correctAnswer field)
-      if (questionType === 'true-false' && currentQuestion.correctAnswer !== undefined) {
-        // Client-side checking for transformed True/False questions
-        const isCorrect = currentQuestion.correctAnswer === selectedAnswer;
+      // Check if this is a client-side checkable question (has correctAnswer field)
+      const hasCorrectAnswer = currentQuestion.correctAnswer !== undefined && currentQuestion.correctAnswer !== null;
+
+      if (hasCorrectAnswer) {
+        // Client-side checking for transformed questions
+        let isCorrect = false;
+
+        if (questionType === 'multi-select') {
+          // For multi-select, check if arrays match
+          const correctAnswer = Array.isArray(currentQuestion.correctAnswer)
+            ? currentQuestion.correctAnswer
+            : [currentQuestion.correctAnswer];
+          const userAnswer = Array.isArray(selectedAnswer) ? selectedAnswer : [selectedAnswer];
+
+          // Arrays must have same length and same elements
+          isCorrect =
+            correctAnswer.length === userAnswer.length &&
+            correctAnswer.every(ans => userAnswer.includes(ans));
+        } else if (questionType === 'true-false') {
+          // For true/false, simple equality check
+          isCorrect = currentQuestion.correctAnswer === selectedAnswer;
+        } else {
+          // For multiple-choice, simple equality check
+          isCorrect = currentQuestion.correctAnswer === selectedAnswer;
+        }
 
         setShowResult(true);
         setAnswers([...answers, {
           isCorrect,
           correctAnswer: currentQuestion.correctAnswer,
           explanation: currentQuestion.explanation || (isCorrect ? 'Correct!' : 'Incorrect.'),
-          questionType: 'true-false'
+          questionType
         }]);
 
         if (isCorrect) {
           setScore(score + 1);
         }
       } else {
-        // Backend API check for original multiple-choice questions
+        // Backend API check for original questions without correctAnswer
         const response = await api.post(
           `/questions/${currentQuestion._id}/check`,
           { answer: selectedAnswer }
@@ -280,6 +306,12 @@ const Practice = () => {
         <div className="question-card">
           <div className="question-header">
             <h2 className="question-text">{currentQuestion.questionText}</h2>
+            {questionType === 'multi-select' && (
+              <div className="multi-select-hint">
+                <FiCheckCircle size={16} />
+                <span>Select all correct answers (you can choose more than one)</span>
+              </div>
+            )}
           </div>
 
           <div className="options-list">
@@ -335,6 +367,8 @@ const Practice = () => {
               )}
             </div>
           )}
+
+
 
           <div className="question-actions">
             {!showResult ? (
