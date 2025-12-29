@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import SEO from '../components/SEO';
 import { FiMail, FiLock, FiBook, FiEye, FiEyeOff } from 'react-icons/fi';
 import './Auth.css';
 
@@ -40,6 +41,12 @@ const Login = () => {
 
   return (
     <div className="auth-container">
+      <SEO
+        title="Login - NounPaddi"
+        description="Sign in to NounPaddi to access course materials, practice exams, and IT placement opportunities for NOUN students."
+        url="/login"
+        keywords="login, sign in, NOUN student portal, NounPaddi login"
+      />
       <div className="auth-card">
         <div className="auth-logo">
           <FiBook />

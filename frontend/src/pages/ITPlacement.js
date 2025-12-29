@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../utils/api';
+import SEO from '../components/SEO';
 import {
   FiCode, FiServer, FiSmartphone, FiCloud, FiLayers,
   FiCheckCircle, FiAlertCircle, FiClock, FiMapPin,
@@ -156,6 +157,12 @@ const ITPlacement = () => {
   if (application) {
     return (
       <div className="it-placement-page">
+        <SEO
+          title="My IT Placement Application - NounPaddi"
+          description={`Track your ${application.track} IT placement application status at NounPaddi. Current status: ${application.status}`}
+          url="/it-placement"
+          keywords="IT placement, industrial training, NOUN IT, tech training, internship tracking"
+        />
         <div className="it-hero-section">
           <div className="container">
             <div className="hero-content">
@@ -240,8 +247,44 @@ const ITPlacement = () => {
   }
 
   if (!showForm) {
+    const structuredData = {
+      "@context": "https://schema.org",
+      "@type": "EducationalOccupationalProgram",
+      "name": "NOUN IT Placement Program",
+      "description": "Industrial Training placement program for National Open University of Nigeria (NOUN) students in technology fields including Frontend, Backend, Mobile App, Cloud Engineering, Full Stack, DevOps, and Data Science.",
+      "provider": {
+        "@type": "EducationalOrganization",
+        "name": "NounPaddi",
+        "url": "https://nounpaddi.com"
+      },
+      "occupationalCategory": [
+        "Software Developer",
+        "Web Developer",
+        "Mobile App Developer",
+        "Cloud Engineer",
+        "DevOps Engineer",
+        "Data Scientist"
+      ],
+      "timeToComplete": "P3M/P12M",
+      "programType": "Internship",
+      "educationalCredentialAwarded": "IT Placement Certificate",
+      "availableLanguage": "English",
+      "offers": {
+        "@type": "Offer",
+        "category": "Educational",
+        "availability": "https://schema.org/InStock"
+      }
+    };
+
     return (
       <div className="it-placement-page">
+        <SEO
+          title="IT Placement Program for NOUN Students - NounPaddi"
+          description="Apply for Industrial Training (IT) placement in tech fields: Frontend, Backend, Mobile App, Cloud Engineering. Get real-world experience while completing your NOUN IT requirements."
+          url="/it-placement"
+          keywords="NOUN IT placement, industrial training Nigeria, tech internship, NOUN industrial training, IT program NOUN, software development training, NounPaddi IT"
+          structuredData={structuredData}
+        />
         <div className="it-hero-section">
           <div className="container">
             <div className="hero-content">
@@ -319,6 +362,12 @@ const ITPlacement = () => {
 
   return (
     <div className="it-placement-page">
+      <SEO
+        title="Apply for IT Placement - NounPaddi"
+        description="Complete your IT placement application for NOUN. Choose your tech track and get matched with industry partners for hands-on training experience."
+        url="/it-placement"
+        keywords="IT placement application, NOUN IT form, apply for industrial training, tech training Nigeria"
+      />
       <div className="form-container">
         <div className="form-header">
           <h1>IT Placement Application</h1>

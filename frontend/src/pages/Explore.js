@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../utils/api';
+import SEO from '../components/SEO';
 import { FiSearch, FiBook, FiArrowRight, FiAward } from 'react-icons/fi';
 import './Explore.css';
 
@@ -84,8 +85,29 @@ const Explore = () => {
     }
   };
 
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "EducationalOrganization",
+    "name": "NounPaddi",
+    "description": "Comprehensive course materials and study resources for National Open University of Nigeria (NOUN) students",
+    "url": "https://nounpaddi.com",
+    "numberOfCourses": courses.length,
+    "educationalLevel": "Higher Education",
+    "areaServed": {
+      "@type": "Country",
+      "name": "Nigeria"
+    }
+  };
+
   return (
     <div className="explore-container">
+      <SEO
+        title="Explore NOUN Courses & Study Materials - NounPaddi"
+        description="Browse comprehensive course materials, practice questions, and study resources for all NOUN faculties. Access personalized learning materials to excel in your studies."
+        url="/explore"
+        keywords="NOUN courses, study materials, course materials Nigeria, NOUN faculties, e-learning resources, distance learning materials, NOUN study guide"
+        structuredData={structuredData}
+      />
       <div className="container">
         <div className="explore-header">
           <h1>Explore Courses</h1>

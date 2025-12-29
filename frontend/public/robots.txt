@@ -1,0 +1,21 @@
+# https://www.robotstxt.org/robotstxt.html
+User-agent: *
+Allow: /
+
+# Disallow admin pages from being indexed
+Disallow: /admin/
+Disallow: /admin/*
+
+# Disallow auth pages from being indexed
+Disallow: /login
+Disallow: /signup
+Disallow: /forgot-password
+Disallow: /reset-password
+
+# Important pages to index
+Allow: /explore
+Allow: /practice
+Allow: /it-placement
+
+# Sitemap location
+Sitemap: https://nounpaddi.com/sitemap.xml

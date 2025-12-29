@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
+import SEO from '../components/SEO';
 import { convertHalfToTrueFalse } from '../utils/questionTransformer';
 import { FiCheckCircle, FiXCircle, FiAward } from 'react-icons/fi';
 import './Practice.css';
@@ -16,9 +17,41 @@ const Practice = () => {
   const [examComplete, setExamComplete] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // Timer states
+  const [showTimerSetup, setShowTimerSetup] = useState(false);
+  const [selectedDuration, setSelectedDuration] = useState(60); // in minutes
+  const [timeRemaining, setTimeRemaining] = useState(null); // in seconds
+  const [timerActive, setTimerActive] = useState(false);
+  const [startTime, setStartTime] = useState(null);
+  const [endTime, setEndTime] = useState(null);
+
+  // Leaderboard states
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [leaderboard, setLeaderboard] = useState([]);
+  const [myRank, setMyRank] = useState(null);
+
   useEffect(() => {
     fetchCourses();
   }, []);
+
+  // Timer countdown effect
+  useEffect(() => {
+    if (timerActive && timeRemaining > 0) {
+      const timer = setInterval(() => {
+        setTimeRemaining(prev => {
+          if (prev <= 1) {
+            setTimerActive(false);
+            // Auto-submit exam when time runs out
+            handleTimeUp();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      return () => clearInterval(timer);
+    }
+  }, [timerActive, timeRemaining]);
 
   const fetchCourses = async () => {
     try {
@@ -29,7 +62,7 @@ const Practice = () => {
     }
   };
 
-  const startExam = async (courseId) => {
+  const selectCourseForExam = async (courseId) => {
     try {
       setLoading(true);
       const response = await api.get(`/questions/course/${courseId}`);
@@ -39,15 +72,82 @@ const Practice = () => {
 
       setQuestions(transformedQuestions);
       setSelectedCourse(courseId);
-      setCurrentQuestionIndex(0);
-      setScore(0);
-      setAnswers([]);
-      setExamComplete(false);
+      setShowTimerSetup(true);
       setLoading(false);
     } catch (error) {
       console.error('Error fetching questions:', error);
       setLoading(false);
     }
+  };
+
+  const startExamWithTimer = () => {
+    const durationInSeconds = selectedDuration * 60;
+    setTimeRemaining(durationInSeconds);
+    setTimerActive(true);
+    setStartTime(Date.now());
+    setEndTime(Date.now() + durationInSeconds * 1000);
+    setShowTimerSetup(false);
+    setCurrentQuestionIndex(0);
+    setScore(0);
+    setAnswers([]);
+    setExamComplete(false);
+  };
+
+  const handleTimeUp = async () => {
+    // Auto-complete the exam when time runs out
+    setExamComplete(true);
+    setTimerActive(false);
+    await submitExamResults();
+  };
+
+  const submitExamResults = async () => {
+    try {
+      const timeTaken = selectedDuration * 60 - (timeRemaining || 0); // Actual time taken in seconds
+
+      // Submit to leaderboard
+      await api.post('/leaderboard/submit', {
+        courseId: selectedCourse,
+        score,
+        totalQuestions: questions.length,
+        duration: selectedDuration * 60,
+        timeTaken,
+        answers: answers.map(a => ({
+          questionId: a.questionId,
+          answer: a.answer,
+          isCorrect: a.isCorrect
+        }))
+      });
+
+      // Fetch leaderboard and rank
+      await fetchLeaderboard();
+    } catch (error) {
+      console.error('Error submitting exam results:', error);
+    }
+  };
+
+  const fetchLeaderboard = async () => {
+    try {
+      const [leaderboardRes, rankRes] = await Promise.all([
+        api.get(`/leaderboard/course/${selectedCourse}?limit=10`),
+        api.get(`/leaderboard/my-rank/${selectedCourse}`)
+      ]);
+
+      setLeaderboard(leaderboardRes.data.data);
+      setMyRank(rankRes.data.data);
+    } catch (error) {
+      console.error('Error fetching leaderboard:', error);
+    }
+  };
+
+  const formatTime = (seconds) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+
+    if (hours > 0) {
+      return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+    return `${minutes}:${secs.toString().padStart(2, '0')}`;
   };
 
   const handleAnswerSelect = (answerIndex) => {
@@ -147,13 +247,15 @@ const Practice = () => {
     }
   };
 
-  const handleNextQuestion = () => {
+  const handleNextQuestion = async () => {
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
       setSelectedAnswer(null); // Reset to null for all question types
       setShowResult(false);
     } else {
       setExamComplete(true);
+      setTimerActive(false);
+      await submitExamResults();
     }
   };
 
@@ -200,9 +302,74 @@ const Practice = () => {
                 <p className="text-warning">Keep practicing to improve!</p>
               )}
             </div>
-            <button onClick={resetExam} className="btn btn-primary">
-              Take Another Exam
-            </button>
+
+            {/* My Rank */}
+            {myRank && (
+              <div className="my-rank-card">
+                <h3>Your Ranking</h3>
+                <div className="rank-details">
+                  <div className="rank-item">
+                    <span className="rank-label">Rank</span>
+                    <span className="rank-value">#{myRank.rank}</span>
+                  </div>
+                  <div className="rank-item">
+                    <span className="rank-label">Score</span>
+                    <span className="rank-value">{myRank.percentage.toFixed(1)}%</span>
+                  </div>
+                  <div className="rank-item">
+                    <span className="rank-label">Time</span>
+                    <span className="rank-value">{Math.floor(myRank.timeTaken / 60)}m {myRank.timeTaken % 60}s</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Leaderboard */}
+            {leaderboard.length > 0 && (
+              <div className="leaderboard-section">
+                <h2>🏆 Top 10 Leaderboard</h2>
+                <div className="leaderboard-table">
+                  <div className="leaderboard-header">
+                    <div className="rank-col">Rank</div>
+                    <div className="name-col">Student</div>
+                    <div className="score-col">Score</div>
+                    <div className="time-col">Time</div>
+                  </div>
+                  {leaderboard.map((entry, index) => (
+                    <div
+                      key={entry._id}
+                      className={`leaderboard-row ${entry.rank <= 3 ? 'top-rank' : ''} ${myRank && entry.rank === myRank.rank ? 'my-rank-row' : ''}`}
+                    >
+                      <div className="rank-col">
+                        {entry.rank === 1 && '🥇'}
+                        {entry.rank === 2 && '🥈'}
+                        {entry.rank === 3 && '🥉'}
+                        {entry.rank > 3 && `#${entry.rank}`}
+                      </div>
+                      <div className="name-col">{entry.studentName}</div>
+                      <div className="score-col">
+                        {entry.score}/{entry.totalQuestions} ({entry.percentage.toFixed(1)}%)
+                      </div>
+                      <div className="time-col">
+                        {Math.floor(entry.timeTaken / 60)}m {entry.timeTaken % 60}s
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="exam-actions">
+              <button onClick={resetExam} className="btn btn-primary">
+                Take Another Exam
+              </button>
+              <button
+                onClick={() => setShowLeaderboard(!showLeaderboard)}
+                className="btn btn-secondary"
+              >
+                {showLeaderboard ? 'Hide' : 'View'} Full Leaderboard
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -210,8 +377,24 @@ const Practice = () => {
   }
 
   if (!selectedCourse) {
+    const structuredData = {
+      "@context": "https://schema.org",
+      "@type": "Quiz",
+      "name": "NOUN Practice Exams",
+      "description": "Practice exams and quizzes for NOUN courses with instant feedback and scoring",
+      "educationalLevel": "Higher Education",
+      "learningResourceType": "Quiz"
+    };
+
     return (
       <div className="practice-container">
+        <SEO
+          title="Practice Exams & Questions for NOUN Courses - NounPaddi"
+          description="Test your knowledge with practice exams for all NOUN courses. Get instant feedback, track your progress, and prepare for your exams with confidence."
+          url="/practice"
+          keywords="NOUN practice questions, exam preparation, NOUN past questions, quiz Nigeria, test preparation, study questions NOUN"
+          structuredData={structuredData}
+        />
         <div className="container">
           <div className="practice-header">
             <h1>Practice Exam</h1>
@@ -224,13 +407,72 @@ const Practice = () => {
                 <h3>{course.courseCode}</h3>
                 <p>{course.courseName}</p>
                 <button
-                  onClick={() => startExam(course._id)}
+                  onClick={() => selectCourseForExam(course._id)}
                   className="btn btn-primary"
                 >
                   Start Practice
                 </button>
               </div>
             ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Timer Setup Screen
+  if (showTimerSetup && questions.length > 0) {
+    const timerOptions = [
+      { value: 30, label: '30 Minutes', description: 'Quick practice' },
+      { value: 60, label: '1 Hour', description: 'Standard exam' },
+      { value: 90, label: '1.5 Hours', description: 'Extended practice' },
+      { value: 120, label: '2 Hours', description: 'Full exam simulation' },
+      { value: 180, label: '3 Hours', description: 'Comprehensive test' }
+    ];
+
+    return (
+      <div className="practice-container">
+        <SEO
+          title="Set Exam Timer - NounPaddi"
+          description="Configure your practice exam timer and start your test."
+          url="/practice"
+        />
+        <div className="container">
+          <div className="timer-setup-card">
+            <div className="timer-setup-header">
+              <h1>⏱️ Set Your Exam Timer</h1>
+              <p>Choose how long you want to practice. The timer will count down and auto-submit when time runs out.</p>
+            </div>
+
+            <div className="timer-options-grid">
+              {timerOptions.map((option) => (
+                <div
+                  key={option.value}
+                  className={`timer-option-card ${selectedDuration === option.value ? 'selected' : ''}`}
+                  onClick={() => setSelectedDuration(option.value)}
+                >
+                  <div className="timer-option-value">{option.label}</div>
+                  <div className="timer-option-desc">{option.description}</div>
+                  {selectedDuration === option.value && (
+                    <div className="timer-option-check">✓</div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <div className="timer-setup-info">
+              <p><strong>{questions.length} questions</strong> available for this exam</p>
+              <p>Time per question: ~{Math.floor((selectedDuration * 60) / questions.length)} seconds</p>
+            </div>
+
+            <div className="timer-setup-actions">
+              <button onClick={() => { setShowTimerSetup(false); setSelectedCourse(null); setQuestions([]); }} className="btn btn-secondary">
+                Cancel
+              </button>
+              <button onClick={startExamWithTimer} className="btn btn-primary btn-lg">
+                Start Exam ({selectedDuration} min)
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -287,6 +529,10 @@ const Practice = () => {
     return wasSelected && correctAnswer !== index;
   };
 
+  // Calculate time warning (last 10% of time)
+  const timeWarning = timeRemaining !== null && timeRemaining < (selectedDuration * 60 * 0.1);
+  const timeCritical = timeRemaining !== null && timeRemaining < (selectedDuration * 60 * 0.05);
+
   return (
     <div className="practice-container">
       <div className="container">
@@ -295,6 +541,12 @@ const Practice = () => {
             <span>Question {currentQuestionIndex + 1} of {questions.length}</span>
             <span>Score: {score}/{currentQuestionIndex}</span>
           </div>
+          {timerActive && timeRemaining !== null && (
+            <div className={`exam-timer ${timeWarning ? 'warning' : ''} ${timeCritical ? 'critical' : ''}`}>
+              <span className="timer-label">⏱️ Time Remaining:</span>
+              <span className="timer-value">{formatTime(timeRemaining)}</span>
+            </div>
+          )}
           <div className="progress-bar">
             <div
               className="progress-fill"

@@ -12,7 +12,10 @@
       "Bash(ls:*)",
       "Bash(cat:*)",
       "Bash(vercel:*)",
-      "Bash(pkill:*)"
+      "Bash(pkill:*)",
+      "Bash(CI=false npm run build:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ]
   }
 }

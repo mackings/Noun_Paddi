@@ -52,6 +52,63 @@
   color: var(--text-secondary);
 }
 
+/* Timer Display */
+.exam-timer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 24px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12px;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  animation: slideDown 0.5s ease-out;
+}
+
+.exam-timer.warning {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  animation: pulse 1s ease-in-out infinite;
+}
+
+.exam-timer.critical {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  animation: shake 0.5s ease-in-out infinite;
+}
+
+.timer-label {
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.timer-value {
+  color: white;
+  font-size: 28px;
+  font-weight: 900;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 2px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
 .progress-bar {
   height: 8px;
   background-color: var(--border-color);
@@ -273,6 +330,154 @@
   font-size: 18px;
 }
 
+/* My Rank Card */
+.my-rank-card {
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+  border: 2px solid #667eea;
+  border-radius: 16px;
+  padding: 24px;
+  margin: 32px 0;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.my-rank-card h3 {
+  text-align: center;
+  margin-bottom: 20px;
+  color: #667eea;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.rank-details {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.rank-item {
+  text-align: center;
+}
+
+.rank-label {
+  display: block;
+  font-size: 12px;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.rank-value {
+  display: block;
+  font-size: 24px;
+  font-weight: 900;
+  color: var(--text-primary);
+}
+
+/* Leaderboard Section */
+.leaderboard-section {
+  margin: 40px 0;
+  max-width: 900px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.leaderboard-section h2 {
+  text-align: center;
+  margin-bottom: 24px;
+  font-size: 28px;
+  font-weight: 800;
+}
+
+.leaderboard-table {
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.leaderboard-header {
+  display: grid;
+  grid-template-columns: 80px 1fr 150px 120px;
+  gap: 16px;
+  padding: 16px 20px;
+  background-color: rgba(102, 126, 234, 0.1);
+  font-weight: 700;
+  font-size: 14px;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  border-bottom: 2px solid var(--border-color);
+}
+
+.leaderboard-row {
+  display: grid;
+  grid-template-columns: 80px 1fr 150px 120px;
+  gap: 16px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
+  transition: all 0.3s ease;
+}
+
+.leaderboard-row:last-child {
+  border-bottom: none;
+}
+
+.leaderboard-row:hover {
+  background-color: rgba(102, 126, 234, 0.05);
+}
+
+.leaderboard-row.top-rank {
+  background-color: rgba(255, 215, 0, 0.1);
+  font-weight: 600;
+}
+
+.leaderboard-row.my-rank-row {
+  background-color: rgba(102, 126, 234, 0.15);
+  border: 2px solid #667eea;
+  font-weight: 700;
+}
+
+.rank-col {
+  font-size: 20px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.name-col {
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+}
+
+.score-col {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  color: var(--primary-color);
+}
+
+.time-col {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.exam-actions {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  margin-top: 32px;
+  flex-wrap: wrap;
+}
+
 .no-questions {
   text-align: center;
   padding: 60px 20px;
@@ -282,6 +487,141 @@
 .no-questions p {
   font-size: 18px;
   margin-bottom: 24px;
+}
+
+/* Timer Setup Screen */
+.timer-setup-card {
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  padding: 48px;
+  max-width: 900px;
+  margin: 40px auto;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+}
+
+.timer-setup-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.timer-setup-header h1 {
+  font-size: 36px;
+  font-weight: 800;
+  margin-bottom: 12px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.timer-setup-header p {
+  font-size: 16px;
+  color: var(--text-secondary);
+  max-width: 600px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+.timer-options-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.timer-option-card {
+  position: relative;
+  background: var(--card-bg);
+  border: 3px solid var(--border-color);
+  border-radius: 16px;
+  padding: 24px 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.timer-option-card:hover {
+  border-color: #667eea;
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.2);
+}
+
+.timer-option-card.selected {
+  border-color: #667eea;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
+}
+
+.timer-option-value {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.timer-option-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.timer-option-check {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: 16px;
+  animation: scaleIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+.timer-setup-info {
+  text-align: center;
+  padding: 24px;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+  border-radius: 12px;
+  margin-bottom: 32px;
+}
+
+.timer-setup-info p {
+  margin: 8px 0;
+  color: var(--text-secondary);
+  font-size: 15px;
+}
+
+.timer-setup-info strong {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.timer-setup-actions {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+}
+
+.btn-lg {
+  padding: 16px 48px !important;
+  font-size: 18px !important;
+  font-weight: 700 !important;
 }
 
 @media (max-width: 768px) {
@@ -308,5 +648,140 @@
 
   .percentage-display {
     font-size: 24px;
+  }
+
+  /* Timer Setup Mobile Responsiveness */
+  .timer-setup-card {
+    padding: 24px 16px;
+    margin: 20px auto;
+  }
+
+  .timer-setup-header h1 {
+    font-size: 28px;
+  }
+
+  .timer-setup-header p {
+    font-size: 14px;
+  }
+
+  .timer-options-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .timer-option-card {
+    padding: 16px 12px;
+  }
+
+  .timer-option-value {
+    font-size: 16px;
+  }
+
+  .timer-option-desc {
+    font-size: 10px;
+  }
+
+  .timer-setup-info {
+    padding: 16px;
+  }
+
+  .timer-setup-info p {
+    font-size: 13px;
+  }
+
+  .timer-setup-actions {
+    flex-direction: column;
+  }
+
+  .timer-setup-actions button {
+    width: 100%;
+  }
+
+  .btn-lg {
+    padding: 14px 24px !important;
+    font-size: 16px !important;
+  }
+
+  /* Timer Display Mobile */
+  .exam-timer {
+    padding: 12px 16px;
+    flex-direction: column;
+    gap: 8px;
+    text-align: center;
+  }
+
+  .timer-value {
+    font-size: 24px;
+  }
+
+  .timer-label {
+    font-size: 12px;
+  }
+
+  /* Leaderboard Mobile */
+  .leaderboard-header,
+  .leaderboard-row {
+    grid-template-columns: 60px 1fr 100px 80px;
+    gap: 8px;
+    padding: 12px;
+    font-size: 13px;
+  }
+
+  .rank-col {
+    font-size: 16px;
+  }
+
+  .rank-details {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .my-rank-card {
+    padding: 16px;
+  }
+
+  .exam-actions {
+    flex-direction: column;
+  }
+
+  .exam-actions button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .timer-options-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .timer-setup-header h1 {
+    font-size: 24px;
+  }
+
+  .timer-option-check {
+    width: 24px;
+    height: 24px;
+    font-size: 14px;
+  }
+
+  /* Leaderboard Very Small Screens */
+  .leaderboard-header,
+  .leaderboard-row {
+    grid-template-columns: 50px 1fr 80px;
+    gap: 4px;
+    padding: 8px;
+    font-size: 12px;
+  }
+
+  .time-col {
+    display: none;
+  }
+
+  .leaderboard-header .time-col {
+    display: none;
+  }
+
+  .score-col {
+    font-size: 12px;
   }
 }

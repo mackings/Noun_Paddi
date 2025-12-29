@@ -1,5 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { HelmetProvider } from 'react-helmet-async';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import Navbar from './components/Navbar';
@@ -62,101 +63,103 @@ const Home = () => {
 
 function App() {
   return (
-    <Router>
-      <ThemeProvider>
-        <AuthProvider>
-          <div className="App">
-            <Navbar />
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/signup" element={<Signup />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
+    <HelmetProvider>
+      <Router>
+        <ThemeProvider>
+          <AuthProvider>
+            <div className="App">
+              <Navbar />
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/signup" element={<Signup />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
 
-              {/* Student Routes */}
-              <Route
-                path="/dashboard"
-                element={
-                  <ProtectedRoute>
-                    <StudentDashboard />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/explore"
-                element={
-                  <ProtectedRoute>
-                    <Explore />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/course/:courseId"
-                element={
-                  <ProtectedRoute>
-                    <CourseDetail />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/practice"
-                element={
-                  <ProtectedRoute>
-                    <Practice />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/profile"
-                element={
-                  <ProtectedRoute>
-                    <Profile />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/it-placement"
-                element={
-                  <ProtectedRoute>
-                    <ITPlacement />
-                  </ProtectedRoute>
-                }
-              />
+                {/* Student Routes */}
+                <Route
+                  path="/dashboard"
+                  element={
+                    <ProtectedRoute>
+                      <StudentDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/explore"
+                  element={
+                    <ProtectedRoute>
+                      <Explore />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/course/:courseId"
+                  element={
+                    <ProtectedRoute>
+                      <CourseDetail />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/practice"
+                  element={
+                    <ProtectedRoute>
+                      <Practice />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/profile"
+                  element={
+                    <ProtectedRoute>
+                      <Profile />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/it-placement"
+                  element={
+                    <ProtectedRoute>
+                      <ITPlacement />
+                    </ProtectedRoute>
+                  }
+                />
 
-              {/* Admin Routes */}
-              <Route
-                path="/admin/dashboard"
-                element={
-                  <ProtectedRoute adminOnly>
-                    <AdminDashboard />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/upload"
-                element={
-                  <ProtectedRoute adminOnly>
-                    <AdminUpload />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/materials"
-                element={
-                  <ProtectedRoute adminOnly>
-                    <AdminMaterials />
-                  </ProtectedRoute>
-                }
-              />
+                {/* Admin Routes */}
+                <Route
+                  path="/admin/dashboard"
+                  element={
+                    <ProtectedRoute adminOnly>
+                      <AdminDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/upload"
+                  element={
+                    <ProtectedRoute adminOnly>
+                      <AdminUpload />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/materials"
+                  element={
+                    <ProtectedRoute adminOnly>
+                      <AdminMaterials />
+                    </ProtectedRoute>
+                  }
+                />
 
-              {/* Catch all */}
-              <Route path="*" element={<Navigate to="/" />} />
-            </Routes>
-          </div>
-        </AuthProvider>
-      </ThemeProvider>
-    </Router>
+                {/* Catch all */}
+                <Route path="*" element={<Navigate to="/" />} />
+              </Routes>
+            </div>
+          </AuthProvider>
+        </ThemeProvider>
+      </Router>
+    </HelmetProvider>
   );
 }
 

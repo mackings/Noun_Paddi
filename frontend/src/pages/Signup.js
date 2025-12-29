@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import SEO from '../components/SEO';
 import { FiUser, FiMail, FiLock, FiBook, FiHash, FiBriefcase, FiFileText, FiEye, FiEyeOff } from 'react-icons/fi';
 import './Auth.css';
 
@@ -44,6 +45,12 @@ const Signup = () => {
 
   return (
     <div className="auth-container">
+      <SEO
+        title="Sign Up - Join NounPaddi | NOUN Study Platform"
+        description="Create your free NounPaddi account to access personalized course materials, practice exams, and IT placement opportunities for National Open University of Nigeria students."
+        url="/signup"
+        keywords="sign up, register, create account, NOUN student registration, join NounPaddi, free account"
+      />
       <div className="auth-card">
         <div className="auth-logo">
           <FiBook />
