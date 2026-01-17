@@ -21,8 +21,26 @@ router.post('/:materialId/summarize', protect, authorize('admin'), generateSumma
 router.post('/:materialId/generate-questions', protect, authorize('admin'), generateQuestionsForMaterial);
 router.delete('/:id', protect, authorize('admin'), deleteMaterial);
 
+// Middleware to handle multer/cloudinary errors
+const handleUploadError = (req, res, next) => {
+  upload.single('file')(req, res, (err) => {
+    if (err) {
+      console.error('=== Upload Middleware Error ===');
+      console.error('Error name:', err.name);
+      console.error('Error message:', err.message);
+      console.error('Error details:', JSON.stringify(err, Object.getOwnPropertyNames(err), 2));
+      return res.status(400).json({
+        success: false,
+        message: err.message || 'File upload failed',
+        error: process.env.NODE_ENV === 'development' ? err : undefined
+      });
+    }
+    next();
+  });
+};
+
 // Student routes
-router.post('/student-upload', protect, upload.single('file'), studentUploadMaterial);
+router.post('/student-upload', protect, handleUploadError, studentUploadMaterial);
 router.get('/my-stats', protect, getStudentStats);
 
 // Public routes

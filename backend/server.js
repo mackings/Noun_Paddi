@@ -67,6 +67,7 @@ app.use('/api/stats', require('./routes/stats'));
 app.use('/api/it-placement', require('./routes/itPlacement'));
 app.use('/api/leaderboard', require('./routes/leaderboard'));
 app.use('/api/reminders', require('./routes/readingReminder'));
+app.use('/api/plagiarism', require('./routes/plagiarism'));
 
 // Root route
 app.get('/', (req, res) => {

@@ -8,6 +8,13 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
+// Log Cloudinary configuration status
+console.log('Cloudinary Config:', {
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME ? '✓ Set' : '✗ Missing',
+  api_key: process.env.CLOUDINARY_API_KEY ? `✓ Set (${process.env.CLOUDINARY_API_KEY})` : '✗ Missing',
+  api_secret: process.env.CLOUDINARY_API_SECRET ? '✓ Set' : '✗ Missing',
+});
+
 // Storage for course materials (PDFs, docs)
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
@@ -42,4 +49,21 @@ const profileImageUpload = multer({
   }
 });
 
-module.exports = { cloudinary, upload, profileImageUpload };
+// Storage for project submissions (plagiarism checker)
+const projectStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'nounpaddi-projects',
+    allowed_formats: ['pdf', 'doc', 'docx'],
+    resource_type: 'raw',
+  },
+});
+
+const projectUpload = multer({
+  storage: projectStorage,
+  limits: {
+    fileSize: 50 * 1024 * 1024 // 50MB limit for projects
+  }
+});
+
+module.exports = { cloudinary, upload, profileImageUpload, projectUpload };

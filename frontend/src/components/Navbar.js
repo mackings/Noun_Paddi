@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { FiMenu, FiX, FiLogOut, FiUser, FiSun, FiMoon, FiBook, FiBell } from 'react-icons/fi';
+import { FiMenu, FiX, FiLogOut, FiUser, FiSun, FiMoon, FiBook, FiBell, FiFileText } from 'react-icons/fi';
 import './Navbar.css';
 
 const Navbar = () => {
@@ -41,6 +41,7 @@ const Navbar = () => {
                     <Link to="/practice" className="nav-link">Practice Exam</Link>
                     <Link to="/it-placement" className="nav-link">IT Placement</Link>
                     <Link to="/reminders" className="nav-link"><FiBell size={16} /> Reminders</Link>
+                    <Link to="/plagiarism" className="nav-link"><FiFileText size={16} /> Plagiarism</Link>
                   </>
                 )}
                 {user.role === 'admin' && (
@@ -111,6 +112,9 @@ const Navbar = () => {
                     </Link>
                     <Link to="/reminders" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>
                       <FiBell size={16} /> Reminders
+                    </Link>
+                    <Link to="/plagiarism" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>
+                      <FiFileText size={16} /> Plagiarism Checker
                     </Link>
                   </>
                 )}

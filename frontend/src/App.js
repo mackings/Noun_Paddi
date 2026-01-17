@@ -18,6 +18,7 @@ import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import ITPlacement from './pages/ITPlacement';
 import Reminders from './pages/Reminders';
+import PlagiarismChecker from './pages/PlagiarismChecker';
 import './App.css';
 
 // Protected Route Component
@@ -131,6 +132,14 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <Reminders />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/plagiarism"
+                  element={
+                    <ProtectedRoute>
+                      <PlagiarismChecker />
                     </ProtectedRoute>
                   }
                 />
