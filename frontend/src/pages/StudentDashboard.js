@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../utils/api';
 import { formatDate } from '../utils/dateHelper';
@@ -13,7 +13,8 @@ import {
   FiX,
   FiCheckCircle,
   FiArrowLeft,
-  FiUser
+  FiUser,
+  FiLoader
 } from 'react-icons/fi';
 import './StudentDashboard.css';
 
@@ -21,7 +22,7 @@ const StudentDashboard = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showUploadModal, setShowUploadModal] = useState(false);
-  const [uploadStep, setUploadStep] = useState(1); // 1: Faculty, 2: Department, 3: Course, 4: Material
+  const [uploadStep, setUploadStep] = useState(1); // 1: Faculty, 2: Department, 3: Course, 4: Material, 5: Processing
   const [uploadForm, setUploadForm] = useState({
     title: '',
     facultyId: '',
@@ -36,9 +37,14 @@ const StudentDashboard = () => {
   const [departments, setDepartments] = useState([]);
   const [courses, setCourses] = useState([]);
   const [uploadStats, setUploadStats] = useState(null);
-  const [newFaculty, setNewFaculty] = useState('');
-  const [newDepartment, setNewDepartment] = useState({ name: '', code: '' });
-  const [newCourse, setNewCourse] = useState({ name: '', code: '', creditUnits: 3 });
+
+  // Processing state for progress tracking
+  const [processingStatus, setProcessingStatus] = useState({
+    stage: '', // 'uploading', 'generating-summary', 'generating-questions', 'completed', 'failed'
+    progress: 0,
+    message: ''
+  });
+  const pollingIntervalRef = useRef(null);
 
   useEffect(() => {
     fetchStats();
@@ -98,7 +104,7 @@ const StudentDashboard = () => {
   const handleFacultySelect = async (facultyId) => {
     setUploadForm({ ...uploadForm, facultyId, departmentId: '', courseId: '' });
     setUploadError(null);
-    if (facultyId && facultyId !== 'new') {
+    if (facultyId) {
       await fetchDepartments(facultyId);
       setUploadStep(2);
     }
@@ -107,7 +113,7 @@ const StudentDashboard = () => {
   const handleDepartmentSelect = async (departmentId) => {
     setUploadForm({ ...uploadForm, departmentId, courseId: '' });
     setUploadError(null);
-    if (departmentId && departmentId !== 'new') {
+    if (departmentId) {
       await fetchCourses(departmentId);
       setUploadStep(3);
     }
@@ -116,72 +122,88 @@ const StudentDashboard = () => {
   const handleCourseSelect = (courseId) => {
     setUploadForm({ ...uploadForm, courseId });
     setUploadError(null);
-    if (courseId && courseId !== 'new') {
+    if (courseId) {
       setUploadStep(4);
     }
   };
 
-  const createFaculty = async () => {
-    if (!newFaculty.trim()) {
-      setUploadError('Please enter a faculty name');
-      return;
-    }
+  // Poll for material processing status
+  const pollProcessingStatus = async (materialId) => {
     try {
-      const response = await api.post('/faculties', { name: newFaculty });
-      await fetchFaculties();
-      setUploadForm({ ...uploadForm, facultyId: response.data.data._id });
-      setNewFaculty('');
-      await fetchDepartments(response.data.data._id);
-      setUploadStep(2);
+      const response = await api.get(`/materials/${materialId}/status`);
+      const { processingStatus: status, hasSummary, hasQuestions } = response.data.data;
+
+      if (status === 'processing') {
+        // Determine progress based on what's been generated
+        if (hasSummary && !hasQuestions) {
+          setProcessingStatus({
+            stage: 'generating-questions',
+            progress: 65,
+            message: 'Generating practice questions...'
+          });
+        } else if (!hasSummary) {
+          setProcessingStatus({
+            stage: 'generating-summary',
+            progress: 35,
+            message: 'Generating AI summary...'
+          });
+        }
+      } else if (status === 'completed') {
+        setProcessingStatus({
+          stage: 'completed',
+          progress: 100,
+          message: 'Processing complete! Summary and questions are ready.'
+        });
+        // Stop polling
+        if (pollingIntervalRef.current) {
+          clearInterval(pollingIntervalRef.current);
+          pollingIntervalRef.current = null;
+        }
+        // Refresh stats
+        fetchUploadStats();
+        fetchStats();
+        // Show success for a bit then close
+        setTimeout(() => {
+          resetUploadModal();
+        }, 3000);
+      } else if (status === 'failed') {
+        setProcessingStatus({
+          stage: 'failed',
+          progress: 0,
+          message: response.data.data.processingError || 'Processing failed. Please try again.'
+        });
+        if (pollingIntervalRef.current) {
+          clearInterval(pollingIntervalRef.current);
+          pollingIntervalRef.current = null;
+        }
+      }
     } catch (error) {
-      setUploadError(error.response?.data?.message || 'Failed to create faculty');
+      console.error('Error polling status:', error);
     }
   };
 
-  const createDepartment = async () => {
-    if (!newDepartment.name.trim() || !newDepartment.code.trim()) {
-      setUploadError('Please enter department name and code');
-      return;
-    }
-    try {
-      const response = await api.post('/departments', {
-        ...newDepartment,
-        facultyId: uploadForm.facultyId
-      });
-      await fetchDepartments(uploadForm.facultyId);
-      setUploadForm({ ...uploadForm, departmentId: response.data.data._id });
-      setNewDepartment({ name: '', code: '' });
-      await fetchCourses(response.data.data._id);
-      setUploadStep(3);
-    } catch (error) {
-      setUploadError(error.response?.data?.message || 'Failed to create department');
-    }
-  };
-
-  const createCourse = async () => {
-    if (!newCourse.courseName.trim() || !newCourse.courseCode.trim()) {
-      setUploadError('Please enter course name and code');
-      return;
-    }
-    try {
-      const response = await api.post('/courses', {
-        ...newCourse,
-        departmentId: uploadForm.departmentId
-      });
-      await fetchCourses(uploadForm.departmentId);
-      setUploadForm({ ...uploadForm, courseId: response.data.data._id });
-      setNewCourse({ courseName: '', courseCode: '', creditUnits: 3 });
-      setUploadStep(4);
-    } catch (error) {
-      setUploadError(error.response?.data?.message || 'Failed to create course');
-    }
-  };
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
+    };
+  }, []);
 
   const handleUploadSubmit = async (e) => {
     e.preventDefault();
     setUploading(true);
     setUploadError(null);
     setUploadSuccess(null);
+
+    // Move to processing step
+    setUploadStep(5);
+    setProcessingStatus({
+      stage: 'uploading',
+      progress: 10,
+      message: 'Uploading your file...'
+    });
 
     try {
       const formData = new FormData();
@@ -195,33 +217,45 @@ const StudentDashboard = () => {
         },
       });
 
-      setUploadSuccess(response.data.message);
-      setUploadForm({ title: '', facultyId: '', departmentId: '', courseId: '', file: null });
-      setUploadStep(1);
-      fetchUploadStats();
-      fetchStats();
+      const materialId = response.data.data._id;
 
-      setTimeout(() => {
-        setShowUploadModal(false);
-        setUploadSuccess(null);
+      // Update progress - file uploaded, now processing
+      setProcessingStatus({
+        stage: 'generating-summary',
+        progress: 25,
+        message: 'File uploaded! Generating AI summary...'
+      });
+
+      // Start polling for processing status
+      pollingIntervalRef.current = setInterval(() => {
+        pollProcessingStatus(materialId);
       }, 3000);
+
     } catch (error) {
       console.error('Upload error:', error);
       setUploadError(error.response?.data?.message || 'Failed to upload material');
+      setProcessingStatus({
+        stage: 'failed',
+        progress: 0,
+        message: error.response?.data?.message || 'Failed to upload material'
+      });
     } finally {
       setUploading(false);
     }
   };
 
   const resetUploadModal = () => {
+    // Stop any ongoing polling
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+    }
     setShowUploadModal(false);
     setUploadStep(1);
     setUploadForm({ title: '', facultyId: '', departmentId: '', courseId: '', file: null });
     setUploadError(null);
     setUploadSuccess(null);
-    setNewFaculty('');
-    setNewDepartment({ name: '', code: '' });
-    setNewCourse({ courseName: '', courseCode: '', creditUnits: 3 });
+    setProcessingStatus({ stage: '', progress: 0, message: '' });
   };
 
   if (loading) {
@@ -572,29 +606,33 @@ const StudentDashboard = () => {
 
         {/* Upload Modal - Multi-Step */}
         {showUploadModal && (
-          <div className="modal-overlay" onClick={resetUploadModal}>
+          <div className="modal-overlay" onClick={uploadStep !== 5 ? resetUploadModal : undefined}>
             <div className="modal-content upload-wizard" onClick={(e) => e.stopPropagation()}>
               <div className="modal-header">
-                <h2>Upload Material - Step {uploadStep}/4</h2>
-                <button onClick={resetUploadModal} className="modal-close">
-                  <FiX />
-                </button>
+                <h2>{uploadStep === 5 ? 'Processing Material' : `Upload Material - Step ${uploadStep}/4`}</h2>
+                {uploadStep !== 5 && (
+                  <button onClick={resetUploadModal} className="modal-close">
+                    <FiX />
+                  </button>
+                )}
               </div>
 
               {/* Progress Steps */}
-              <div className="upload-steps">
-                <div className={`step ${uploadStep >= 1 ? 'active' : ''}`}>Faculty</div>
-                <div className={`step ${uploadStep >= 2 ? 'active' : ''}`}>Department</div>
-                <div className={`step ${uploadStep >= 3 ? 'active' : ''}`}>Course</div>
-                <div className={`step ${uploadStep >= 4 ? 'active' : ''}`}>Material</div>
-              </div>
+              {uploadStep !== 5 && (
+                <div className="upload-steps">
+                  <div className={`step ${uploadStep >= 1 ? 'active' : ''}`}>Faculty</div>
+                  <div className={`step ${uploadStep >= 2 ? 'active' : ''}`}>Department</div>
+                  <div className={`step ${uploadStep >= 3 ? 'active' : ''}`}>Course</div>
+                  <div className={`step ${uploadStep >= 4 ? 'active' : ''}`}>Material</div>
+                </div>
+              )}
 
               <div className="upload-form">
                 {/* Step 1: Faculty Selection */}
                 {uploadStep === 1 && (
                   <div className="step-content">
-                    <h3>Select or Create Faculty</h3>
-                    <p className="step-description">Choose an existing faculty or create a new one</p>
+                    <h3>Select Faculty</h3>
+                    <p className="step-description">Choose the faculty for your material</p>
 
                     <div className="selection-grid">
                       {faculties.map((faculty) => (
@@ -607,43 +645,12 @@ const StudentDashboard = () => {
                           <span>{faculty.name}</span>
                         </button>
                       ))}
-                      <button
-                        className="selection-card create-new"
-                        onClick={() => handleFacultySelect('new')}
-                      >
-                        <FiUpload size={24} />
-                        <span>Create New Faculty</span>
-                      </button>
                     </div>
 
-                    {faculties.length === 0 && uploadForm.facultyId !== 'new' && (
+                    {faculties.length === 0 && (
                       <div className="empty-message">
                         <FiBook size={48} />
-                        <p>No faculties available. Click "Create New Faculty" above to get started!</p>
-                      </div>
-                    )}
-
-                    {uploadForm.facultyId === 'new' && (
-                      <div className="create-form">
-                        <h4>Create New Faculty</h4>
-                        <input
-                          type="text"
-                          value={newFaculty}
-                          onChange={(e) => setNewFaculty(e.target.value)}
-                          placeholder="Enter faculty name (e.g., Science, Arts)"
-                          className="form-input"
-                        />
-                        <div className="form-actions">
-                          <button
-                            onClick={() => setUploadForm({ ...uploadForm, facultyId: '' })}
-                            className="btn btn-secondary"
-                          >
-                            Cancel
-                          </button>
-                          <button onClick={createFaculty} className="btn btn-primary">
-                            Create & Continue
-                          </button>
-                        </div>
+                        <p>No faculties available. Please contact an administrator to add faculties.</p>
                       </div>
                     )}
                   </div>
@@ -652,8 +659,8 @@ const StudentDashboard = () => {
                 {/* Step 2: Department Selection */}
                 {uploadStep === 2 && (
                   <div className="step-content">
-                    <h3>Select or Create Department</h3>
-                    <p className="step-description">Choose an existing department or create a new one</p>
+                    <h3>Select Department</h3>
+                    <p className="step-description">Choose the department for your material</p>
 
                     <div className="selection-grid">
                       {departments.map((dept) => (
@@ -664,53 +671,15 @@ const StudentDashboard = () => {
                         >
                           <FiBook size={24} />
                           <span>{dept.name}</span>
-                          <small>{dept.departmentCode}</small>
+                          <small>{dept.code}</small>
                         </button>
                       ))}
-                      <button
-                        className="selection-card create-new"
-                        onClick={() => handleDepartmentSelect('new')}
-                      >
-                        <FiUpload size={24} />
-                        <span>Create New Department</span>
-                      </button>
                     </div>
 
-                    {departments.length === 0 && uploadForm.departmentId !== 'new' && (
+                    {departments.length === 0 && (
                       <div className="empty-message">
                         <FiBook size={48} />
-                        <p>No departments in this faculty. Click "Create New Department" above to get started!</p>
-                      </div>
-                    )}
-
-                    {uploadForm.departmentId === 'new' && (
-                      <div className="create-form">
-                        <h4>Create New Department</h4>
-                        <input
-                          type="text"
-                          value={newDepartment.name}
-                          onChange={(e) => setNewDepartment({ ...newDepartment, name: e.target.value })}
-                          placeholder="Department name (e.g., Computer Science)"
-                          className="form-input"
-                        />
-                        <input
-                          type="text"
-                          value={newDepartment.code}
-                          onChange={(e) => setNewDepartment({ ...newDepartment, code: e.target.value })}
-                          placeholder="Department code (e.g., CS)"
-                          className="form-input"
-                        />
-                        <div className="form-actions">
-                          <button
-                            onClick={() => setUploadForm({ ...uploadForm, departmentId: '' })}
-                            className="btn btn-secondary"
-                          >
-                            Cancel
-                          </button>
-                          <button onClick={createDepartment} className="btn btn-primary">
-                            Create & Continue
-                          </button>
-                        </div>
+                        <p>No departments in this faculty. Please contact an administrator to add departments.</p>
                       </div>
                     )}
 
@@ -723,8 +692,8 @@ const StudentDashboard = () => {
                 {/* Step 3: Course Selection */}
                 {uploadStep === 3 && (
                   <div className="step-content">
-                    <h3>Select or Create Course</h3>
-                    <p className="step-description">Choose an existing course or create a new one</p>
+                    <h3>Select Course</h3>
+                    <p className="step-description">Choose the course for your material</p>
 
                     <div className="selection-grid">
                       {courses.map((course) => (
@@ -738,59 +707,12 @@ const StudentDashboard = () => {
                           <small>{course.courseName}</small>
                         </button>
                       ))}
-                      <button
-                        className="selection-card create-new"
-                        onClick={() => handleCourseSelect('new')}
-                      >
-                        <FiUpload size={24} />
-                        <span>Create New Course</span>
-                      </button>
                     </div>
 
-                    {courses.length === 0 && uploadForm.courseId !== 'new' && (
+                    {courses.length === 0 && (
                       <div className="empty-message">
                         <FiBook size={48} />
-                        <p>No courses in this department. Click "Create New Course" above to get started!</p>
-                      </div>
-                    )}
-
-                    {uploadForm.courseId === 'new' && (
-                      <div className="create-form">
-                        <h4>Create New Course</h4>
-                        <input
-                          type="text"
-                          value={newCourse.courseCode}
-                          onChange={(e) => setNewCourse({ ...newCourse, courseCode: e.target.value })}
-                          placeholder="Course code (e.g., BIO101)"
-                          className="form-input"
-                        />
-                        <input
-                          type="text"
-                          value={newCourse.courseName}
-                          onChange={(e) => setNewCourse({ ...newCourse, courseName: e.target.value })}
-                          placeholder="Course name (e.g., Introduction to Biology)"
-                          className="form-input"
-                        />
-                        <input
-                          type="number"
-                          value={newCourse.creditUnits}
-                          onChange={(e) => setNewCourse({ ...newCourse, creditUnits: parseInt(e.target.value) })}
-                          placeholder="Credit units"
-                          className="form-input"
-                          min="1"
-                          max="6"
-                        />
-                        <div className="form-actions">
-                          <button
-                            onClick={() => setUploadForm({ ...uploadForm, courseId: '' })}
-                            className="btn btn-secondary"
-                          >
-                            Cancel
-                          </button>
-                          <button onClick={createCourse} className="btn btn-primary">
-                            Create & Continue
-                          </button>
-                        </div>
+                        <p>No courses in this department. Please contact an administrator to add courses.</p>
                       </div>
                     )}
 
@@ -836,12 +758,6 @@ const StudentDashboard = () => {
                       </div>
                     )}
 
-                    {uploadSuccess && (
-                      <div className="upload-success">
-                        <FiCheckCircle /> {uploadSuccess}
-                      </div>
-                    )}
-
                     <div className="modal-actions">
                       <button
                         type="button"
@@ -864,6 +780,71 @@ const StudentDashboard = () => {
                       <p><strong>Note:</strong> Our AI will automatically generate summaries and practice questions. You'll earn 10 points!</p>
                     </div>
                   </form>
+                )}
+
+                {/* Step 5: Processing Status */}
+                {uploadStep === 5 && (
+                  <div className="step-content processing-step">
+                    <div className="processing-container">
+                      {processingStatus.stage === 'completed' ? (
+                        <div className="processing-icon success">
+                          <FiCheckCircle size={64} />
+                        </div>
+                      ) : processingStatus.stage === 'failed' ? (
+                        <div className="processing-icon error">
+                          <FiX size={64} />
+                        </div>
+                      ) : (
+                        <div className="processing-icon loading">
+                          <FiLoader size={64} className="spin" />
+                        </div>
+                      )}
+
+                      <h3>{processingStatus.stage === 'completed' ? 'Upload Complete!' : processingStatus.stage === 'failed' ? 'Processing Failed' : 'Processing Your Material'}</h3>
+                      <p className="processing-message">{processingStatus.message}</p>
+
+                      {processingStatus.stage !== 'failed' && (
+                        <div className="processing-progress-container">
+                          <div className="processing-progress-bar">
+                            <div
+                              className="processing-progress-fill"
+                              style={{ width: `${processingStatus.progress}%` }}
+                            ></div>
+                          </div>
+                          <span className="processing-percentage">{processingStatus.progress}%</span>
+                        </div>
+                      )}
+
+                      <div className="processing-stages">
+                        <div className={`processing-stage ${processingStatus.progress >= 10 ? 'completed' : ''}`}>
+                          <FiUpload size={18} />
+                          <span>Uploading file</span>
+                        </div>
+                        <div className={`processing-stage ${processingStatus.progress >= 35 ? 'completed' : ''} ${processingStatus.stage === 'generating-summary' ? 'active' : ''}`}>
+                          <FiFileText size={18} />
+                          <span>Generating summary</span>
+                        </div>
+                        <div className={`processing-stage ${processingStatus.progress >= 65 ? 'completed' : ''} ${processingStatus.stage === 'generating-questions' ? 'active' : ''}`}>
+                          <FiGrid size={18} />
+                          <span>Creating questions</span>
+                        </div>
+                        <div className={`processing-stage ${processingStatus.progress >= 100 ? 'completed' : ''}`}>
+                          <FiCheckCircle size={18} />
+                          <span>Complete</span>
+                        </div>
+                      </div>
+
+                      {processingStatus.stage === 'failed' && (
+                        <button onClick={resetUploadModal} className="btn btn-primary" style={{ marginTop: '24px' }}>
+                          Try Again
+                        </button>
+                      )}
+
+                      {processingStatus.stage !== 'completed' && processingStatus.stage !== 'failed' && (
+                        <p className="processing-note">Please wait while our AI processes your material. This may take a few minutes.</p>
+                      )}
+                    </div>
+                  </div>
                 )}
 
                 {uploadError && uploadStep < 4 && (

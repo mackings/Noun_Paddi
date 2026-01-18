@@ -458,6 +458,37 @@ async function generateSummaryAndQuestions(materialId, userId) {
   }
 }
 
+// @desc    Get material processing status
+// @route   GET /api/materials/:materialId/status
+// @access  Private
+exports.getMaterialStatus = async (req, res) => {
+  try {
+    const material = await Material.findById(req.params.materialId);
+
+    if (!material) {
+      return res.status(404).json({
+        success: false,
+        message: 'Material not found',
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        processingStatus: material.processingStatus,
+        hasSummary: material.hasSummary,
+        hasQuestions: material.hasQuestions,
+        processingError: material.processingError,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
 // @desc    Get student's upload statistics
 // @route   GET /api/materials/my-stats
 // @access  Private/Student

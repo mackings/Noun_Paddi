@@ -10,6 +10,7 @@ const {
   getAllMaterials,
   studentUploadMaterial,
   getStudentStats,
+  getMaterialStatus,
 } = require('../controllers/materialController');
 const { protect, authorize } = require('../middleware/auth');
 const { upload } = require('../config/cloudinary');
@@ -42,6 +43,7 @@ const handleUploadError = (req, res, next) => {
 // Student routes
 router.post('/student-upload', protect, handleUploadError, studentUploadMaterial);
 router.get('/my-stats', protect, getStudentStats);
+router.get('/:materialId/status', protect, getMaterialStatus);
 
 // Public routes
 router.get('/course/:courseId', getCourseMaterials);
