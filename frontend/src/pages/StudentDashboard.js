@@ -14,7 +14,8 @@ import {
   FiCheckCircle,
   FiArrowLeft,
   FiUser,
-  FiLoader
+  FiLoader,
+  FiPlus
 } from 'react-icons/fi';
 import './StudentDashboard.css';
 
@@ -37,6 +38,9 @@ const StudentDashboard = () => {
   const [departments, setDepartments] = useState([]);
   const [courses, setCourses] = useState([]);
   const [uploadStats, setUploadStats] = useState(null);
+
+  // New course form state
+  const [newCourse, setNewCourse] = useState({ courseCode: '', courseName: '', creditUnits: 3 });
 
   // Processing state for progress tracking
   const [processingStatus, setProcessingStatus] = useState({
@@ -122,8 +126,28 @@ const StudentDashboard = () => {
   const handleCourseSelect = (courseId) => {
     setUploadForm({ ...uploadForm, courseId });
     setUploadError(null);
-    if (courseId) {
+    if (courseId && courseId !== 'new') {
       setUploadStep(4);
+    }
+  };
+
+  const createCourse = async () => {
+    if (!newCourse.courseCode.trim() || !newCourse.courseName.trim()) {
+      setUploadError('Please enter course code and name');
+      return;
+    }
+    try {
+      const response = await api.post('/courses', {
+        ...newCourse,
+        departmentId: uploadForm.departmentId
+      });
+      await fetchCourses(uploadForm.departmentId);
+      setUploadForm({ ...uploadForm, courseId: response.data.data._id });
+      setNewCourse({ courseCode: '', courseName: '', creditUnits: 3 });
+      setUploadError(null);
+      setUploadStep(4);
+    } catch (error) {
+      setUploadError(error.response?.data?.message || 'Failed to create course');
     }
   };
 
@@ -256,6 +280,7 @@ const StudentDashboard = () => {
     setUploadError(null);
     setUploadSuccess(null);
     setProcessingStatus({ stage: '', progress: 0, message: '' });
+    setNewCourse({ courseCode: '', courseName: '', creditUnits: 3 });
   };
 
   if (loading) {
@@ -689,11 +714,11 @@ const StudentDashboard = () => {
                   </div>
                 )}
 
-                {/* Step 3: Course Selection */}
+                {/* Step 3: Course Selection or Creation */}
                 {uploadStep === 3 && (
                   <div className="step-content">
-                    <h3>Select Course</h3>
-                    <p className="step-description">Choose the course for your material</p>
+                    <h3>Select or Create Course</h3>
+                    <p className="step-description">Choose an existing course or create a new one</p>
 
                     <div className="selection-grid">
                       {courses.map((course) => (
@@ -707,12 +732,65 @@ const StudentDashboard = () => {
                           <small>{course.courseName}</small>
                         </button>
                       ))}
+                      <button
+                        className={`selection-card create-new ${uploadForm.courseId === 'new' ? 'selected' : ''}`}
+                        onClick={() => handleCourseSelect('new')}
+                      >
+                        <FiPlus size={24} />
+                        <span>Create New Course</span>
+                      </button>
                     </div>
 
-                    {courses.length === 0 && (
+                    {uploadForm.courseId === 'new' && (
+                      <div className="create-form">
+                        <h4>Create New Course</h4>
+                        <input
+                          type="text"
+                          value={newCourse.courseCode}
+                          onChange={(e) => setNewCourse({ ...newCourse, courseCode: e.target.value.toUpperCase() })}
+                          placeholder="Course code (e.g., BIO101)"
+                          className="form-input"
+                        />
+                        <input
+                          type="text"
+                          value={newCourse.courseName}
+                          onChange={(e) => setNewCourse({ ...newCourse, courseName: e.target.value })}
+                          placeholder="Course name (e.g., Introduction to Biology)"
+                          className="form-input"
+                        />
+                        <input
+                          type="number"
+                          value={newCourse.creditUnits}
+                          onChange={(e) => setNewCourse({ ...newCourse, creditUnits: parseInt(e.target.value) || 3 })}
+                          placeholder="Credit units"
+                          className="form-input"
+                          min="1"
+                          max="6"
+                        />
+                        <div className="form-actions">
+                          <button
+                            type="button"
+                            onClick={() => setUploadForm({ ...uploadForm, courseId: '' })}
+                            className="btn btn-secondary"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="button"
+                            onClick={createCourse}
+                            className="btn btn-primary"
+                            disabled={!newCourse.courseCode.trim() || !newCourse.courseName.trim()}
+                          >
+                            Create & Continue
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {courses.length === 0 && uploadForm.courseId !== 'new' && (
                       <div className="empty-message">
                         <FiBook size={48} />
-                        <p>No courses in this department. Please contact an administrator to add courses.</p>
+                        <p>No courses in this department yet. Click "Create New Course" to add one!</p>
                       </div>
                     )}
 
