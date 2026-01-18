@@ -5,10 +5,60 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const APIUsage = require('../models/APIUsage');
+const { cloudinary } = require('../config/cloudinary');
+const { extractTextFromPDF } = require('./pdfHelper');
 
-// Initialize Google Gemini AI
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const fileManager = new GoogleAIFileManager(process.env.GEMINI_API_KEY);
+let geminiClients = null;
+let geminiClientIndex = 0;
+
+function getGeminiClients() {
+  if (geminiClients) return geminiClients;
+
+  const keysEnv = process.env.GEMINI_API_KEYS || process.env.GEMINI_API_KEY || '';
+  const keys = keysEnv.split(',').map(k => k.trim()).filter(Boolean);
+
+  geminiClients = keys.map((key) => ({
+    key,
+    genAI: new GoogleGenerativeAI(key),
+    fileManager: new GoogleAIFileManager(key),
+  }));
+
+  return geminiClients;
+}
+
+function isRateLimitError(error) {
+  const message = `${error?.message || ''}`;
+  return error?.status === 429 ||
+    error?.response?.status === 429 ||
+    message.includes('429') ||
+    message.includes('Too Many Requests');
+}
+
+async function withGeminiClient(fn) {
+  const clients = getGeminiClients();
+  if (!clients.length) {
+    throw new Error('No Gemini API keys configured');
+  }
+
+  let lastError;
+  for (let i = 0; i < clients.length; i++) {
+    const index = geminiClientIndex % clients.length;
+    geminiClientIndex = (geminiClientIndex + 1) % clients.length;
+    const client = clients[index];
+    try {
+      const result = await fn(client);
+      return result;
+    } catch (error) {
+      lastError = error;
+      if (isRateLimitError(error) && clients.length > 1) {
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  throw lastError || new Error('All Gemini API keys failed');
+}
 
 // Helper function to track API usage
 async function trackAPIUsage(operationType, result, materialId = null, userId = null, success = true, errorMessage = null) {
@@ -36,9 +86,16 @@ async function summarizeText(text, pdfUrl = null, materialId = null, userId = nu
   try {
     console.log('Starting text summarization with Gemini...');
 
-    // If we have a PDF URL, use the File API for better results
+    // If we have a PDF URL, extract text and summarize directly for speed
     if (pdfUrl) {
-      return await summarizePDFDirectly(pdfUrl, materialId, userId);
+      try {
+        const signedUrl = getCloudinarySignedUrl(pdfUrl);
+        const extractedText = await extractTextFromPDF(signedUrl);
+        text = extractedText;
+      } catch (error) {
+        console.error('PDF text extraction failed, falling back to File API:', error.message);
+        return await summarizePDFDirectly(pdfUrl, materialId, userId);
+      }
     }
 
     console.log('Original text length:', text.length);
@@ -55,8 +112,14 @@ async function summarizeText(text, pdfUrl = null, materialId = null, userId = nu
       throw new Error('Text is too short to summarize. Need at least 200 characters.');
     }
 
-    // Initialize Gemini model
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    // Trim very long inputs by 20% to reduce latency while keeping most content
+    if (cleanedText.length > 0) {
+      const trimmedLength = Math.floor(cleanedText.length * 0.8);
+      if (trimmedLength < cleanedText.length) {
+        console.log(`Trimming summary input from ${cleanedText.length} to ${trimmedLength} characters`);
+        cleanedText = cleanedText.substring(0, trimmedLength);
+      }
+    }
 
     // Gemini 1.5 Flash can handle very long texts (up to 1M tokens)
     // No need to chunk - let it process the full document
@@ -113,7 +176,10 @@ ${cleanedText}
 
 Please provide a well-structured, comprehensive summary with proper bold headers, effective use of paragraphs and bullet points:`;
 
-    const result = await model.generateContent(prompt);
+    const result = await withGeminiClient(async ({ genAI }) => {
+      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+      return await model.generateContent(prompt);
+    });
     const response = result.response;
     const summary = response.text();
 
@@ -141,10 +207,11 @@ async function summarizePDFDirectly(pdfUrl, materialId = null, userId = null) {
 
   try {
     console.log('Using Gemini File API for PDF summarization...');
-    console.log('Downloading PDF from:', pdfUrl);
+    const signedUrl = getCloudinarySignedUrl(pdfUrl);
+    console.log('Downloading PDF from:', signedUrl);
 
     // Download PDF to temporary file
-    const response = await axios.get(pdfUrl, {
+    const response = await axios.get(signedUrl, {
       responseType: 'arraybuffer',
     });
 
@@ -156,29 +223,30 @@ async function summarizePDFDirectly(pdfUrl, materialId = null, userId = null) {
     fs.writeFileSync(tempFilePath, pdfBuffer);
     console.log('Saved to temp file:', tempFilePath);
 
-    // Upload to Gemini File API
-    console.log('Uploading PDF to Gemini...');
-    const uploadResult = await fileManager.uploadFile(tempFilePath, {
-      mimeType: 'application/pdf',
-      displayName: 'Study Material',
-    });
+    const result = await withGeminiClient(async ({ genAI, fileManager }) => {
+      // Upload to Gemini File API
+      console.log('Uploading PDF to Gemini...');
+      const uploadResult = await fileManager.uploadFile(tempFilePath, {
+        mimeType: 'application/pdf',
+        displayName: 'Study Material',
+      });
 
-    console.log('File uploaded:', uploadResult.file.uri);
+      console.log('File uploaded:', uploadResult.file.uri);
 
-    // Initialize model
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+      // Initialize model
+      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
-    // Generate summary from PDF
-    console.log('Generating summary from PDF...');
-    const result = await model.generateContent([
-      {
-        fileData: {
-          mimeType: uploadResult.file.mimeType,
-          fileUri: uploadResult.file.uri
-        }
-      },
-      {
-        text: `You are an expert educational content summarizer. Please provide a comprehensive, well-formatted summary of this PDF course material.
+      // Generate summary from PDF
+      console.log('Generating summary from PDF...');
+      return await model.generateContent([
+        {
+          fileData: {
+            mimeType: uploadResult.file.mimeType,
+            fileUri: uploadResult.file.uri
+          }
+        },
+        {
+          text: `You are an expert educational content summarizer. Please provide a comprehensive, well-formatted summary of this PDF course material.
 
 **CRITICAL FORMATTING REQUIREMENTS:**
 
@@ -227,8 +295,9 @@ async function summarizePDFDirectly(pdfUrl, materialId = null, userId = null) {
 8. Cover content from beginning, middle, and end of document
 
 Please provide a well-structured, comprehensive summary with proper bold headers, effective use of paragraphs and bullet points:`
-      },
-    ]);
+        },
+      ]);
+    });
 
     const summary = result.response.text();
     console.log('Summary generated successfully');
@@ -269,9 +338,16 @@ async function generateQuestions(text, pdfUrl = null, materialId = null, userId 
   try {
     console.log('Starting question generation with Gemini...');
 
-    // If we have a PDF URL, use the File API
+    // If we have a PDF URL, extract text and generate questions directly for speed
     if (pdfUrl) {
-      return await generateQuestionsFromPDF(pdfUrl, materialId, userId);
+      try {
+        const signedUrl = getCloudinarySignedUrl(pdfUrl);
+        const extractedText = await extractTextFromPDF(signedUrl);
+        return await generateQuestions(extractedText, null, materialId, userId);
+      } catch (error) {
+        console.error('PDF text extraction failed, falling back to File API:', error.message);
+        return await generateQuestionsFromPDF(pdfUrl, materialId, userId);
+      }
     }
 
     // Clean and prepare text
@@ -288,8 +364,6 @@ async function generateQuestions(text, pdfUrl = null, materialId = null, userId 
     console.log('Text length for question generation:', truncatedText.length);
 
     // Initialize Gemini model
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-
     const prompt = `Based on the following educational content, generate 70 high-quality practice questions with a mix of different question types.
 
 **CRITICAL REQUIREMENTS - RANDOMIZATION:**
@@ -357,7 +431,10 @@ ${truncatedText}
 
 Generate 70 questions (45 multiple-choice, 15 true-false, 10 multi-select) with RANDOMIZED and BALANCED correct answers:`;
 
-    const result = await model.generateContent(prompt);
+    const result = await withGeminiClient(async ({ genAI }) => {
+      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+      return await model.generateContent(prompt);
+    });
     const response = result.response;
     const questionsText = response.text();
 
@@ -387,10 +464,11 @@ async function generateQuestionsFromPDF(pdfUrl, materialId = null, userId = null
 
   try {
     console.log('Using Gemini File API for question generation...');
-    console.log('Downloading PDF from:', pdfUrl);
+    const signedUrl = getCloudinarySignedUrl(pdfUrl);
+    console.log('Downloading PDF from:', signedUrl);
 
     // Download PDF to temporary file
-    const response = await axios.get(pdfUrl, {
+    const response = await axios.get(signedUrl, {
       responseType: 'arraybuffer',
     });
 
@@ -398,29 +476,30 @@ async function generateQuestionsFromPDF(pdfUrl, materialId = null, userId = null
     tempFilePath = path.join(os.tmpdir(), `material-${Date.now()}.pdf`);
     fs.writeFileSync(tempFilePath, pdfBuffer);
 
-    // Upload to Gemini File API
-    console.log('Uploading PDF to Gemini...');
-    const uploadResult = await fileManager.uploadFile(tempFilePath, {
-      mimeType: 'application/pdf',
-      displayName: 'Study Material',
-    });
+    const result = await withGeminiClient(async ({ genAI, fileManager }) => {
+      // Upload to Gemini File API
+      console.log('Uploading PDF to Gemini...');
+      const uploadResult = await fileManager.uploadFile(tempFilePath, {
+        mimeType: 'application/pdf',
+        displayName: 'Study Material',
+      });
 
-    console.log('File uploaded:', uploadResult.file.uri);
+      console.log('File uploaded:', uploadResult.file.uri);
 
-    // Initialize model
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+      // Initialize model
+      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
-    // Generate questions from PDF
-    console.log('Generating questions from PDF...');
-    const result = await model.generateContent([
-      {
-        fileData: {
-          mimeType: uploadResult.file.mimeType,
-          fileUri: uploadResult.file.uri
-        }
-      },
-      {
-        text: `Based on this PDF educational content, generate 70 high-quality practice questions with a mix of different question types.
+      // Generate questions from PDF
+      console.log('Generating questions from PDF...');
+      return await model.generateContent([
+        {
+          fileData: {
+            mimeType: uploadResult.file.mimeType,
+            fileUri: uploadResult.file.uri
+          }
+        },
+        {
+          text: `Based on this PDF educational content, generate 70 high-quality practice questions with a mix of different question types.
 
 **CRITICAL REQUIREMENTS - RANDOMIZATION:**
 1. For multiple-choice questions: RANDOMLY distribute correct answers across ALL options (A, B, C, D)
@@ -484,8 +563,9 @@ Difficulty: [easy/medium/hard]
 ---
 
 Generate 70 questions (45 multiple-choice, 15 true-false, 10 multi-select) with RANDOMIZED and BALANCED correct answers:`
-      },
-    ]);
+        },
+      ]);
+    });
 
     const questionsText = result.response.text();
     console.log('Question generation successful');
@@ -684,3 +764,25 @@ module.exports = {
   generateQuestions,
   formatQuestionsToMCQ,
 };
+
+function getCloudinarySignedUrl(fileUrl) {
+  try {
+    if (!fileUrl || !fileUrl.includes('res.cloudinary.com')) {
+      return fileUrl;
+    }
+
+    const match = fileUrl.match(/\/raw\/upload\/(?:v\d+\/)?(.+)$/);
+    if (!match || !match[1]) {
+      return fileUrl;
+    }
+
+    const publicIdWithExt = decodeURIComponent(match[1]).replace(/\?.*$/, '');
+    return cloudinary.utils.private_download_url(publicIdWithExt, '', {
+      resource_type: 'raw',
+      type: 'upload',
+    });
+  } catch (error) {
+    console.error('Error generating Cloudinary signed URL:', error.message);
+    return fileUrl;
+  }
+}

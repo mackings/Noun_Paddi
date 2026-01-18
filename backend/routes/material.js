@@ -9,6 +9,7 @@ const {
   getCourseMaterials,
   getAllMaterials,
   studentUploadMaterial,
+  getUploadSignature,
   getStudentStats,
   getMaterialStatus,
 } = require('../controllers/materialController');
@@ -24,6 +25,10 @@ router.delete('/:id', protect, authorize('admin'), deleteMaterial);
 
 // Middleware to handle multer/cloudinary errors
 const handleUploadError = (req, res, next) => {
+  if (!req.is('multipart/form-data')) {
+    return next();
+  }
+
   upload.single('file')(req, res, (err) => {
     if (err) {
       console.error('=== Upload Middleware Error ===');
@@ -42,6 +47,7 @@ const handleUploadError = (req, res, next) => {
 
 // Student routes
 router.post('/student-upload', protect, handleUploadError, studentUploadMaterial);
+router.post('/upload-signature', protect, getUploadSignature);
 router.get('/my-stats', protect, getStudentStats);
 router.get('/:materialId/status', protect, getMaterialStatus);
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import axios from 'axios';
 import { Link } from 'react-router-dom';
 import api from '../utils/api';
 import { formatDate } from '../utils/dateHelper';
@@ -215,6 +216,21 @@ const StudentDashboard = () => {
     };
   }, []);
 
+  const computeFileHash = async (file) => {
+    try {
+      if (!window.crypto || !window.crypto.subtle) {
+        return '';
+      }
+      const buffer = await file.arrayBuffer();
+      const hashBuffer = await window.crypto.subtle.digest('SHA-256', buffer);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+    } catch (error) {
+      console.error('Error computing file hash:', error);
+      return '';
+    }
+  };
+
   const handleUploadSubmit = async (e) => {
     e.preventDefault();
     setUploading(true);
@@ -230,15 +246,38 @@ const StudentDashboard = () => {
     });
 
     try {
-      const formData = new FormData();
-      formData.append('file', uploadForm.file);
-      formData.append('title', uploadForm.title);
-      formData.append('courseId', uploadForm.courseId);
+      const cloudName = process.env.REACT_APP_CLOUDINARY_CLOUD_NAME;
+      const apiKey = process.env.REACT_APP_CLOUDINARY_API_KEY;
 
-      const response = await api.post('/materials/student-upload', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+      if (!cloudName || !apiKey) {
+        throw new Error('Cloudinary configuration is missing on the frontend');
+      }
+
+      const signatureResponse = await api.post('/materials/upload-signature');
+      const { timestamp, signature, folder } = signatureResponse.data.data;
+
+      const cloudinaryData = new FormData();
+      cloudinaryData.append('file', uploadForm.file);
+      cloudinaryData.append('api_key', apiKey);
+      cloudinaryData.append('timestamp', timestamp);
+      cloudinaryData.append('signature', signature);
+      cloudinaryData.append('folder', folder);
+
+      const cloudinaryResponse = await axios.post(
+        `https://api.cloudinary.com/v1_1/${cloudName}/raw/upload`,
+        cloudinaryData
+      );
+
+      const fileHash = await computeFileHash(uploadForm.file);
+
+      const response = await api.post('/materials/student-upload', {
+        title: uploadForm.title,
+        courseId: uploadForm.courseId,
+        cloudinaryUrl: cloudinaryResponse.data.secure_url,
+        cloudinaryPublicId: cloudinaryResponse.data.public_id,
+        fileType: uploadForm.file.type,
+        originalFilename: uploadForm.file.name,
+        fileHash,
       });
 
       const materialId = response.data.data._id;

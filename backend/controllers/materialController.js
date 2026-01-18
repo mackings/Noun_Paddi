@@ -4,6 +4,7 @@ const Question = require('../models/Question');
 const { summarizeText, generateQuestions, formatQuestionsToMCQ } = require('../utils/aiHelper');
 const crypto = require('crypto');
 const { materialCache, questionCache, cacheHelper } = require('../utils/cache');
+const { cloudinary } = require('../config/cloudinary');
 
 // @desc    Upload course material
 // @route   POST /api/materials/upload
@@ -303,7 +304,10 @@ exports.studentUploadMaterial = async (req, res) => {
     console.log('Body:', req.body);
     console.log('User:', req.user);
 
-    if (!req.file) {
+    const hasFileUpload = !!req.file;
+    const hasCloudinaryUpload = !!req.body.cloudinaryUrl && !!req.body.cloudinaryPublicId;
+
+    if (!hasFileUpload && !hasCloudinaryUpload) {
       return res.status(400).json({
         success: false,
         message: 'Please upload a file',
@@ -320,7 +324,16 @@ exports.studentUploadMaterial = async (req, res) => {
     }
 
     // Generate file hash for duplicate detection
-    const fileHash = crypto.createHash('sha256').update(req.file.buffer || req.file.path).digest('hex');
+    const fileHash = req.body.fileHash
+      ? req.body.fileHash
+      : crypto
+          .createHash('sha256')
+          .update(
+            hasFileUpload
+              ? (req.file.buffer || req.file.path)
+              : (req.body.cloudinaryPublicId || req.body.cloudinaryUrl)
+          )
+          .digest('hex');
 
     // Check for duplicate
     const duplicate = await Material.findDuplicate(courseId, fileHash);
@@ -339,8 +352,8 @@ exports.studentUploadMaterial = async (req, res) => {
     console.log('Creating material with data:', {
       title,
       courseId,
-      cloudinaryUrl: req.file.path,
-      cloudinaryPublicId: req.file.filename,
+      cloudinaryUrl: hasFileUpload ? req.file.path : req.body.cloudinaryUrl,
+      cloudinaryPublicId: hasFileUpload ? req.file.filename : req.body.cloudinaryPublicId,
       uploadedBy: req.user._id,
       uploadedByRole: 'student',
       fileHash,
@@ -349,9 +362,9 @@ exports.studentUploadMaterial = async (req, res) => {
     const material = await Material.create({
       title,
       courseId,
-      cloudinaryUrl: req.file.path,
-      cloudinaryPublicId: req.file.filename,
-      fileType: req.file.mimetype,
+      cloudinaryUrl: hasFileUpload ? req.file.path : req.body.cloudinaryUrl,
+      cloudinaryPublicId: hasFileUpload ? req.file.filename : req.body.cloudinaryPublicId,
+      fileType: hasFileUpload ? req.file.mimetype : (req.body.fileType || 'application/pdf'),
       uploadedBy: req.user._id,
       uploadedByRole: 'student',
       fileHash,
@@ -387,6 +400,34 @@ exports.studentUploadMaterial = async (req, res) => {
   }
 };
 
+// @desc    Get Cloudinary upload signature for client-side upload
+// @route   POST /api/materials/upload-signature
+// @access  Private
+exports.getUploadSignature = async (req, res) => {
+  try {
+    const timestamp = Math.round(Date.now() / 1000);
+    const folder = 'nounpaddi-materials';
+    const signature = cloudinary.utils.api_sign_request(
+      { timestamp, folder },
+      process.env.CLOUDINARY_API_SECRET
+    );
+
+    res.status(200).json({
+      success: true,
+      data: {
+        timestamp,
+        signature,
+        folder,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to generate upload signature',
+    });
+  }
+};
+
 // Helper function to generate summary and questions in background
 async function generateSummaryAndQuestions(materialId, userId) {
   try {
@@ -402,8 +443,10 @@ async function generateSummaryAndQuestions(materialId, userId) {
 
     console.log(`Starting background processing for material: ${materialId}`);
 
-    // Generate summary
-    const summaryText = await summarizeText(null, material.cloudinaryUrl, material._id, userId);
+    const [summaryText, generatedQuestions] = await Promise.all([
+      summarizeText(null, material.cloudinaryUrl, material._id, userId),
+      generateQuestions(null, material.cloudinaryUrl, material._id, userId),
+    ]);
 
     // Save summary to Material model
     material.summary = summaryText;
@@ -417,8 +460,6 @@ async function generateSummaryAndQuestions(materialId, userId) {
 
     console.log(`Summary generated for material: ${materialId}`);
 
-    // Generate questions
-    const generatedQuestions = await generateQuestions(null, material.cloudinaryUrl, material._id, userId);
     const mcqQuestions = formatQuestionsToMCQ(generatedQuestions, '');
 
     // Save questions to database
