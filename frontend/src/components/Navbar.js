@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { FiMenu, FiX, FiLogOut, FiUser, FiSun, FiMoon, FiBook, FiBell, FiFileText } from 'react-icons/fi';
+import { FiMenu, FiX, FiLogOut, FiUser, FiSun, FiMoon, FiBook, FiBell, FiFolder } from 'react-icons/fi';
 import './Navbar.css';
 
 const Navbar = () => {
@@ -37,11 +37,11 @@ const Navbar = () => {
                 {user.role === 'student' && (
                   <>
                     <Link to="/dashboard" className="nav-link">Dashboard</Link>
-                    <Link to="/explore" className="nav-link">Explore Courses</Link>
+                    <Link to="/explore" className="nav-link">Courses</Link>
                     <Link to="/practice" className="nav-link">Practice Exam</Link>
                     <Link to="/it-placement" className="nav-link">IT Placement</Link>
                     <Link to="/reminders" className="nav-link"><FiBell size={16} /> Reminders</Link>
-                    <Link to="/plagiarism" className="nav-link"><FiFileText size={16} /> Plagiarism</Link>
+                    <Link to="/projects" className="nav-link"><FiFolder size={16} /> Projects</Link>
                   </>
                 )}
                 {user.role === 'admin' && (
@@ -102,7 +102,7 @@ const Navbar = () => {
                       Dashboard
                     </Link>
                     <Link to="/explore" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>
-                      Explore Courses
+                      Courses
                     </Link>
                     <Link to="/practice" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>
                       Practice Exam
@@ -113,8 +113,8 @@ const Navbar = () => {
                     <Link to="/reminders" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>
                       <FiBell size={16} /> Reminders
                     </Link>
-                    <Link to="/plagiarism" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>
-                      <FiFileText size={16} /> Plagiarism Checker
+                    <Link to="/projects" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>
+                      <FiFolder size={16} /> Projects
                     </Link>
                   </>
                 )}

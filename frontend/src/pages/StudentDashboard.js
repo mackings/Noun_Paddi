@@ -50,6 +50,12 @@ const StudentDashboard = () => {
     message: ''
   });
   const pollingIntervalRef = useRef(null);
+  const pollingTimeoutRef = useRef(null);
+  const statusTimeoutRef = useRef(null);
+  const sseRef = useRef(null);
+  const pollStartRef = useRef(null);
+  const pollDelayRef = useRef(3000);
+  const lastPollStateRef = useRef({ hasSummary: null, questionsCount: 0 });
 
   useEffect(() => {
     fetchStats();
@@ -152,59 +158,200 @@ const StudentDashboard = () => {
     }
   };
 
+  const closeStatusStream = () => {
+    if (sseRef.current) {
+      sseRef.current.close();
+      sseRef.current = null;
+    }
+    if (statusTimeoutRef.current) {
+      clearTimeout(statusTimeoutRef.current);
+      statusTimeoutRef.current = null;
+    }
+  };
+
+  const applyStatusUpdate = (payload) => {
+    const {
+      processingStatus: status,
+      hasSummary,
+      questionsCount = 0,
+      expectedQuestions = 70,
+      processingError,
+    } = payload || {};
+
+    const hasAllQuestions = questionsCount >= expectedQuestions;
+    const progressBase = hasSummary ? 40 : 20;
+    const questionProgress = hasSummary
+      ? Math.min(questionsCount / expectedQuestions, 1)
+      : 0;
+    const progress = hasSummary
+      ? Math.round(progressBase + questionProgress * 60)
+      : 35;
+
+    let shouldContinue = true;
+
+    if (status === 'processing') {
+      if (hasSummary && questionsCount >= 10 && !hasAllQuestions) {
+        setProcessingStatus({
+          stage: 'partial-ready',
+          progress: progress,
+          message: `Summary ready. ${questionsCount}/${expectedQuestions} questions available. Generating the rest in background...`
+        });
+        fetchUploadStats();
+        fetchStats();
+        setTimeout(() => {
+          resetUploadModal();
+        }, 2500);
+        shouldContinue = false;
+      } else if (hasSummary && !hasAllQuestions) {
+        setProcessingStatus({
+          stage: 'generating-questions',
+          progress,
+          message: `Generating practice questions... ${questionsCount}/${expectedQuestions} ready`
+        });
+      } else if (!hasSummary) {
+        setProcessingStatus({
+          stage: 'generating-summary',
+          progress: 35,
+          message: 'Generating AI summary...'
+        });
+      }
+    } else if (status === 'completed' && hasSummary && hasAllQuestions) {
+      setProcessingStatus({
+        stage: 'completed',
+        progress: 100,
+        message: 'Processing complete! Summary and questions are ready.'
+      });
+      fetchUploadStats();
+      fetchStats();
+      setTimeout(() => {
+        resetUploadModal();
+      }, 3000);
+      shouldContinue = false;
+    } else if (status === 'failed') {
+      setProcessingStatus({
+        stage: 'failed',
+        progress: 0,
+        message: processingError || 'Processing failed. Please try again.'
+      });
+      shouldContinue = false;
+    }
+
+    const previous = lastPollStateRef.current;
+    lastPollStateRef.current = { hasSummary, questionsCount };
+    const progressed = previous.hasSummary !== hasSummary || previous.questionsCount !== questionsCount;
+    return { shouldContinue, progressed };
+  };
+
   // Poll for material processing status
   const pollProcessingStatus = async (materialId) => {
     try {
       const response = await api.get(`/materials/${materialId}/status`);
-      const { processingStatus: status, hasSummary, hasQuestions } = response.data.data;
+      const payload = response.data.data;
+      const { shouldContinue, progressed } = applyStatusUpdate(payload);
 
-      if (status === 'processing') {
-        // Determine progress based on what's been generated
-        if (hasSummary && !hasQuestions) {
+      const now = Date.now();
+      const elapsed = pollStartRef.current ? now - pollStartRef.current : 0;
+      const timeoutMs = 9 * 60 * 1000;
+      const shouldPoll = shouldContinue &&
+        payload.processingStatus !== 'failed' &&
+        !(payload.processingStatus === 'completed' && payload.hasSummary && payload.questionsCount >= (payload.expectedQuestions || 70));
+
+      if (shouldPoll) {
+        if (elapsed > timeoutMs) {
           setProcessingStatus({
-            stage: 'generating-questions',
-            progress: 65,
-            message: 'Generating practice questions...'
+            stage: 'failed',
+            progress: 0,
+            message: 'Processing took too long. Please try again later.'
           });
-        } else if (!hasSummary) {
-          setProcessingStatus({
-            stage: 'generating-summary',
-            progress: 35,
-            message: 'Generating AI summary...'
-          });
+          if (pollingTimeoutRef.current) {
+            clearTimeout(pollingTimeoutRef.current);
+            pollingTimeoutRef.current = null;
+          }
+          return;
         }
-      } else if (status === 'completed') {
-        setProcessingStatus({
-          stage: 'completed',
-          progress: 100,
-          message: 'Processing complete! Summary and questions are ready.'
-        });
-        // Stop polling
-        if (pollingIntervalRef.current) {
-          clearInterval(pollingIntervalRef.current);
-          pollingIntervalRef.current = null;
+        if (progressed) {
+          pollDelayRef.current = 3000;
+        } else {
+          pollDelayRef.current = Math.min(Math.round(pollDelayRef.current * 1.5), 15000);
         }
-        // Refresh stats
-        fetchUploadStats();
-        fetchStats();
-        // Show success for a bit then close
-        setTimeout(() => {
-          resetUploadModal();
-        }, 3000);
-      } else if (status === 'failed') {
-        setProcessingStatus({
-          stage: 'failed',
-          progress: 0,
-          message: response.data.data.processingError || 'Processing failed. Please try again.'
-        });
-        if (pollingIntervalRef.current) {
-          clearInterval(pollingIntervalRef.current);
-          pollingIntervalRef.current = null;
+        if (pollingTimeoutRef.current) {
+          clearTimeout(pollingTimeoutRef.current);
         }
+        pollingTimeoutRef.current = setTimeout(() => {
+          pollProcessingStatus(materialId);
+        }, pollDelayRef.current);
       }
     } catch (error) {
       console.error('Error polling status:', error);
     }
+  };
+
+  const startStatusStream = (materialId) => {
+    closeStatusStream();
+    const token = localStorage.getItem('token');
+    const baseUrl = (process.env.REACT_APP_API_URL || 'http://localhost:5000/api').trim();
+
+    if (!token) {
+      pollProcessingStatus(materialId);
+      return;
+    }
+
+    const streamUrl = `${baseUrl}/materials/${materialId}/stream?token=${encodeURIComponent(token)}`;
+    const source = new EventSource(streamUrl);
+    sseRef.current = source;
+
+    statusTimeoutRef.current = setTimeout(() => {
+      setProcessingStatus({
+        stage: 'failed',
+        progress: 0,
+        message: 'Processing took too long. Please try again later.'
+      });
+      closeStatusStream();
+    }, 9 * 60 * 1000);
+
+    const handlePayload = (payload) => {
+      const { shouldContinue, progressed } = applyStatusUpdate(payload);
+      if (progressed) {
+        // Reset timeout on progress
+        if (statusTimeoutRef.current) {
+          clearTimeout(statusTimeoutRef.current);
+        }
+        statusTimeoutRef.current = setTimeout(() => {
+          setProcessingStatus({
+            stage: 'failed',
+            progress: 0,
+            message: 'Processing took too long. Please try again later.'
+          });
+          closeStatusStream();
+        }, 9 * 60 * 1000);
+      }
+      if (!shouldContinue) {
+        closeStatusStream();
+      }
+    };
+
+    source.addEventListener('status', (event) => {
+      try {
+        handlePayload(JSON.parse(event.data));
+      } catch (error) {
+        console.error('Failed to parse status event:', error);
+      }
+    });
+
+    source.addEventListener('done', (event) => {
+      try {
+        handlePayload(JSON.parse(event.data));
+      } catch (error) {
+        console.error('Failed to parse done event:', error);
+      } finally {
+        closeStatusStream();
+      }
+    });
+
+    source.addEventListener('error', () => {
+      closeStatusStream();
+      pollProcessingStatus(materialId);
+    });
   };
 
   // Cleanup polling on unmount
@@ -213,6 +360,10 @@ const StudentDashboard = () => {
       if (pollingIntervalRef.current) {
         clearInterval(pollingIntervalRef.current);
       }
+      if (pollingTimeoutRef.current) {
+        clearTimeout(pollingTimeoutRef.current);
+      }
+      closeStatusStream();
     };
   }, []);
 
@@ -290,9 +441,13 @@ const StudentDashboard = () => {
       });
 
       // Start polling for processing status
-      pollingIntervalRef.current = setInterval(() => {
-        pollProcessingStatus(materialId);
-      }, 3000);
+      pollStartRef.current = Date.now();
+      pollDelayRef.current = 3000;
+      lastPollStateRef.current = { hasSummary: null, questionsCount: 0 };
+      if (pollingTimeoutRef.current) {
+        clearTimeout(pollingTimeoutRef.current);
+      }
+      startStatusStream(materialId);
 
     } catch (error) {
       console.error('Upload error:', error);
@@ -313,6 +468,11 @@ const StudentDashboard = () => {
       clearInterval(pollingIntervalRef.current);
       pollingIntervalRef.current = null;
     }
+    if (pollingTimeoutRef.current) {
+      clearTimeout(pollingTimeoutRef.current);
+      pollingTimeoutRef.current = null;
+    }
+    closeStatusStream();
     setShowUploadModal(false);
     setUploadStep(1);
     setUploadForm({ title: '', facultyId: '', departmentId: '', courseId: '', file: null });

@@ -1,7 +1,14 @@
 const Material = require('../models/Material');
 const Summary = require('../models/Summary');
 const Question = require('../models/Question');
-const { summarizeText, generateQuestions, formatQuestionsToMCQ } = require('../utils/aiHelper');
+const {
+  summarizeText,
+  generateQuestions,
+  formatQuestionsToMCQ,
+  generateSummaryAndQuestionsParallel,
+  generateQuestionsParallel,
+  getClientCount,
+} = require('../utils/aiHelper');
 const crypto = require('crypto');
 const { materialCache, questionCache, cacheHelper } = require('../utils/cache');
 const { cloudinary } = require('../config/cloudinary');
@@ -429,6 +436,7 @@ exports.getUploadSignature = async (req, res) => {
 };
 
 // Helper function to generate summary and questions in background
+// OPTIMIZED: Uses parallel generation for faster upload experience
 async function generateSummaryAndQuestions(materialId, userId) {
   try {
     const material = await Material.findById(materialId);
@@ -441,12 +449,16 @@ async function generateSummaryAndQuestions(materialId, userId) {
     material.processingStatus = 'processing';
     await material.save();
 
-    console.log(`Starting background processing for material: ${materialId}`);
+    const apiKeyCount = getClientCount();
+    console.log(`Starting FAST background processing for material: ${materialId}`);
+    console.log(`Available API keys: ${apiKeyCount}`);
 
-    const [summaryText, generatedQuestions] = await Promise.all([
-      summarizeText(null, material.cloudinaryUrl, material._id, userId),
-      generateQuestions(null, material.cloudinaryUrl, material._id, userId),
-    ]);
+    // Use parallel generation if we have multiple API keys
+    const { summary: summaryText, questions: mcqQuestions } = await generateSummaryAndQuestionsParallel(
+      material.cloudinaryUrl,
+      material._id,
+      userId
+    );
 
     // Save summary to Material model
     material.summary = summaryText;
@@ -460,44 +472,139 @@ async function generateSummaryAndQuestions(materialId, userId) {
 
     console.log(`Summary generated for material: ${materialId}`);
 
-    const mcqQuestions = formatQuestionsToMCQ(generatedQuestions, '');
-
-    // Save questions to database
-    for (const q of mcqQuestions) {
-      await Question.create({
+    // Save questions to database (batch insert for speed)
+    if (mcqQuestions.length > 0) {
+      const questionsToInsert = mcqQuestions.map(q => ({
         materialId: material._id,
         courseId: material.courseId,
         questionText: q.questionText,
+        questionType: q.questionType || 'multiple-choice',
         options: q.options,
         correctAnswer: q.correctAnswer,
+        explanation: q.explanation,
         difficulty: q.difficulty,
-      });
+      }));
+      await Question.insertMany(questionsToInsert);
+      console.log(`Saved ${mcqQuestions.length} initial questions for material: ${materialId}`);
     }
+
+    material.hasQuestions = false;
+    material.processingStatus = 'processing';
+    await material.save();
+
+    cacheHelper.invalidate(materialCache, `material_${materialId}_summary`);
+    cacheHelper.invalidatePattern(questionCache, `course_${material.courseId}_*`);
+    console.log(`Initial questions ready for material: ${materialId}`);
+    console.log('Remaining questions will be generated on exam start.');
+  } catch (error) {
+    console.error('Error in background processing:', error);
+
+    // Update material with error status
+    try {
+      const material = await Material.findById(materialId);
+      if (material) {
+        material.processingStatus = 'failed';
+        material.processingError = error.message;
+        await material.save();
+      }
+    } catch (updateError) {
+      console.error('Error updating failed status:', updateError);
+    }
+  }
+}
+
+// OPTIMIZED: Generate remaining questions using parallel batches
+async function generateRemainingQuestions(materialId, userId, targetCount = 70) {
+  const material = await Material.findById(materialId);
+  if (!material) {
+    return;
+  }
+
+  let currentCount = await Question.countDocuments({ materialId });
+  let remaining = targetCount - currentCount;
+
+  if (remaining <= 0) {
+    material.hasQuestions = true;
+    material.processingStatus = 'completed';
+    material.contributorPoints = 10;
+    await material.save();
+    console.log(`Material ${materialId} already has ${currentCount} questions, marking complete`);
+    return;
+  }
+
+  console.log(`Generating ${remaining} more questions for material: ${materialId}`);
+  console.log(`Current count: ${currentCount}, Target: ${targetCount}`);
+
+  try {
+    // Get existing questions for exclusion
+    const existingQuestions = await Question.find({ materialId })
+      .select('questionText')
+      .lean();
+
+    // Use parallel generation for speed
+    const newQuestions = await generateQuestionsParallel(
+      material.cloudinaryUrl,
+      material._id,
+      userId,
+      remaining,
+      existingQuestions
+    );
+
+    if (newQuestions.length > 0) {
+      // Batch insert for speed
+      const questionsToInsert = newQuestions.map(q => ({
+        materialId: material._id,
+        courseId: material.courseId,
+        questionText: q.questionText,
+        questionType: q.questionType || 'multiple-choice',
+        options: q.options,
+        correctAnswer: q.correctAnswer,
+        explanation: q.explanation,
+        difficulty: q.difficulty,
+      }));
+
+      await Question.insertMany(questionsToInsert);
+      console.log(`Inserted ${newQuestions.length} questions for material: ${materialId}`);
+    }
+
+    // Update final count
+    const finalCount = await Question.countDocuments({ materialId });
+    console.log(`Final question count for material ${materialId}: ${finalCount}`);
 
     material.hasQuestions = true;
     material.processingStatus = 'completed';
-    material.contributorPoints = 10; // Award points for successful upload
-
+    material.contributorPoints = 10;
     await material.save();
 
-    // Invalidate caches after successful generation
+    // Invalidate caches
     cacheHelper.invalidatePattern(materialCache, `course_${material.courseId}_*`);
     cacheHelper.invalidate(materialCache, `material_${materialId}_summary`);
     cacheHelper.invalidatePattern(questionCache, `course_${material.courseId}_*`);
 
     console.log(`Processing completed for material: ${materialId}`);
   } catch (error) {
-    console.error('Error in background processing:', error);
+    console.error(`Error generating remaining questions for ${materialId}:`, error);
 
-    // Update material with error status
-    const material = await Material.findById(materialId);
-    if (material) {
+    // Don't mark as failed - mark as completed with partial questions
+    const partialCount = await Question.countDocuments({ materialId });
+    if (partialCount >= 10) {
+      // At least have minimum questions, mark as completed
+      material.hasQuestions = true;
+      material.processingStatus = 'completed';
+      material.contributorPoints = 5; // Partial points
+      console.log(`Partial completion for ${materialId}: ${partialCount} questions`);
+    } else {
       material.processingStatus = 'failed';
       material.processingError = error.message;
-      await material.save();
     }
+    await material.save();
+
+    // Still invalidate caches so partial results are visible
+    cacheHelper.invalidatePattern(questionCache, `course_${material.courseId}_*`);
   }
 }
+
+exports.generateRemainingQuestions = generateRemainingQuestions;
 
 // @desc    Get material processing status
 // @route   GET /api/materials/:materialId/status
@@ -513,12 +620,15 @@ exports.getMaterialStatus = async (req, res) => {
       });
     }
 
+    const questionsCount = await Question.countDocuments({ materialId: material._id });
     res.status(200).json({
       success: true,
       data: {
         processingStatus: material.processingStatus,
         hasSummary: material.hasSummary,
         hasQuestions: material.hasQuestions,
+        questionsCount,
+        expectedQuestions: 70,
         processingError: material.processingError,
       },
     });
@@ -528,6 +638,85 @@ exports.getMaterialStatus = async (req, res) => {
       message: error.message,
     });
   }
+};
+
+// @desc    Stream material processing status (SSE)
+// @route   GET /api/materials/:materialId/stream
+// @access  Private
+exports.streamMaterialStatus = async (req, res) => {
+  const materialId = req.params.materialId;
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+
+  if (res.flushHeaders) {
+    res.flushHeaders();
+  }
+
+  let lastPayload = null;
+  let closed = false;
+
+  const sendEvent = (event, data) => {
+    res.write(`event: ${event}\n`);
+    res.write(`data: ${JSON.stringify(data)}\n\n`);
+  };
+
+  const sendStatus = async () => {
+    try {
+      const material = await Material.findById(materialId);
+      if (!material) {
+        sendEvent('error', { message: 'Material not found' });
+        cleanup();
+        return;
+      }
+
+      const questionsCount = await Question.countDocuments({ materialId: material._id });
+      const payload = {
+        processingStatus: material.processingStatus,
+        hasSummary: material.hasSummary,
+        hasQuestions: material.hasQuestions,
+        questionsCount,
+        expectedQuestions: 70,
+        processingError: material.processingError,
+      };
+
+      const serialized = JSON.stringify(payload);
+      if (serialized !== lastPayload) {
+        sendEvent('status', payload);
+        lastPayload = serialized;
+      }
+
+      if (payload.processingStatus === 'completed' || payload.processingStatus === 'failed') {
+        sendEvent('done', payload);
+        cleanup();
+      }
+    } catch (error) {
+      sendEvent('error', { message: error.message });
+      cleanup();
+    }
+  };
+
+  const keepAlive = setInterval(() => {
+    if (!closed) {
+      res.write(': keep-alive\n\n');
+    }
+  }, 15000);
+
+  const interval = setInterval(sendStatus, 2000);
+
+  const cleanup = () => {
+    if (closed) return;
+    closed = true;
+    clearInterval(interval);
+    clearInterval(keepAlive);
+    res.end();
+  };
+
+  req.on('close', cleanup);
+
+  await sendStatus();
 };
 
 // @desc    Get student's upload statistics

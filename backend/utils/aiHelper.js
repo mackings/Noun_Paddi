@@ -1,13 +1,46 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { GoogleAIFileManager } = require('@google/generative-ai/server');
+const Groq = require('groq-sdk');
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const APIUsage = require('../models/APIUsage');
 const { cloudinary } = require('../config/cloudinary');
-const { extractTextFromPDF } = require('./pdfHelper');
+const { extractTextFromPDF, extractTextFromBuffer } = require('./pdfHelper');
 
+// ============================================
+// GROQ CLIENT SETUP (Primary - Fast & High Quota)
+// ============================================
+let groqClient = null;
+
+function getGroqClient() {
+  if (groqClient) return groqClient;
+
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) {
+    console.log('GROQ_API_KEY not configured, will use Gemini');
+    return null;
+  }
+
+  groqClient = new Groq({ apiKey });
+  return groqClient;
+}
+
+function isGroqAvailable() {
+  return !!process.env.GROQ_API_KEY;
+}
+
+// Get the Groq model to use
+function getGroqModel() {
+  // Use llama-3.3-70b-versatile for best quality, or fall back to env setting
+  // llama-3.1-8b-instant has small context, not good for large documents
+  return 'llama-3.3-70b-versatile';
+}
+
+// ============================================
+// GEMINI CLIENT SETUP (Fallback)
+// ============================================
 let geminiClients = null;
 let geminiClientIndex = 0;
 
@@ -26,12 +59,48 @@ function getGeminiClients() {
   return geminiClients;
 }
 
+// Get a specific client by index (for parallel operations)
+function getClientByIndex(index) {
+  const clients = getGeminiClients();
+  if (!clients.length) {
+    throw new Error('No Gemini API keys configured');
+  }
+  return clients[index % clients.length];
+}
+
+// Get total number of available API keys (Gemini)
+function getClientCount() {
+  return getGeminiClients().length;
+}
+
+// Download PDF once and cache the buffer for reuse
+async function downloadPDFBuffer(pdfUrl) {
+  const signedUrl = getCloudinarySignedUrl(pdfUrl);
+  console.log('Downloading PDF from:', signedUrl);
+  const response = await axios.get(signedUrl, { responseType: 'arraybuffer' });
+  const buffer = Buffer.from(response.data);
+  console.log('PDF downloaded, size:', buffer.length, 'bytes');
+  return buffer;
+}
+
 function isRateLimitError(error) {
   const message = `${error?.message || ''}`;
   return error?.status === 429 ||
     error?.response?.status === 429 ||
     message.includes('429') ||
     message.includes('Too Many Requests');
+}
+
+function isOverloadedError(error) {
+  const message = `${error?.message || ''}`;
+  return error?.status === 503 ||
+    error?.response?.status === 503 ||
+    message.includes('503') ||
+    message.toLowerCase().includes('overloaded');
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function withGeminiClient(fn) {
@@ -41,19 +110,29 @@ async function withGeminiClient(fn) {
   }
 
   let lastError;
+  const maxAttemptsPerKey = 2;
   for (let i = 0; i < clients.length; i++) {
     const index = geminiClientIndex % clients.length;
     geminiClientIndex = (geminiClientIndex + 1) % clients.length;
     const client = clients[index];
-    try {
-      const result = await fn(client);
-      return result;
-    } catch (error) {
-      lastError = error;
-      if (isRateLimitError(error) && clients.length > 1) {
-        continue;
+
+    for (let attempt = 0; attempt < maxAttemptsPerKey; attempt++) {
+      try {
+        const result = await fn(client);
+        return result;
+      } catch (error) {
+        lastError = error;
+        const retryable = isRateLimitError(error) || isOverloadedError(error);
+        const shouldRotate = (isRateLimitError(error) || isOverloadedError(error)) && clients.length > 1;
+        if (!retryable) {
+          throw error;
+        }
+        const backoffMs = 500 * Math.pow(2, attempt) + Math.floor(Math.random() * 250);
+        await sleep(backoffMs);
+        if (shouldRotate) {
+          break;
+        }
       }
-      throw error;
     }
   }
 
@@ -112,9 +191,9 @@ async function summarizeText(text, pdfUrl = null, materialId = null, userId = nu
       throw new Error('Text is too short to summarize. Need at least 200 characters.');
     }
 
-    // Trim very long inputs by 20% to reduce latency while keeping most content
+    // Trim very long inputs by 15% to reduce latency while keeping more detail
     if (cleanedText.length > 0) {
-      const trimmedLength = Math.floor(cleanedText.length * 0.8);
+      const trimmedLength = Math.floor(cleanedText.length * 0.85);
       if (trimmedLength < cleanedText.length) {
         console.log(`Trimming summary input from ${cleanedText.length} to ${trimmedLength} characters`);
         cleanedText = cleanedText.substring(0, trimmedLength);
@@ -334,7 +413,7 @@ Please provide a well-structured, comprehensive summary with proper bold headers
   }
 }
 
-async function generateQuestions(text, pdfUrl = null, materialId = null, userId = null) {
+async function generateQuestions(text, pdfUrl = null, materialId = null, userId = null, totalQuestions = 70, excludeQuestions = []) {
   try {
     console.log('Starting question generation with Gemini...');
 
@@ -343,10 +422,10 @@ async function generateQuestions(text, pdfUrl = null, materialId = null, userId 
       try {
         const signedUrl = getCloudinarySignedUrl(pdfUrl);
         const extractedText = await extractTextFromPDF(signedUrl);
-        return await generateQuestions(extractedText, null, materialId, userId);
+        return await generateQuestions(extractedText, null, materialId, userId, totalQuestions, excludeQuestions);
       } catch (error) {
         console.error('PDF text extraction failed, falling back to File API:', error.message);
-        return await generateQuestionsFromPDF(pdfUrl, materialId, userId);
+        return await generateQuestionsFromPDF(pdfUrl, materialId, userId, totalQuestions, excludeQuestions);
       }
     }
 
@@ -356,15 +435,40 @@ async function generateQuestions(text, pdfUrl = null, materialId = null, userId 
       .trim();
 
     // Use reasonable amount of text for question generation
-    const maxLength = 50000; // Increased since we're not chunking anymore
+    const maxLength = 50000;
     const truncatedText = cleanedText.length > maxLength
       ? cleanedText.substring(0, maxLength)
       : cleanedText;
 
     console.log('Text length for question generation:', truncatedText.length);
 
-    // Initialize Gemini model
-    const prompt = `Based on the following educational content, generate 70 high-quality practice questions with a mix of different question types.
+    const getMixCounts = (total) => {
+      if (total === 70) {
+        return { total, mcq: 45, tf: 15, ms: 10 };
+      }
+      if (total === 10) {
+        return { total, mcq: 6, tf: 2, ms: 2 };
+      }
+      const mcq = Math.max(1, Math.round(total * 0.64));
+      const tf = Math.max(1, Math.round(total * 0.21));
+      let ms = total - mcq - tf;
+      if (ms < 1) {
+        ms = 1;
+      }
+      const adjustedTotal = mcq + tf + ms;
+      if (adjustedTotal !== total) {
+        const diff = total - adjustedTotal;
+        return { total, mcq: mcq + diff, tf, ms };
+      }
+      return { total, mcq, tf, ms };
+    };
+
+    const counts = getMixCounts(totalQuestions);
+    const excludeText = Array.isArray(excludeQuestions) && excludeQuestions.length > 0
+      ? `\n\nDo NOT repeat any of these questions:\n${excludeQuestions.map((q, idx) => `${idx + 1}. ${q}`).join('\n')}\n`
+      : '';
+
+    const prompt = `Based on the following educational content, generate ${counts.total} high-quality practice questions with a mix of different question types.
 
 **CRITICAL REQUIREMENTS - RANDOMIZATION:**
 1. For multiple-choice questions: RANDOMLY distribute correct answers across ALL options (A, B, C, D)
@@ -378,9 +482,9 @@ async function generateQuestions(text, pdfUrl = null, materialId = null, userId 
    - Mix True and False answers evenly throughout
 
 **Question Mix:**
-1. Generate 45 multiple-choice questions (4 options each) - distribute correct answers evenly
-2. Generate 15 True/False questions (2 options: True, False) - balance True/False answers
-3. Generate 10 multi-select questions (4 options with 2 correct answers marked)
+1. Generate ${counts.mcq} multiple-choice questions (4 options each) - distribute correct answers evenly
+2. Generate ${counts.tf} True/False questions (2 options: True, False) - balance True/False answers
+3. Generate ${counts.ms} multi-select questions (4 options with 2 correct answers marked)
 4. Questions should test understanding of key concepts from different parts of the material
 5. Include a brief explanation for each correct answer
 6. Vary difficulty levels (easy, medium, hard) - mix them throughout
@@ -390,6 +494,8 @@ async function generateQuestions(text, pdfUrl = null, materialId = null, userId 
 - When creating multiple-choice questions, deliberately vary which option is correct
 - Avoid patterns like "all answers are C" or "most answers are True"
 - Ensure the distribution is RANDOM and BALANCED
+
+Return ONLY the questions. Do not add introductions or explanations outside the question blocks. Start directly with "Q1:".
 
 Format each question as:
 
@@ -428,9 +534,9 @@ Difficulty: [easy/medium/hard]
 
 Educational Content:
 ${truncatedText}
+${excludeText}
 
-Generate 70 questions (45 multiple-choice, 15 true-false, 10 multi-select) with RANDOMIZED and BALANCED correct answers:`;
-
+Generate ${counts.total} questions (${counts.mcq} multiple-choice, ${counts.tf} true-false, ${counts.ms} multi-select) with RANDOMIZED and BALANCED correct answers:`;
     const result = await withGeminiClient(async ({ genAI }) => {
       const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
       return await model.generateContent(prompt);
@@ -459,7 +565,7 @@ Generate 70 questions (45 multiple-choice, 15 true-false, 10 multi-select) with 
 }
 
 // New function to generate questions from PDF using File API
-async function generateQuestionsFromPDF(pdfUrl, materialId = null, userId = null) {
+async function generateQuestionsFromPDF(pdfUrl, materialId = null, userId = null, totalQuestions = 70, excludeQuestions = []) {
   let tempFilePath = null;
 
   try {
@@ -491,6 +597,14 @@ async function generateQuestionsFromPDF(pdfUrl, materialId = null, userId = null
 
       // Generate questions from PDF
       console.log('Generating questions from PDF...');
+      const counts = totalQuestions === 70
+        ? { total: 70, mcq: 45, tf: 15, ms: 10 }
+        : totalQuestions === 10
+        ? { total: 10, mcq: 6, tf: 2, ms: 2 }
+        : { total: totalQuestions, mcq: Math.max(1, Math.round(totalQuestions * 0.64)), tf: Math.max(1, Math.round(totalQuestions * 0.21)), ms: Math.max(1, totalQuestions - Math.max(1, Math.round(totalQuestions * 0.64)) - Math.max(1, Math.round(totalQuestions * 0.21))) };
+      const excludeText = Array.isArray(excludeQuestions) && excludeQuestions.length > 0
+        ? `\n\nDo NOT repeat any of these questions:\n${excludeQuestions.map((q, idx) => `${idx + 1}. ${q}`).join('\n')}\n`
+        : '';
       return await model.generateContent([
         {
           fileData: {
@@ -499,7 +613,7 @@ async function generateQuestionsFromPDF(pdfUrl, materialId = null, userId = null
           }
         },
         {
-          text: `Based on this PDF educational content, generate 70 high-quality practice questions with a mix of different question types.
+          text: `Based on this PDF educational content, generate ${counts.total} high-quality practice questions with a mix of different question types.
 
 **CRITICAL REQUIREMENTS - RANDOMIZATION:**
 1. For multiple-choice questions: RANDOMLY distribute correct answers across ALL options (A, B, C, D)
@@ -513,9 +627,9 @@ async function generateQuestionsFromPDF(pdfUrl, materialId = null, userId = null
    - Mix True and False answers evenly throughout
 
 **Question Mix:**
-1. Generate 45 multiple-choice questions (4 options each) - distribute correct answers evenly
-2. Generate 15 True/False questions (2 options: True, False) - balance True/False answers
-3. Generate 10 multi-select questions (4 options with 2 correct answers marked)
+1. Generate ${counts.mcq} multiple-choice questions (4 options each) - distribute correct answers evenly
+2. Generate ${counts.tf} True/False questions (2 options: True, False) - balance True/False answers
+3. Generate ${counts.ms} multi-select questions (4 options with 2 correct answers marked)
 4. Questions should test understanding of key concepts from across the entire document
 5. Include a brief explanation for each correct answer
 6. Vary difficulty levels (easy, medium, hard) - distribute them evenly
@@ -526,6 +640,8 @@ async function generateQuestionsFromPDF(pdfUrl, materialId = null, userId = null
 - When creating multiple-choice questions, deliberately vary which option is correct
 - Avoid patterns like "all answers are C" or "most answers are True"
 - Ensure the distribution is RANDOM and BALANCED
+
+Return ONLY the questions. Do not add introductions or explanations outside the question blocks. Start directly with "Q1:".
 
 Format each question as:
 
@@ -562,7 +678,9 @@ Difficulty: [easy/medium/hard]
 
 ---
 
-Generate 70 questions (45 multiple-choice, 15 true-false, 10 multi-select) with RANDOMIZED and BALANCED correct answers:`
+${excludeText}
+
+Generate ${counts.total} questions (${counts.mcq} multiple-choice, ${counts.tf} true-false, ${counts.ms} multi-select) with RANDOMIZED and BALANCED correct answers:`
         },
       ]);
     });
@@ -684,12 +802,25 @@ function formatQuestionsToMCQ(generatedQuestions, originalText) {
             }
           } else {
             // For single answer questions - extract the letter AFTER the colon
-            // Match pattern: "Correct Answer: B" or "Correct Answer: B)"
+            // Match pattern: "Correct Answer: B" or "Correct Answer: B)" or "Correct Answer: True/False"
             const match = correctAnswerLine.match(/:\s*([A-D])/);
             if (match && match[1]) {
               const letter = match[1];
               correctAnswer = letter.charCodeAt(0) - 65; // Convert A=0, B=1, C=2, D=3
               console.log(`Single answer: ${letter} -> index: ${correctAnswer}`);
+            } else if (questionType === 'true-false') {
+              // Handle True/False text answers from Groq
+              const lowerLine = correctAnswerLine.toLowerCase();
+              if (lowerLine.includes('true') && !lowerLine.includes('false')) {
+                correctAnswer = 0; // True is option A (index 0)
+                console.log('True/False answer: True -> index: 0');
+              } else if (lowerLine.includes('false')) {
+                correctAnswer = 1; // False is option B (index 1)
+                console.log('True/False answer: False -> index: 1');
+              } else {
+                console.warn(`Failed to parse T/F answer from: "${correctAnswerLine}", using fallback 0`);
+                correctAnswer = 0;
+              }
             } else {
               console.warn(`Failed to parse answer from: "${correctAnswerLine}", using fallback 0`);
               correctAnswer = 0; // fallback
@@ -759,11 +890,674 @@ function formatQuestionsToMCQ(generatedQuestions, originalText) {
   return questions;
 }
 
+// ============================================
+// GROQ-BASED GENERATION (Primary - Fast)
+// ============================================
+
+// Generate summary using Groq (very fast)
+async function summarizeWithGroq(text, materialId = null, userId = null) {
+  const client = getGroqClient();
+  if (!client) throw new Error('Groq not configured');
+
+  let cleanedText = text.replace(/\s+/g, ' ').trim();
+  if (cleanedText.length < 200) {
+    throw new Error('Text is too short to summarize');
+  }
+
+  // Groq has smaller context, limit to 35k chars
+  const maxLength = 35000;
+  if (cleanedText.length > maxLength) {
+    cleanedText = cleanedText.substring(0, maxLength);
+  }
+
+  const prompt = `You are an expert educational content summarizer. Provide a comprehensive, well-formatted summary.
+
+**FORMATTING:**
+1. **Module Headers:** **Module X: Title**
+2. **Unit Headers:** **Unit X: Title**
+3. **Key Terms:** Bold important terms
+4. Use bullet points for lists, paragraphs for explanations
+
+Course Material:
+${cleanedText}
+
+Provide a well-structured, comprehensive summary:`;
+
+  console.log('Generating summary with Groq...');
+  const startTime = Date.now();
+
+  const response = await client.chat.completions.create({
+    model: getGroqModel(),
+    messages: [{ role: 'user', content: prompt }],
+    temperature: 0.3,
+    max_tokens: 4500,
+  });
+
+  const summary = response.choices[0]?.message?.content || '';
+  console.log(`Groq summary generated in ${Date.now() - startTime}ms`);
+
+  await trackAPIUsage('summarize_groq', { response: { usageMetadata: response.usage } }, materialId, userId, true);
+
+  return summary;
+}
+
+// Generate questions using Groq (very fast)
+async function generateQuestionsWithGroq(text, totalQuestions, excludeQuestions = [], materialId = null, userId = null) {
+  const client = getGroqClient();
+  if (!client) throw new Error('Groq not configured');
+
+  const cleanedText = text.replace(/\s+/g, ' ').trim();
+  // Groq has smaller context window, limit text
+  const maxLength = 25000;
+  const truncatedText = cleanedText.length > maxLength ? cleanedText.substring(0, maxLength) : cleanedText;
+
+  const getMixCounts = (total) => {
+    if (total <= 5) {
+      return { total, mcq: Math.max(1, Math.ceil(total * 0.6)), tf: Math.max(1, Math.floor(total * 0.2)), ms: Math.max(0, total - Math.ceil(total * 0.6) - Math.floor(total * 0.2)) };
+    }
+    const mcq = Math.max(1, Math.round(total * 0.64));
+    const tf = Math.max(1, Math.round(total * 0.21));
+    let ms = total - mcq - tf;
+    if (ms < 1) ms = 1;
+    return { total, mcq, tf, ms };
+  };
+
+  const counts = getMixCounts(totalQuestions);
+  const excludeText = excludeQuestions.length > 0
+    ? `\n\nDo NOT repeat any of these questions:\n${excludeQuestions.slice(0, 15).map((q, idx) => `${idx + 1}. ${q}`).join('\n')}\n`
+    : '';
+
+  const prompt = `Based on the following educational content, generate ${counts.total} high-quality practice questions.
+
+**CRITICAL REQUIREMENTS - RANDOMIZATION:**
+1. For multiple-choice: RANDOMLY distribute correct answers across A, B, C, D (25% each)
+2. For true/false: BALANCE 50% True and 50% False
+
+**Question Mix:**
+- ${counts.mcq} multiple-choice (4 options)
+- ${counts.tf} True/False
+- ${counts.ms} multi-select (2 correct answers)
+
+Return ONLY questions. Start directly with "Q1:".
+
+Format:
+Q[number]: [Question text]
+Type: multiple-choice|true-false|multi-select
+A) [Option A]
+B) [Option B]
+C) [Option C]
+D) [Option D]
+Correct Answer: [Letter] or Correct Answers: [Letters]
+Explanation: [Brief explanation]
+Difficulty: [easy/medium/hard]
+
+---
+Educational Content:
+${truncatedText}
+${excludeText}
+
+Generate ${counts.total} questions with RANDOMIZED answers:`;
+
+  console.log(`Generating ${totalQuestions} questions with Groq...`);
+  const startTime = Date.now();
+
+  const response = await client.chat.completions.create({
+    model: getGroqModel(),
+    messages: [{ role: 'user', content: prompt }],
+    temperature: 0.7,
+    max_tokens: 4000,
+  });
+
+  const questionsText = response.choices[0]?.message?.content || '';
+  console.log(`Groq questions generated in ${Date.now() - startTime}ms`);
+
+  await trackAPIUsage('generate_questions_groq', { response: { usageMetadata: response.usage } }, materialId, userId, true);
+
+  return { generated_text: questionsText };
+}
+
+// ============================================
+// GEMINI-BASED GENERATION (Fallback)
+// ============================================
+
+// Generate questions using a specific client, with automatic retry on other keys
+async function generateQuestionsWithClient(clientIndex, text, totalQuestions, excludeQuestions = [], materialId = null, userId = null) {
+  const clientCount = getClientCount();
+
+  const cleanedText = text.replace(/\s+/g, ' ').trim();
+  const maxLength = 50000;
+  const truncatedText = cleanedText.length > maxLength ? cleanedText.substring(0, maxLength) : cleanedText;
+
+  const getMixCounts = (total) => {
+    if (total <= 5) {
+      return { total, mcq: Math.max(1, Math.ceil(total * 0.6)), tf: Math.max(1, Math.floor(total * 0.2)), ms: Math.max(0, total - Math.ceil(total * 0.6) - Math.floor(total * 0.2)) };
+    }
+    const mcq = Math.max(1, Math.round(total * 0.64));
+    const tf = Math.max(1, Math.round(total * 0.21));
+    let ms = total - mcq - tf;
+    if (ms < 1) ms = 1;
+    return { total, mcq, tf, ms };
+  };
+
+  const counts = getMixCounts(totalQuestions);
+  const excludeText = excludeQuestions.length > 0
+    ? `\n\nDo NOT repeat any of these questions:\n${excludeQuestions.slice(0, 20).map((q, idx) => `${idx + 1}. ${q}`).join('\n')}\n`
+    : '';
+
+  const prompt = `Based on the following educational content, generate ${counts.total} high-quality practice questions.
+
+**CRITICAL REQUIREMENTS - RANDOMIZATION:**
+1. For multiple-choice: RANDOMLY distribute correct answers across A, B, C, D (25% each)
+2. For true/false: BALANCE 50% True and 50% False
+
+**Question Mix:**
+- ${counts.mcq} multiple-choice (4 options)
+- ${counts.tf} True/False
+- ${counts.ms} multi-select (2 correct answers)
+
+Return ONLY questions. Start directly with "Q1:".
+
+Format:
+Q[number]: [Question text]
+Type: multiple-choice|true-false|multi-select
+A) [Option A]
+B) [Option B]
+C) [Option C]
+D) [Option D]
+Correct Answer: [Letter] or Correct Answers: [Letters]
+Explanation: [Brief explanation]
+Difficulty: [easy/medium/hard]
+
+---
+Educational Content:
+${truncatedText}
+${excludeText}
+
+Generate ${counts.total} questions with RANDOMIZED answers:`;
+
+  // Try each key until one works
+  let lastError;
+  for (let attempt = 0; attempt < clientCount; attempt++) {
+    const keyIdx = (clientIndex + attempt) % clientCount;
+    const client = getClientByIndex(keyIdx);
+
+    try {
+      console.log(`Trying questions with API key ${keyIdx + 1}...`);
+      const model = client.genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+      const result = await model.generateContent(prompt);
+      const questionsText = result.response.text();
+
+      await trackAPIUsage('generate_questions', result, materialId, userId, true);
+      return { generated_text: questionsText };
+    } catch (error) {
+      lastError = error;
+      console.error(`Questions failed on key ${keyIdx + 1}:`, error.message?.substring(0, 100));
+
+      // If rate limited, try next key
+      if (error.message?.includes('429') || error.message?.includes('quota')) {
+        console.log(`Key ${keyIdx + 1} rate limited, trying next key...`);
+        continue;
+      }
+      // For other errors, throw immediately
+      throw error;
+    }
+  }
+
+  // All keys failed
+  await trackAPIUsage('generate_questions', null, materialId, userId, false, lastError?.message);
+  throw lastError || new Error('All API keys exhausted');
+}
+
+// Generate summary using a specific client, with automatic retry on other keys
+async function summarizeWithClient(clientIndex, text, materialId = null, userId = null) {
+  const clientCount = getClientCount();
+
+  let cleanedText = text.replace(/\s+/g, ' ').trim();
+  if (cleanedText.length < 200) {
+    throw new Error('Text is too short to summarize');
+  }
+
+  // Trim to 85% for speed while keeping more detail
+  const trimmedLength = Math.floor(cleanedText.length * 0.85);
+  if (trimmedLength < cleanedText.length) {
+    cleanedText = cleanedText.substring(0, trimmedLength);
+  }
+
+  const prompt = `You are an expert educational content summarizer. Provide a comprehensive, well-formatted summary.
+
+**FORMATTING:**
+1. **Module Headers:** **Module X: Title**
+2. **Unit Headers:** **Unit X: Title**
+3. **Key Terms:** Bold important terms
+4. Use bullet points for lists, paragraphs for explanations
+
+Course Material:
+${cleanedText}
+
+Provide a well-structured, comprehensive summary:`;
+
+  // Try each key until one works
+  let lastError;
+  for (let attempt = 0; attempt < clientCount; attempt++) {
+    const keyIdx = (clientIndex + attempt) % clientCount;
+    const client = getClientByIndex(keyIdx);
+
+    try {
+      console.log(`Trying summary with API key ${keyIdx + 1}...`);
+      const model = client.genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+      const result = await model.generateContent(prompt);
+      const summary = result.response.text();
+
+      await trackAPIUsage('summarize', result, materialId, userId, true);
+      return summary;
+    } catch (error) {
+      lastError = error;
+      console.error(`Summary failed on key ${keyIdx + 1}:`, error.message?.substring(0, 100));
+
+      // If rate limited, try next key
+      if (error.message?.includes('429') || error.message?.includes('quota')) {
+        console.log(`Key ${keyIdx + 1} rate limited, trying next key...`);
+        continue;
+      }
+      // For other errors, throw immediately
+      throw error;
+    }
+  }
+
+  // All keys failed
+  await trackAPIUsage('summarize', null, materialId, userId, false, lastError?.message);
+  throw lastError || new Error('All API keys exhausted');
+}
+
+// FAST: Generate summary and initial questions - optimized for speed
+// Uses GROQ as primary (fast, high quota), Gemini as fallback
+async function generateSummaryAndQuestionsParallel(pdfUrl, materialId = null, userId = null) {
+  const startTime = Date.now();
+  const useGroq = isGroqAvailable();
+  console.log('Starting OPTIMIZED summary + questions generation...');
+  console.log(`Provider: ${useGroq ? 'GROQ (primary)' : 'Gemini'}`);
+
+  // Step 1: Download PDF once
+  console.log('Step 1: Downloading PDF...');
+  const downloadStart = Date.now();
+  const pdfBuffer = await downloadPDFBuffer(pdfUrl);
+  console.log(`PDF downloaded in ${Date.now() - downloadStart}ms`);
+
+  // Step 2: Extract text once
+  console.log('Step 2: Extracting text...');
+  const extractStart = Date.now();
+  let extractedText;
+  try {
+    extractedText = await extractTextFromBuffer(pdfBuffer);
+    console.log(`Text extracted in ${Date.now() - extractStart}ms (${extractedText.length} chars)`);
+  } catch (error) {
+    console.error('Text extraction failed, using File API fallback');
+    // Save buffer to temp file for File API
+    const tempPath = path.join(os.tmpdir(), `material-${Date.now()}.pdf`);
+    fs.writeFileSync(tempPath, pdfBuffer);
+    try {
+      const summary = await summarizePDFDirectlyFromFile(tempPath, materialId, userId);
+      const questions = await generateQuestionsFromFile(tempPath, materialId, userId, 10, []);
+      return { summary, questions: formatQuestionsToMCQ(questions, '') };
+    } finally {
+      if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
+    }
+  }
+
+  let summary, questions;
+
+  // Step 3: Generate summary - try Groq first, fallback to Gemini
+  console.log('Step 3: Generating summary...');
+  const summaryStart = Date.now();
+  if (useGroq) {
+    try {
+      summary = await summarizeWithGroq(extractedText, materialId, userId);
+      console.log(`Summary generated with GROQ in ${Date.now() - summaryStart}ms`);
+    } catch (error) {
+      console.error('Groq summary failed, falling back to Gemini:', error.message);
+      summary = await summarizeWithClient(0, extractedText, materialId, userId);
+      console.log(`Summary generated with Gemini (fallback) in ${Date.now() - summaryStart}ms`);
+    }
+  } else {
+    summary = await summarizeWithClient(0, extractedText, materialId, userId);
+    console.log(`Summary generated with Gemini in ${Date.now() - summaryStart}ms`);
+  }
+
+  // Step 4: Generate questions - try Groq first, fallback to Gemini
+  console.log('Step 4: Generating 10 questions...');
+  const questionsStart = Date.now();
+  if (useGroq) {
+    try {
+      const questionsRaw = await generateQuestionsWithGroq(extractedText, 10, [], materialId, userId);
+      questions = formatQuestionsToMCQ(questionsRaw, extractedText);
+      console.log(`Questions generated with GROQ in ${Date.now() - questionsStart}ms (${questions.length} questions)`);
+    } catch (error) {
+      console.error('Groq questions failed, falling back to Gemini:', error.message);
+      const questionsRaw = await generateQuestionsWithClient(0, extractedText, 10, [], materialId, userId);
+      questions = formatQuestionsToMCQ(questionsRaw, extractedText);
+      console.log(`Questions generated with Gemini (fallback) in ${Date.now() - questionsStart}ms (${questions.length} questions)`);
+    }
+  } else {
+    const questionsRaw = await generateQuestionsWithClient(0, extractedText, 10, [], materialId, userId);
+    questions = formatQuestionsToMCQ(questionsRaw, extractedText);
+    console.log(`Questions generated with Gemini in ${Date.now() - questionsStart}ms (${questions.length} questions)`);
+  }
+
+  // Top up if the model returned fewer than 10
+  if (questions.length < 10) {
+    const missing = 10 - questions.length;
+    console.warn(`Only ${questions.length} questions generated. Topping up ${missing} more...`);
+    const excludeTexts = questions.map(q => q.questionText).filter(Boolean);
+    let topUp = [];
+    try {
+      const topUpRaw = useGroq
+        ? await generateQuestionsWithGroq(extractedText, missing, excludeTexts, materialId, userId)
+        : await generateQuestionsWithClient(0, extractedText, missing, excludeTexts, materialId, userId);
+      topUp = formatQuestionsToMCQ(topUpRaw, extractedText);
+    } catch (error) {
+      console.error('Top-up questions failed, trying Gemini fallback:', error.message);
+      const topUpRaw = await generateQuestionsWithClient(0, extractedText, missing, excludeTexts, materialId, userId);
+      topUp = formatQuestionsToMCQ(topUpRaw, extractedText);
+    }
+    questions = [...questions, ...topUp].slice(0, 10);
+    console.log(`Top-up complete. Total initial questions: ${questions.length}`);
+  }
+
+  const totalTime = Date.now() - startTime;
+  console.log(`Total time: ${totalTime}ms (${(totalTime / 1000).toFixed(1)}s)`);
+
+  return { summary, questions };
+}
+
+// Helper: Summarize from already-downloaded temp file
+async function summarizePDFDirectlyFromFile(tempFilePath, materialId = null, userId = null) {
+  const result = await withGeminiClient(async ({ genAI, fileManager }) => {
+    const uploadResult = await fileManager.uploadFile(tempFilePath, {
+      mimeType: 'application/pdf',
+      displayName: 'Study Material',
+    });
+
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    return await model.generateContent([
+      { fileData: { mimeType: uploadResult.file.mimeType, fileUri: uploadResult.file.uri } },
+      { text: 'Provide a comprehensive, well-formatted summary of this PDF. Use bold headers for modules/units, bullet points for lists, and paragraphs for explanations.' }
+    ]);
+  });
+
+  await trackAPIUsage('summarize', result, materialId, userId, true);
+  return result.response.text();
+}
+
+// Helper: Generate questions from already-downloaded temp file
+async function generateQuestionsFromFile(tempFilePath, materialId = null, userId = null, totalQuestions = 10, excludeQuestions = []) {
+  const result = await withGeminiClient(async ({ genAI, fileManager }) => {
+    const uploadResult = await fileManager.uploadFile(tempFilePath, {
+      mimeType: 'application/pdf',
+      displayName: 'Study Material',
+    });
+
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    return await model.generateContent([
+      { fileData: { mimeType: uploadResult.file.mimeType, fileUri: uploadResult.file.uri } },
+      { text: `Generate ${totalQuestions} practice questions. Mix: 60% multiple-choice, 20% true/false, 20% multi-select. Format each as: Q[n]: [question] Type: [type] A) B) C) D) Correct Answer: [letter] Explanation: [brief] Difficulty: [easy/medium/hard]` }
+    ]);
+  });
+
+  await trackAPIUsage('generate_questions', result, materialId, userId, true);
+  return { generated_text: result.response.text() };
+}
+
+// Generate remaining questions - uses GROQ (fast) with Gemini fallback
+async function generateQuestionsParallel(pdfUrl, materialId, userId, targetCount, existingQuestions = []) {
+  const startTime = Date.now();
+  const useGroq = isGroqAvailable();
+  console.log(`Generating ${targetCount} questions with ${useGroq ? 'GROQ' : 'Gemini'}...`);
+
+  // Download and extract text once
+  console.log('Downloading PDF...');
+  const pdfBuffer = await downloadPDFBuffer(pdfUrl);
+
+  let extractedText;
+  try {
+    extractedText = await extractTextFromBuffer(pdfBuffer);
+    console.log(`Text extracted (${extractedText.length} chars)`);
+  } catch (error) {
+    console.error('Text extraction failed, using File API');
+    const tempPath = path.join(os.tmpdir(), `material-${Date.now()}.pdf`);
+    fs.writeFileSync(tempPath, pdfBuffer);
+    try {
+      const result = await generateQuestionsFromFile(tempPath, materialId, userId, targetCount, existingQuestions);
+      return formatQuestionsToMCQ(result, '');
+    } finally {
+      if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
+    }
+  }
+
+  const excludeTexts = existingQuestions.map(q => q.questionText || q).filter(Boolean);
+  const allQuestions = [];
+
+  // Generate in batches - Groq can handle larger batches faster
+  const batchSize = useGroq ? 20 : 15;
+  let remaining = targetCount;
+  let batchNum = 0;
+  let consecutiveFailures = 0;
+
+  while (remaining > 0 && batchNum < 10 && consecutiveFailures < 3) {
+    batchNum++;
+    const size = Math.min(batchSize, remaining);
+    const currentExclude = [...excludeTexts, ...allQuestions.map(q => q.questionText)].slice(-20);
+
+    console.log(`Batch ${batchNum}: Generating ${size} questions...`);
+    const batchStart = Date.now();
+
+    try {
+      let result;
+      if (useGroq) {
+        // Try Groq first
+        try {
+          result = await generateQuestionsWithGroq(extractedText, size, currentExclude, materialId, userId);
+        } catch (groqError) {
+          console.error('Groq batch failed, trying Gemini:', groqError.message);
+          result = await generateQuestionsWithClient(0, extractedText, size, currentExclude, materialId, userId);
+        }
+      } else {
+        result = await generateQuestionsWithClient(batchNum % getClientCount(), extractedText, size, currentExclude, materialId, userId);
+      }
+
+      const questions = formatQuestionsToMCQ(result, extractedText);
+      allQuestions.push(...questions);
+      console.log(`Batch ${batchNum} done in ${Date.now() - batchStart}ms (got ${questions.length} questions)`);
+      remaining -= questions.length;
+      consecutiveFailures = 0; // Reset on success
+    } catch (error) {
+      console.error(`Batch ${batchNum} failed:`, error.message);
+      consecutiveFailures++;
+
+      // If rate limited, wait before retry
+      if (error.message?.includes('429') || error.message?.includes('quota') || error.message?.includes('rate')) {
+        console.log('Rate limited, waiting 3 seconds...');
+        await sleep(3000);
+      } else {
+        remaining -= size; // Skip this batch on other errors
+      }
+    }
+
+    // Small delay between batches
+    if (remaining > 0) {
+      await sleep(useGroq ? 500 : 1000); // Groq can handle faster requests
+    }
+  }
+
+  const totalTime = Date.now() - startTime;
+  console.log(`Generated ${allQuestions.length} questions in ${(totalTime / 1000).toFixed(1)}s`);
+
+  return allQuestions;
+}
+
 module.exports = {
   summarizeText,
   generateQuestions,
   formatQuestionsToMCQ,
+  gradePopAnswers,
+  generatePopPaper,
+  generateProjectTopics,
+  // New parallel functions
+  generateSummaryAndQuestionsParallel,
+  generateQuestionsParallel,
+  getClientCount,
 };
+
+async function gradePopAnswers(qaItems, defaultMaxScore = 10) {
+  if (!Array.isArray(qaItems) || qaItems.length === 0) {
+    return { items: [], totalScore: 0, maxTotal: 0 };
+  }
+
+  const normalized = qaItems.map((item) => ({
+    question: item.question,
+    answer: item.answer,
+    maxScore: typeof item.maxScore === 'number' ? item.maxScore : defaultMaxScore,
+  }));
+
+  const batchSize = 8;
+  const batches = [];
+  for (let i = 0; i < normalized.length; i += batchSize) {
+    batches.push(normalized.slice(i, i + batchSize));
+  }
+
+  const results = [];
+  for (const batch of batches) {
+    const prompt = `You are grading short-answer exam responses. Score each answer from 0 to its Max Score based on correctness and completeness. Provide a concise model answer for each question.
+
+Return ONLY valid JSON in this format:
+{
+  "items": [
+    { "index": 0, "score": number, "feedback": "short feedback", "modelAnswer": "ideal answer" }
+  ]
+}
+
+Questions and answers:
+${batch.map((item, idx) => `Index ${idx}: Max Score ${item.maxScore} | Q: ${item.question}\nA: ${item.answer}`).join('\n\n')}
+`;
+
+    const response = await withGeminiClient(async ({ genAI }) => {
+      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+      return await model.generateContent(prompt);
+    });
+
+    const text = response.response.text();
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      // Fallback: mark all as 0 if parsing fails
+      batch.forEach((_, idx) => {
+        results.push({ score: 0, feedback: 'Unable to grade automatically.' });
+      });
+      continue;
+    }
+
+    let parsed;
+    try {
+      parsed = JSON.parse(jsonMatch[0]);
+    } catch (error) {
+      batch.forEach((_, idx) => {
+        results.push({ score: 0, feedback: 'Unable to grade automatically.' });
+      });
+      continue;
+    }
+
+    const items = Array.isArray(parsed.items) ? parsed.items : [];
+    batch.forEach((item, idx) => {
+      const graded = items.find((item) => item.index === idx);
+      results.push({
+        score: graded && typeof graded.score === 'number' ? graded.score : 0,
+        feedback: graded && graded.feedback ? graded.feedback : 'No feedback provided.',
+        modelAnswer: graded && graded.modelAnswer ? graded.modelAnswer : 'No model answer provided.',
+        maxScore: item.maxScore,
+      });
+    });
+  }
+
+  const totalScore = results.reduce((sum, item) => sum + item.score, 0);
+  const maxTotal = normalized.reduce((sum, item) => sum + item.maxScore, 0);
+  return { items: results, totalScore, maxTotal };
+}
+
+async function generatePopPaper(sourceQuestions, totalQuestions = 5) {
+  const items = Array.isArray(sourceQuestions) ? sourceQuestions : [];
+  const prompt = `You are creating a POP-style exam paper. Use the provided question pool to generate an exam with ${totalQuestions} main questions. Each main question must have 2–4 sub-parts labeled (a), (b), (c), (d) where applicable. Assign marks to each part so the total per main question is between 10 and 20 marks. Use clear, academic phrasing. Return ONLY valid JSON in this format:
+{
+  "instructions": "Answer question 1 and any other three questions",
+  "questions": [
+    {
+      "number": 1,
+      "parts": [
+        { "label": "a", "text": "Question text", "marks": 10 }
+      ]
+    }
+  ]
+}
+
+Question pool:
+${items.map((q, index) => `${index + 1}. ${q}`).join('\n')}
+`;
+
+  const response = await withGeminiClient(async ({ genAI }) => {
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    return await model.generateContent(prompt);
+  });
+
+  const text = response.response.text();
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    throw new Error('Failed to parse POP paper response');
+  }
+
+  return JSON.parse(jsonMatch[0]);
+}
+
+async function generateProjectTopics(courseLabel, keywords, count = 5) {
+  const cleanKeywords = Array.isArray(keywords)
+    ? keywords.map((item) => String(item).trim()).filter(Boolean)
+    : [];
+  const topicCount = Number.isInteger(count) && count > 0 ? count : 5;
+  const courseText = courseLabel ? String(courseLabel).trim() : 'the course';
+  const keywordText = cleanKeywords.length > 0 ? cleanKeywords.join(', ') : 'relevant academic themes';
+
+  const prompt = `You generate project topic ideas for students. Provide ${topicCount} distinct project topics.
+
+Course: ${courseText}
+Keywords: ${keywordText}
+
+Requirements:
+- Make each topic specific and academically suitable.
+- Avoid repeating the same phrasing.
+- Keep each topic under 20 words.
+
+Return ONLY valid JSON in this format:
+{
+  "topics": [
+    "Topic 1",
+    "Topic 2"
+  ]
+}`;
+
+  const response = await withGeminiClient(async ({ genAI }) => {
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    return await model.generateContent(prompt);
+  });
+
+  const text = response.response.text();
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    throw new Error('Failed to parse project topics response');
+  }
+
+  const parsed = JSON.parse(jsonMatch[0]);
+  if (!parsed || !Array.isArray(parsed.topics)) {
+    throw new Error('Invalid project topics format');
+  }
+
+  return parsed.topics.slice(0, topicCount);
+}
 
 function getCloudinarySignedUrl(fileUrl) {
   try {

@@ -1,0 +1,223 @@
+.projects-page {
+  --projects-bg: #f5f3ef;
+  --projects-panel: #ffffff;
+  --projects-muted: #6b7280;
+  --projects-accent: #0f766e;
+  --projects-accent-2: #f97316;
+  min-height: calc(100vh - 70px);
+  padding: 36px 0 60px;
+  background:
+    radial-gradient(circle at 12% 10%, rgba(15, 118, 110, 0.15), transparent 40%),
+    radial-gradient(circle at 90% 5%, rgba(249, 115, 22, 0.2), transparent 45%),
+    var(--projects-bg);
+}
+
+[data-theme="dark"] .projects-page {
+  --projects-bg: #0f172a;
+  --projects-panel: #0b1220;
+  --projects-muted: #94a3b8;
+  background:
+    radial-gradient(circle at 12% 10%, rgba(45, 212, 191, 0.18), transparent 40%),
+    radial-gradient(circle at 90% 5%, rgba(249, 115, 22, 0.15), transparent 45%),
+    var(--projects-bg);
+}
+
+.projects-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+  gap: 24px;
+  align-items: stretch;
+  margin-bottom: 32px;
+}
+
+.projects-hero-copy {
+  background: var(--projects-panel);
+  border-radius: 24px;
+  padding: 32px;
+  box-shadow: 0 18px 36px rgba(15, 23, 42, 0.12);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.projects-hero-copy h1 {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 34px;
+  margin-bottom: 12px;
+}
+
+.projects-hero-copy p {
+  color: var(--projects-muted);
+  font-size: 16px;
+}
+
+.hero-kicker {
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--projects-accent);
+  margin-bottom: 12px;
+}
+
+.projects-hero-card {
+  background: linear-gradient(140deg, rgba(15, 118, 110, 0.16), rgba(249, 115, 22, 0.14));
+  border-radius: 24px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 20px;
+  border: 1px solid rgba(15, 118, 110, 0.2);
+}
+
+.hero-card-header {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.hero-card-header h3 {
+  margin: 0 0 6px;
+  font-size: 20px;
+}
+
+.hero-card-header p {
+  margin: 0;
+  color: var(--projects-muted);
+  font-size: 14px;
+}
+
+.hero-card-header svg {
+  width: 36px;
+  height: 36px;
+  color: var(--projects-accent);
+}
+
+.projects-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.8fr);
+  gap: 24px;
+}
+
+.topic-card,
+.topics-result {
+  background: var(--projects-panel);
+  border-radius: 24px;
+  padding: 28px;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.topic-card-header {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.topic-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  background: rgba(15, 118, 110, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--projects-accent);
+  font-size: 22px;
+}
+
+.topic-card h2 {
+  margin: 0 0 6px;
+}
+
+.topic-card p {
+  margin: 0;
+  color: var(--projects-muted);
+}
+
+.topic-form .form-control {
+  background: transparent;
+}
+
+.helper-text {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--projects-muted);
+}
+
+.topics-header {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.topics-header h3 {
+  margin: 0 0 4px;
+}
+
+.topics-header p {
+  margin: 0;
+  color: var(--projects-muted);
+  font-size: 13px;
+}
+
+.topics-empty {
+  padding: 24px;
+  background: rgba(148, 163, 184, 0.12);
+  border-radius: 16px;
+  color: var(--projects-muted);
+  text-align: center;
+}
+
+.topics-list {
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin: 0;
+}
+
+.topics-list li {
+  padding: 12px 16px;
+  background: rgba(15, 118, 110, 0.08);
+  border-radius: 14px;
+  border: 1px solid rgba(15, 118, 110, 0.2);
+  font-weight: 600;
+}
+
+@media (max-width: 1024px) {
+  .projects-hero,
+  .projects-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .projects-hero-copy h1 {
+    font-size: 28px;
+  }
+
+  .projects-hero-copy,
+  .projects-hero-card,
+  .topic-card,
+  .topics-result {
+    padding: 22px;
+  }
+}
+
+@media (max-width: 540px) {
+  .projects-hero-copy h1 {
+    font-size: 24px;
+  }
+
+  .topic-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .hero-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

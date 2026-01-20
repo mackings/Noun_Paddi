@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const APIUsageSchema = new mongoose.Schema({
   operationType: {
     type: String,
-    enum: ['summarize', 'generate_questions'],
+    enum: ['summarize', 'generate_questions', 'summarize_groq', 'generate_questions_groq'],
     required: true,
   },
   model: {

@@ -18,6 +18,8 @@ const AdminMaterials = () => {
   const [processingId, setProcessingId] = useState(null);
   const [processingType, setProcessingType] = useState(null);
   const [message, setMessage] = useState({ type: '', text: '' });
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
 
   useEffect(() => {
     fetchMaterials();
@@ -119,17 +121,74 @@ const AdminMaterials = () => {
     );
   }
 
+  const totalMaterials = materials.length;
+  const summaryCount = materials.filter((material) => material.hasSummary).length;
+  const questionsCount = materials.filter((material) => material.questionsCount > 0).length;
+  const completeCount = materials.filter(
+    (material) => material.hasSummary && material.questionsCount > 0
+  ).length;
+
+  const normalizedSearch = searchTerm.trim().toLowerCase();
+  const filteredMaterials = materials.filter((material) => {
+    const title = material.title || '';
+    const courseCode = material.courseId?.courseCode || '';
+    const courseName = material.courseId?.courseName || '';
+    const matchesSearch = normalizedSearch.length === 0
+      || `${title} ${courseCode} ${courseName}`.toLowerCase().includes(normalizedSearch);
+
+    if (!matchesSearch) return false;
+
+    if (statusFilter === 'needs-summary') {
+      return !material.hasSummary;
+    }
+    if (statusFilter === 'needs-questions') {
+      return material.hasSummary && material.questionsCount === 0;
+    }
+    if (statusFilter === 'complete') {
+      return material.hasSummary && material.questionsCount > 0;
+    }
+    return true;
+  });
+
+  const filterOptions = [
+    { value: 'all', label: 'All' },
+    { value: 'needs-summary', label: 'Needs Summary' },
+    { value: 'needs-questions', label: 'Needs Questions' },
+    { value: 'complete', label: 'Complete' },
+  ];
+
   return (
     <div className="admin-materials-container">
       <div className="container">
-        <div className="materials-header">
-          <div>
+        <div className="materials-hero">
+          <div className="materials-hero-text">
             <h1>Manage Materials</h1>
-            <p>Generate summaries and questions for uploaded materials</p>
+            <p>Generate summaries and questions for uploaded materials.</p>
           </div>
-          <button onClick={fetchMaterials} className="btn btn-outline-primary">
-            <FiRefreshCw /> Refresh
-          </button>
+          <div className="materials-hero-actions">
+            <button onClick={fetchMaterials} className="btn btn-outline-primary">
+              <FiRefreshCw /> Refresh
+            </button>
+          </div>
+        </div>
+
+        <div className="materials-stats">
+          <div className="stat-card">
+            <span className="stat-label">Total Materials</span>
+            <span className="stat-value">{totalMaterials}</span>
+          </div>
+          <div className="stat-card">
+            <span className="stat-label">Summaries Ready</span>
+            <span className="stat-value">{summaryCount}</span>
+          </div>
+          <div className="stat-card">
+            <span className="stat-label">Questions Ready</span>
+            <span className="stat-value">{questionsCount}</span>
+          </div>
+          <div className="stat-card">
+            <span className="stat-label">Complete</span>
+            <span className="stat-value">{completeCount}</span>
+          </div>
         </div>
 
         {message.text && (
@@ -138,121 +197,127 @@ const AdminMaterials = () => {
           </div>
         )}
 
-        {materials.length === 0 ? (
+        <div className="materials-toolbar">
+          <div className="materials-search">
+            <FiFileText />
+            <input
+              type="text"
+              placeholder="Search by title or course..."
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+            />
+          </div>
+          <div className="materials-filters">
+            {filterOptions.map((option) => (
+              <button
+                key={option.value}
+                className={`filter-chip ${statusFilter === option.value ? 'active' : ''}`}
+                onClick={() => setStatusFilter(option.value)}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {filteredMaterials.length === 0 ? (
           <div className="empty-state">
             <FiFileText size={64} />
-            <h3>No Materials Yet</h3>
-            <p>Upload materials to get started with AI processing.</p>
+            <h3>No Materials Found</h3>
+            <p>
+              {materials.length === 0
+                ? 'Upload materials to get started with AI processing.'
+                : 'Try adjusting your search or filters.'}
+            </p>
           </div>
         ) : (
-          <div className="materials-table-card">
-            <div className="table-responsive">
-              <table className="materials-table">
-                <thead>
-                  <tr>
-                    <th>Material Title</th>
-                    <th>Course</th>
-                    <th>Uploaded</th>
-                    <th>Summary</th>
-                    <th>Questions</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {materials.map((material) => (
-                    <tr key={material._id}>
-                      <td>
-                        <div className="material-title-cell">
-                          <FiFileText />
-                          <span>{material.title}</span>
-                        </div>
-                      </td>
-                      <td>
-                        <div className="course-cell">
-                          <strong>{material.courseId?.courseCode}</strong>
-                          <span>{material.courseId?.courseName}</span>
-                        </div>
-                      </td>
-                      <td>
-                        <div className="date-cell">
-                          <FiClock size={14} />
-                          {formatDate(material.createdAt)}
-                        </div>
-                      </td>
-                      <td>
-                        {material.hasSummary ? (
-                          <span className="status-badge status-success">
-                            <FiCheckCircle /> Generated
-                          </span>
-                        ) : (
-                          <span className="status-badge status-pending">
-                            <FiXCircle /> Not Generated
-                          </span>
-                        )}
-                      </td>
-                      <td>
-                        {material.questionsCount > 0 ? (
-                          <span className="status-badge status-success">
-                            <FiCheckCircle /> {material.questionsCount} questions
-                          </span>
-                        ) : (
-                          <span className="status-badge status-pending">
-                            <FiXCircle /> Not Generated
-                          </span>
-                        )}
-                      </td>
-                      <td>
-                        <div className="action-buttons">
-                          {!material.hasSummary && (
-                            <button
-                              onClick={() => handleGenerateSummary(material._id)}
-                              className="btn btn-sm btn-primary"
-                              disabled={processingId === material._id && processingType === 'summary'}
-                            >
-                              {processingId === material._id && processingType === 'summary' ? (
-                                <>
-                                  <div className="spinner-small"></div> Generating...
-                                </>
-                              ) : (
-                                <>
-                                  <FiFileText /> Summary
-                                </>
-                              )}
-                            </button>
-                          )}
+          <div className="materials-grid">
+            {filteredMaterials.map((material, index) => {
+              const courseCode = material.courseId?.courseCode || 'N/A';
+              const courseName = material.courseId?.courseName || 'Unknown course';
+              return (
+                <div
+                  key={material._id}
+                  className="material-card"
+                  style={{ '--delay': index }}
+                >
+                  <div className="material-card-header">
+                    <div className="material-title">
+                      <div className="material-title-icon">
+                        <FiFileText />
+                      </div>
+                      <div>
+                        <h3>{material.title}</h3>
+                        <p>{courseCode} · {courseName}</p>
+                      </div>
+                    </div>
+                    <div className="material-meta">
+                      <FiClock size={14} />
+                      <span>{formatDate(material.createdAt)}</span>
+                    </div>
+                  </div>
 
-                          {material.hasSummary && material.questionsCount === 0 && (
-                            <button
-                              onClick={() => handleGenerateQuestions(material._id)}
-                              className="btn btn-sm btn-success"
-                              disabled={processingId === material._id && processingType === 'questions'}
-                            >
-                              {processingId === material._id && processingType === 'questions' ? (
-                                <>
-                                  <div className="spinner-small"></div> Generating...
-                                </>
-                              ) : (
-                                <>
-                                  <FiGrid /> Questions
-                                </>
-                              )}
-                            </button>
-                          )}
+                  <div className="material-status">
+                    <span className={`status-pill ${material.hasSummary ? 'status-success' : 'status-pending'}`}>
+                      {material.hasSummary ? <FiCheckCircle /> : <FiXCircle />}
+                      Summary {material.hasSummary ? 'Generated' : 'Missing'}
+                    </span>
+                    <span className={`status-pill ${material.questionsCount > 0 ? 'status-success' : 'status-pending'}`}>
+                      {material.questionsCount > 0 ? <FiCheckCircle /> : <FiXCircle />}
+                      {material.questionsCount > 0
+                        ? `${material.questionsCount} Questions`
+                        : 'Questions Missing'}
+                    </span>
+                  </div>
 
-                          <button
-                            onClick={() => handleDelete(material._id, material.title)}
-                            className="btn btn-sm btn-danger"
-                            disabled={processingId === material._id}
-                          >
-                            <FiTrash2 /> Delete
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  <div className="material-actions">
+                    {!material.hasSummary && (
+                      <button
+                        onClick={() => handleGenerateSummary(material._id)}
+                        className="btn btn-sm btn-primary"
+                        disabled={processingId === material._id && processingType === 'summary'}
+                      >
+                        {processingId === material._id && processingType === 'summary' ? (
+                          <>
+                            <div className="spinner-small"></div> Generating...
+                          </>
+                        ) : (
+                          <>
+                            <FiFileText /> Summary
+                          </>
+                        )}
+                      </button>
+                    )}
+
+                    {material.hasSummary && material.questionsCount === 0 && (
+                      <button
+                        onClick={() => handleGenerateQuestions(material._id)}
+                        className="btn btn-sm btn-success"
+                        disabled={processingId === material._id && processingType === 'questions'}
+                      >
+                        {processingId === material._id && processingType === 'questions' ? (
+                          <>
+                            <div className="spinner-small"></div> Generating...
+                          </>
+                        ) : (
+                          <>
+                            <FiGrid /> Questions
+                          </>
+                        )}
+                      </button>
+                    )}
+
+                    <button
+                      onClick={() => handleDelete(material._id, material.title)}
+                      className="btn btn-sm btn-danger"
+                      disabled={processingId === material._id}
+                    >
+                      <FiTrash2 /> Delete
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

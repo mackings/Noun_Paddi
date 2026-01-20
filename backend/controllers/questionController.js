@@ -1,5 +1,8 @@
 const Question = require('../models/Question');
+const Material = require('../models/Material');
 const { questionCache, cacheHelper } = require('../utils/cache');
+const { gradePopAnswers, generatePopPaper } = require('../utils/aiHelper');
+const { generateRemainingQuestions } = require('./materialController');
 
 // @desc    Get questions by course
 // @route   GET /api/questions/course/:courseId
@@ -30,6 +33,55 @@ exports.getQuestionsByCourse = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// @desc    Ensure question generation for course
+// @route   POST /api/questions/course/:courseId/ensure
+// @access  Private
+exports.ensureQuestionsForCourse = async (req, res) => {
+  try {
+    const courseId = req.params.courseId;
+    console.log(`Ensure questions requested for course ${courseId} by user ${req.user?._id || 'unknown'}`);
+    const existingCount = await Question.countDocuments({ courseId });
+    if (existingCount >= 70) {
+      return res.status(200).json({
+        success: true,
+        status: 'ready',
+        count: existingCount,
+      });
+    }
+
+    const material = await Material.findOne({ courseId }).sort({ createdAt: -1 });
+    if (!material) {
+      return res.status(404).json({
+        success: false,
+        message: 'No material available for this course',
+      });
+    }
+
+    if (material.processingStatus !== 'processing') {
+      material.processingStatus = 'processing';
+      await material.save();
+    }
+
+    setImmediate(() => {
+      generateRemainingQuestions(material._id, req.user?._id).catch((error) => {
+        console.error('Ensure questions generation failed:', error);
+      });
+    });
+
+    return res.status(200).json({
+      success: true,
+      status: 'queued',
+      count: existingCount,
+      expectedQuestions: 70,
+    });
+  } catch (error) {
+    return res.status(500).json({
       success: false,
       message: error.message,
     });
@@ -174,6 +226,98 @@ exports.deleteQuestion = async (req, res) => {
     res.status(500).json({
       success: false,
       message: error.message,
+    });
+  }
+};
+
+// @desc    Grade POP answers (AI)
+// @route   POST /api/questions/pop-grade
+// @access  Private
+exports.gradePopAnswers = async (req, res) => {
+  try {
+    const { answers, maxScorePerQuestion } = req.body;
+
+    if (!Array.isArray(answers) || answers.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Answers are required for grading',
+      });
+    }
+
+    const cleaned = answers
+      .filter((item) => item && item.question && typeof item.answer === 'string')
+      .map((item) => ({
+        question: item.question,
+        answer: item.answer,
+        maxScore: typeof item.maxScore === 'number' ? item.maxScore : undefined,
+      }));
+
+    if (cleaned.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No valid answers provided',
+      });
+    }
+
+    const grading = await gradePopAnswers(cleaned, maxScorePerQuestion || 10);
+
+    res.status(200).json({
+      success: true,
+      data: grading,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to grade answers',
+    });
+  }
+};
+
+// @desc    Generate POP exam paper
+// @route   GET /api/questions/pop-paper/:courseId
+// @access  Public
+exports.getPopPaperByCourse = async (req, res) => {
+  try {
+    const questions = await Question.find({ courseId: req.params.courseId }).limit(80);
+    const questionTexts = questions.map((q) => q.questionText);
+
+    if (questionTexts.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'No questions available for this course',
+      });
+    }
+
+    try {
+      const popPaper = await generatePopPaper(questionTexts, 5);
+      return res.status(200).json({
+        success: true,
+        data: popPaper,
+      });
+    } catch (error) {
+      // Fallback: simple POP paper if AI generation fails
+      const fallback = {
+        instructions: 'Answer question 1 and any other three questions',
+        questions: questionTexts.slice(0, 5).map((text, index) => ({
+          number: index + 1,
+          parts: [
+            {
+              label: 'a',
+              text,
+              marks: 10,
+            },
+          ],
+        })),
+      };
+      return res.status(200).json({
+        success: true,
+        data: fallback,
+      });
+    }
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to generate POP paper',
     });
   }
 };

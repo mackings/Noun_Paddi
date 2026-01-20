@@ -2,15 +2,37 @@
 > nounpaddi-backend@1.0.0 start
 > node server.js
 
-(node:20155) [MONGODB DRIVER] Warning: useNewUrlParser is a deprecated option: useNewUrlParser has no effect since Node.js Driver version 4.0.0 and will be removed in the next major version
+Cloudinary Config: {
+  cloud_name: '✓ Set',
+  api_key: '✓ Set (486634565426664)',
+  api_secret: '✓ Set'
+}
+(node:76953) [MONGODB DRIVER] Warning: useNewUrlParser is a deprecated option: useNewUrlParser has no effect since Node.js Driver version 4.0.0 and will be removed in the next major version
 (Use `node --trace-warnings ...` to show where the warning was created)
-(node:20155) [MONGODB DRIVER] Warning: useUnifiedTopology is a deprecated option: useUnifiedTopology has no effect since Node.js Driver version 4.0.0 and will be removed in the next major version
-Server running in development mode on port 5001
-MongoDB Connected: ac-0bzjik2-shard-00-02.hpshwg3.mongodb.net
-Starting question generation with Gemini...
-Using Gemini File API for question generation...
-Downloading PDF from: https://res.cloudinary.com/dstbemgjh/raw/upload/v1766875190/nounpaddi-materials/esvpyl8akmje5mzl7oms
-Uploading PDF to Gemini...
-File uploaded: https://generativelanguage.googleapis.com/v1beta/files/8ljr69dn4dz9
-Generating questions from PDF...
-Question generation successful
+(node:76953) [MONGODB DRIVER] Warning: useUnifiedTopology is a deprecated option: useUnifiedTopology has no effect since Node.js Driver version 4.0.0 and will be removed in the next major version
+node:events:496
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EPERM: operation not permitted 0.0.0.0:5001
+    at Server.setupListenHandle [as _listen2] (node:net:1918:21)
+    at listenInCluster (node:net:1997:12)
+    at Server.listen (node:net:2102:7)
+    at Function.listen (/Users/mac/OpenSource/nounpaddi/backend/node_modules/express/lib/application.js:635:24)
+    at Object.<anonymous> (/Users/mac/OpenSource/nounpaddi/backend/server.js:94:7)
+    at Module._compile (node:internal/modules/cjs/loader:1688:14)
+    at Object..js (node:internal/modules/cjs/loader:1820:10)
+    at Module.load (node:internal/modules/cjs/loader:1423:32)
+    at Function._load (node:internal/modules/cjs/loader:1246:12)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+Emitted 'error' event on Server instance at:
+    at emitErrorNT (node:net:1976:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EPERM',
+  errno: -1,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 5001
+}
+
+Node.js v22.18.0

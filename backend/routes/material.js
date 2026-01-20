@@ -12,8 +12,9 @@ const {
   getUploadSignature,
   getStudentStats,
   getMaterialStatus,
+  streamMaterialStatus,
 } = require('../controllers/materialController');
-const { protect, authorize } = require('../middleware/auth');
+const { protect, authorize, protectSSE } = require('../middleware/auth');
 const { upload } = require('../config/cloudinary');
 
 // Admin routes
@@ -50,6 +51,7 @@ router.post('/student-upload', protect, handleUploadError, studentUploadMaterial
 router.post('/upload-signature', protect, getUploadSignature);
 router.get('/my-stats', protect, getStudentStats);
 router.get('/:materialId/status', protect, getMaterialStatus);
+router.get('/:materialId/stream', protectSSE, streamMaterialStatus);
 
 // Public routes
 router.get('/course/:courseId', getCourseMaterials);
