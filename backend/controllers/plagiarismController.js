@@ -68,49 +68,79 @@ exports.submitForCheck = async (req, res) => {
 
     console.log('Submission created:', submission._id);
 
-    // Run plagiarism check
-    try {
-      const result = await runPlagiarismCheck(req.file.path, fileType);
-
-      // Update submission with results
-      submission.wordCount = result.wordCount;
-      submission.extractedText = result.extractedText;
-      submission.plagiarismReport = result.report;
-      submission.status = 'completed';
-      await submission.save();
-
-      console.log('Plagiarism check completed for:', submission._id);
-
-      // Return without extractedText (too large for response)
-      const responseData = submission.toObject();
-      delete responseData.extractedText;
-
-      res.status(201).json({
-        success: true,
-        message: 'Plagiarism check completed successfully',
-        data: responseData,
-      });
-
-    } catch (checkError) {
-      console.error('Plagiarism check failed:', checkError.message);
-
-      // Update submission with error
-      submission.status = 'failed';
-      submission.errorMessage = checkError.message;
-      await submission.save();
-
-      res.status(500).json({
-        success: false,
-        message: 'Plagiarism check failed: ' + checkError.message,
+    // Return immediately - process in background to avoid Vercel timeout
+    res.status(202).json({
+      success: true,
+      message: 'Plagiarism check started. Poll for status.',
+      data: {
         submissionId: submission._id,
-      });
-    }
+        status: 'checking',
+      },
+    });
+
+    // Run plagiarism check in background (after response sent)
+    setImmediate(async () => {
+      try {
+        console.log('Starting background plagiarism check for:', submission._id);
+        const result = await runPlagiarismCheck(req.file.path, fileType);
+
+        // Update submission with results
+        submission.wordCount = result.wordCount;
+        submission.extractedText = result.extractedText;
+        submission.plagiarismReport = result.report;
+        submission.status = 'completed';
+        await submission.save();
+
+        console.log('Plagiarism check completed for:', submission._id);
+      } catch (checkError) {
+        console.error('Plagiarism check failed:', checkError.message);
+
+        // Update submission with error
+        submission.status = 'failed';
+        submission.errorMessage = checkError.message;
+        await submission.save();
+      }
+    });
 
   } catch (error) {
     console.error('Submit for check error:', error);
     res.status(500).json({
       success: false,
       message: error.message || 'Failed to submit for plagiarism check',
+    });
+  }
+};
+
+// @desc    Get plagiarism check status
+// @route   GET /api/plagiarism/status/:id
+// @access  Private
+exports.getCheckStatus = async (req, res) => {
+  try {
+    const submission = await ProjectSubmission.findOne({
+      _id: req.params.id,
+      userId: req.user._id,
+    })
+      .select('-extractedText')
+      .populate('facultyId', 'name')
+      .populate('departmentId', 'name code');
+
+    if (!submission) {
+      return res.status(404).json({
+        success: false,
+        message: 'Submission not found',
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: submission,
+    });
+
+  } catch (error) {
+    console.error('Get check status error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to get status',
     });
   }
 };

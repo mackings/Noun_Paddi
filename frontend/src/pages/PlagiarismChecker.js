@@ -113,6 +113,52 @@ const PlagiarismChecker = () => {
     setError('');
   };
 
+  const pollForStatus = async (submissionId) => {
+    const maxAttempts = 60; // Poll for up to 2 minutes (60 * 2s)
+    let attempts = 0;
+
+    const poll = async () => {
+      try {
+        const response = await api.get(`/plagiarism/status/${submissionId}`);
+        const submission = response.data.data;
+
+        if (submission.status === 'completed') {
+          setResult(submission);
+          setActiveTab('result');
+          fetchReports();
+          setChecking(false);
+          // Reset form
+          setFile(null);
+          setTitle('');
+          setSelectedFaculty('');
+          setSelectedDepartment('');
+          return;
+        }
+
+        if (submission.status === 'failed') {
+          setError(submission.errorMessage || 'Plagiarism check failed. Please try again.');
+          setChecking(false);
+          return;
+        }
+
+        // Still checking, poll again
+        attempts++;
+        if (attempts < maxAttempts) {
+          setTimeout(poll, 2000); // Poll every 2 seconds
+        } else {
+          setError('Check is taking longer than expected. Please check history for results.');
+          setChecking(false);
+        }
+      } catch (err) {
+        console.error('Poll error:', err);
+        setError('Failed to get check status. Please check history for results.');
+        setChecking(false);
+      }
+    };
+
+    poll();
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -148,23 +194,16 @@ const PlagiarismChecker = () => {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
-        timeout: 120000, // 2 minutes timeout for processing
+        timeout: 30000, // 30s timeout for upload only
       });
 
-      setResult(response.data.data);
-      setActiveTab('result');
-      fetchReports(); // Refresh reports list
-
-      // Reset form
-      setFile(null);
-      setTitle('');
-      setSelectedFaculty('');
-      setSelectedDepartment('');
+      // Backend returns submissionId, start polling
+      const submissionId = response.data.data.submissionId;
+      pollForStatus(submissionId);
 
     } catch (err) {
       console.error('Plagiarism check error:', err);
-      setError(err.response?.data?.message || 'Failed to check document. Please try again.');
-    } finally {
+      setError(err.response?.data?.message || 'Failed to upload document. Please try again.');
       setChecking(false);
     }
   };

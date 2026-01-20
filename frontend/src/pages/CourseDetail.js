@@ -109,7 +109,7 @@ const CourseDetail = () => {
             <FiFileText />
             Study Summaries
           </button>
-          <Link to="/practice" className="detail-tab">
+          <Link to={`/practice?courseId=${courseId}`} className="detail-tab">
             <FiGrid />
             Practice Questions
           </Link>

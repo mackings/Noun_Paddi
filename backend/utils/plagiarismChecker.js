@@ -23,38 +23,63 @@ function getGeminiClients() {
   return geminiClients;
 }
 
-function isRateLimitError(error) {
+function isRetryableError(error) {
   const message = `${error?.message || ''}`;
-  return error?.status === 429 ||
-    error?.response?.status === 429 ||
+  const status = error?.status || error?.response?.status;
+
+  // Retry on rate limit (429), overload (503), or temporary errors (500, 502, 504)
+  return status === 429 ||
+    status === 503 ||
+    status === 500 ||
+    status === 502 ||
+    status === 504 ||
     message.includes('429') ||
-    message.includes('Too Many Requests');
+    message.includes('503') ||
+    message.includes('Too Many Requests') ||
+    message.includes('overloaded') ||
+    message.includes('Service Unavailable');
 }
 
-async function withGeminiClient(fn) {
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function withGeminiClient(fn, maxRetries = 3) {
   const clients = getGeminiClients();
   if (!clients.length) {
     throw new Error('No Gemini API keys configured');
   }
 
   let lastError;
-  for (let i = 0; i < clients.length; i++) {
-    const index = geminiClientIndex % clients.length;
-    geminiClientIndex = (geminiClientIndex + 1) % clients.length;
-    const client = clients[index];
-    try {
-      const result = await fn(client);
-      return result;
-    } catch (error) {
-      lastError = error;
-      if (isRateLimitError(error) && clients.length > 1) {
-        continue;
+
+  for (let retry = 0; retry < maxRetries; retry++) {
+    for (let i = 0; i < clients.length; i++) {
+      const index = geminiClientIndex % clients.length;
+      geminiClientIndex = (geminiClientIndex + 1) % clients.length;
+      const client = clients[index];
+
+      try {
+        const result = await fn(client);
+        return result;
+      } catch (error) {
+        lastError = error;
+        console.log(`Gemini API error (attempt ${retry + 1}/${maxRetries}):`, error.message);
+
+        if (isRetryableError(error)) {
+          // Exponential backoff: 2s, 4s, 8s
+          const delay = Math.pow(2, retry + 1) * 1000;
+          console.log(`Retryable error, waiting ${delay}ms before retry...`);
+          await sleep(delay);
+          break; // Break inner loop to retry with same or next client
+        }
+
+        // Non-retryable error, throw immediately
+        throw error;
       }
-      throw error;
     }
   }
 
-  throw lastError || new Error('All Gemini API keys failed');
+  throw lastError || new Error('All Gemini API attempts failed');
 }
 
 /**

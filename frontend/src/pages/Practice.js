@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import api from '../utils/api';
 import SEO from '../components/SEO';
 import { convertHalfToTrueFalse } from '../utils/questionTransformer';
@@ -44,10 +45,22 @@ const Practice = () => {
   const [myRank, setMyRank] = useState(null);
   const questionPollRef = useRef(null);
   const questionPollDelayRef = useRef(3000);
+  const location = useLocation();
+  const autoSelectRef = useRef(false);
 
   useEffect(() => {
     fetchCourses();
   }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const courseId = params.get('courseId');
+    if (!courseId || autoSelectRef.current || selectedCourse || loading) {
+      return;
+    }
+    autoSelectRef.current = true;
+    selectCourseForExam(courseId);
+  }, [location.search, selectedCourse, loading]);
 
   useEffect(() => {
     return () => {
@@ -127,6 +140,12 @@ const Practice = () => {
           }
           return prev;
         });
+
+        if (transformedQuestions.length < expectedQuestionCount) {
+          api.post(`/questions/course/${courseId}/ensure`).catch((error) => {
+            console.error('Error triggering question generation:', error);
+          });
+        }
 
         if (transformedQuestions.length >= expectedQuestionCount) {
           setQuestionSyncing(false);

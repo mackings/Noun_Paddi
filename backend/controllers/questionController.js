@@ -46,15 +46,6 @@ exports.ensureQuestionsForCourse = async (req, res) => {
   try {
     const courseId = req.params.courseId;
     console.log(`Ensure questions requested for course ${courseId} by user ${req.user?._id || 'unknown'}`);
-    const existingCount = await Question.countDocuments({ courseId });
-    if (existingCount >= 70) {
-      return res.status(200).json({
-        success: true,
-        status: 'ready',
-        count: existingCount,
-      });
-    }
-
     const material = await Material.findOne({ courseId }).sort({ createdAt: -1 });
     if (!material) {
       return res.status(404).json({
@@ -63,15 +54,24 @@ exports.ensureQuestionsForCourse = async (req, res) => {
       });
     }
 
+    const existingCount = await Question.countDocuments({ materialId: material._id });
+    if (existingCount >= 70) {
+      return res.status(200).json({
+        success: true,
+        status: 'ready',
+        count: existingCount,
+        materialId: material._id,
+      });
+    }
+
     if (material.processingStatus !== 'processing') {
       material.processingStatus = 'processing';
       await material.save();
     }
 
-    setImmediate(() => {
-      generateRemainingQuestions(material._id, req.user?._id).catch((error) => {
-        console.error('Ensure questions generation failed:', error);
-      });
+    const targetCount = Math.min(existingCount + 20, 70);
+    generateRemainingQuestions(material._id, req.user?._id, targetCount, { completeOnFinish: false }).catch((error) => {
+      console.error('Ensure questions generation failed:', error);
     });
 
     return res.status(200).json({
@@ -79,6 +79,7 @@ exports.ensureQuestionsForCourse = async (req, res) => {
       status: 'queued',
       count: existingCount,
       expectedQuestions: 70,
+      materialId: material._id,
     });
   } catch (error) {
     return res.status(500).json({

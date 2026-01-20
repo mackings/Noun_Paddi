@@ -514,7 +514,7 @@ async function generateSummaryAndQuestions(materialId, userId) {
 }
 
 // OPTIMIZED: Generate remaining questions using parallel batches
-async function generateRemainingQuestions(materialId, userId, targetCount = 70) {
+async function generateRemainingQuestions(materialId, userId, targetCount = 70, options = {}) {
   const material = await Material.findById(materialId);
   if (!material) {
     return;
@@ -534,6 +534,8 @@ async function generateRemainingQuestions(materialId, userId, targetCount = 70) 
 
   console.log(`Generating ${remaining} more questions for material: ${materialId}`);
   console.log(`Current count: ${currentCount}, Target: ${targetCount}`);
+
+  const completeOnFinish = options.completeOnFinish !== false;
 
   try {
     // Get existing questions for exclusion
@@ -571,9 +573,18 @@ async function generateRemainingQuestions(materialId, userId, targetCount = 70) 
     const finalCount = await Question.countDocuments({ materialId });
     console.log(`Final question count for material ${materialId}: ${finalCount}`);
 
-    material.hasQuestions = true;
-    material.processingStatus = 'completed';
-    material.contributorPoints = 10;
+    if (finalCount >= 70) {
+      material.hasQuestions = true;
+      material.processingStatus = 'completed';
+      material.contributorPoints = 10;
+    } else if (completeOnFinish) {
+      material.hasQuestions = false;
+      material.processingStatus = 'processing';
+      material.contributorPoints = 5;
+    } else {
+      material.hasQuestions = false;
+      material.processingStatus = 'processing';
+    }
     await material.save();
 
     // Invalidate caches
@@ -587,12 +598,16 @@ async function generateRemainingQuestions(materialId, userId, targetCount = 70) 
 
     // Don't mark as failed - mark as completed with partial questions
     const partialCount = await Question.countDocuments({ materialId });
-    if (partialCount >= 10) {
-      // At least have minimum questions, mark as completed
+    if (partialCount >= 70) {
       material.hasQuestions = true;
       material.processingStatus = 'completed';
-      material.contributorPoints = 5; // Partial points
-      console.log(`Partial completion for ${materialId}: ${partialCount} questions`);
+      material.contributorPoints = 10;
+      console.log(`Completion after retry for ${materialId}: ${partialCount} questions`);
+    } else if (completeOnFinish) {
+      material.hasQuestions = false;
+      material.processingStatus = 'processing';
+      material.contributorPoints = 5;
+      console.log(`Partial progress for ${materialId}: ${partialCount} questions`);
     } else {
       material.processingStatus = 'failed';
       material.processingError = error.message;

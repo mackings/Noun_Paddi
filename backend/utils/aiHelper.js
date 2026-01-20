@@ -1,6 +1,6 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { GoogleAIFileManager } = require('@google/generative-ai/server');
-const Groq = require('groq-sdk');
+// const Groq = require('groq-sdk'); // Commented out - using Gemini Tier 1 instead
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
@@ -10,36 +10,34 @@ const { cloudinary } = require('../config/cloudinary');
 const { extractTextFromPDF, extractTextFromBuffer } = require('./pdfHelper');
 
 // ============================================
-// GROQ CLIENT SETUP (Primary - Fast & High Quota)
+// GROQ CLIENT SETUP - COMMENTED OUT
+// Using Gemini 2.5 Flash on Tier 1 instead (better rate limits: 300 RPM, 2M TPM)
 // ============================================
-let groqClient = null;
-
-function getGroqClient() {
-  if (groqClient) return groqClient;
-
-  const apiKey = process.env.GROQ_API_KEY;
-  if (!apiKey) {
-    console.log('GROQ_API_KEY not configured, will use Gemini');
-    return null;
-  }
-
-  groqClient = new Groq({ apiKey });
-  return groqClient;
-}
+// let groqClient = null;
+//
+// function getGroqClient() {
+//   if (groqClient) return groqClient;
+//   const apiKey = process.env.GROQ_API_KEY;
+//   if (!apiKey) {
+//     console.log('GROQ_API_KEY not configured, will use Gemini');
+//     return null;
+//   }
+//   groqClient = new Groq({ apiKey });
+//   return groqClient;
+// }
 
 function isGroqAvailable() {
-  return !!process.env.GROQ_API_KEY;
+  // Always return false to use Gemini instead
+  return false;
 }
 
-// Get the Groq model to use
-function getGroqModel() {
-  // Use llama-3.3-70b-versatile for best quality, or fall back to env setting
-  // llama-3.1-8b-instant has small context, not good for large documents
-  return 'llama-3.3-70b-versatile';
-}
+// function getGroqModel() {
+//   return 'llama-3.3-70b-versatile';
+// }
 
 // ============================================
-// GEMINI CLIENT SETUP (Fallback)
+// GEMINI CLIENT SETUP (Primary - Tier 1)
+// Tier 1 limits: 300 RPM, 2M TPM, 1500 RPD
 // ============================================
 let geminiClients = null;
 let geminiClientIndex = 0;
@@ -891,133 +889,20 @@ function formatQuestionsToMCQ(generatedQuestions, originalText) {
 }
 
 // ============================================
-// GROQ-BASED GENERATION (Primary - Fast)
+// GROQ-BASED GENERATION - COMMENTED OUT
+// Using Gemini Tier 1 instead for better rate limits
 // ============================================
 
-// Generate summary using Groq (very fast)
-async function summarizeWithGroq(text, materialId = null, userId = null) {
-  const client = getGroqClient();
-  if (!client) throw new Error('Groq not configured');
+// async function summarizeWithGroq(text, materialId = null, userId = null) {
+//   // Groq implementation commented out - using Gemini instead
+// }
 
-  let cleanedText = text.replace(/\s+/g, ' ').trim();
-  if (cleanedText.length < 200) {
-    throw new Error('Text is too short to summarize');
-  }
-
-  // Groq has smaller context, limit to 35k chars
-  const maxLength = 35000;
-  if (cleanedText.length > maxLength) {
-    cleanedText = cleanedText.substring(0, maxLength);
-  }
-
-  const prompt = `You are an expert educational content summarizer. Provide a comprehensive, well-formatted summary.
-
-**FORMATTING:**
-1. **Module Headers:** **Module X: Title**
-2. **Unit Headers:** **Unit X: Title**
-3. **Key Terms:** Bold important terms
-4. Use bullet points for lists, paragraphs for explanations
-
-Course Material:
-${cleanedText}
-
-Provide a well-structured, comprehensive summary:`;
-
-  console.log('Generating summary with Groq...');
-  const startTime = Date.now();
-
-  const response = await client.chat.completions.create({
-    model: getGroqModel(),
-    messages: [{ role: 'user', content: prompt }],
-    temperature: 0.3,
-    max_tokens: 4500,
-  });
-
-  const summary = response.choices[0]?.message?.content || '';
-  console.log(`Groq summary generated in ${Date.now() - startTime}ms`);
-
-  await trackAPIUsage('summarize_groq', { response: { usageMetadata: response.usage } }, materialId, userId, true);
-
-  return summary;
-}
-
-// Generate questions using Groq (very fast)
-async function generateQuestionsWithGroq(text, totalQuestions, excludeQuestions = [], materialId = null, userId = null) {
-  const client = getGroqClient();
-  if (!client) throw new Error('Groq not configured');
-
-  const cleanedText = text.replace(/\s+/g, ' ').trim();
-  // Groq has smaller context window, limit text
-  const maxLength = 25000;
-  const truncatedText = cleanedText.length > maxLength ? cleanedText.substring(0, maxLength) : cleanedText;
-
-  const getMixCounts = (total) => {
-    if (total <= 5) {
-      return { total, mcq: Math.max(1, Math.ceil(total * 0.6)), tf: Math.max(1, Math.floor(total * 0.2)), ms: Math.max(0, total - Math.ceil(total * 0.6) - Math.floor(total * 0.2)) };
-    }
-    const mcq = Math.max(1, Math.round(total * 0.64));
-    const tf = Math.max(1, Math.round(total * 0.21));
-    let ms = total - mcq - tf;
-    if (ms < 1) ms = 1;
-    return { total, mcq, tf, ms };
-  };
-
-  const counts = getMixCounts(totalQuestions);
-  const excludeText = excludeQuestions.length > 0
-    ? `\n\nDo NOT repeat any of these questions:\n${excludeQuestions.slice(0, 15).map((q, idx) => `${idx + 1}. ${q}`).join('\n')}\n`
-    : '';
-
-  const prompt = `Based on the following educational content, generate ${counts.total} high-quality practice questions.
-
-**CRITICAL REQUIREMENTS - RANDOMIZATION:**
-1. For multiple-choice: RANDOMLY distribute correct answers across A, B, C, D (25% each)
-2. For true/false: BALANCE 50% True and 50% False
-
-**Question Mix:**
-- ${counts.mcq} multiple-choice (4 options)
-- ${counts.tf} True/False
-- ${counts.ms} multi-select (2 correct answers)
-
-Return ONLY questions. Start directly with "Q1:".
-
-Format:
-Q[number]: [Question text]
-Type: multiple-choice|true-false|multi-select
-A) [Option A]
-B) [Option B]
-C) [Option C]
-D) [Option D]
-Correct Answer: [Letter] or Correct Answers: [Letters]
-Explanation: [Brief explanation]
-Difficulty: [easy/medium/hard]
-
----
-Educational Content:
-${truncatedText}
-${excludeText}
-
-Generate ${counts.total} questions with RANDOMIZED answers:`;
-
-  console.log(`Generating ${totalQuestions} questions with Groq...`);
-  const startTime = Date.now();
-
-  const response = await client.chat.completions.create({
-    model: getGroqModel(),
-    messages: [{ role: 'user', content: prompt }],
-    temperature: 0.7,
-    max_tokens: 4000,
-  });
-
-  const questionsText = response.choices[0]?.message?.content || '';
-  console.log(`Groq questions generated in ${Date.now() - startTime}ms`);
-
-  await trackAPIUsage('generate_questions_groq', { response: { usageMetadata: response.usage } }, materialId, userId, true);
-
-  return { generated_text: questionsText };
-}
+// async function generateQuestionsWithGroq(text, totalQuestions, excludeQuestions = [], materialId = null, userId = null) {
+//   // Groq implementation commented out - using Gemini instead
+// }
 
 // ============================================
-// GEMINI-BASED GENERATION (Fallback)
+// GEMINI-BASED GENERATION (Primary - Tier 1)
 // ============================================
 
 // Generate questions using a specific client, with automatic retry on other keys
@@ -1170,12 +1055,11 @@ Provide a well-structured, comprehensive summary:`;
 }
 
 // FAST: Generate summary and initial questions - optimized for speed
-// Uses GROQ as primary (fast, high quota), Gemini as fallback
+// Uses Gemini 2.5 Flash on Tier 1 (300 RPM, 2M TPM, 1500 RPD)
 async function generateSummaryAndQuestionsParallel(pdfUrl, materialId = null, userId = null) {
   const startTime = Date.now();
-  const useGroq = isGroqAvailable();
   console.log('Starting OPTIMIZED summary + questions generation...');
-  console.log(`Provider: ${useGroq ? 'GROQ (primary)' : 'Gemini'}`);
+  console.log('Provider: Gemini 2.5 Flash (Tier 1)');
 
   // Step 1: Download PDF once
   console.log('Step 1: Downloading PDF...');
@@ -1206,59 +1090,26 @@ async function generateSummaryAndQuestionsParallel(pdfUrl, materialId = null, us
 
   let summary, questions;
 
-  // Step 3: Generate summary - try Groq first, fallback to Gemini
+  // Step 3: Generate summary with Gemini
   console.log('Step 3: Generating summary...');
   const summaryStart = Date.now();
-  if (useGroq) {
-    try {
-      summary = await summarizeWithGroq(extractedText, materialId, userId);
-      console.log(`Summary generated with GROQ in ${Date.now() - summaryStart}ms`);
-    } catch (error) {
-      console.error('Groq summary failed, falling back to Gemini:', error.message);
-      summary = await summarizeWithClient(0, extractedText, materialId, userId);
-      console.log(`Summary generated with Gemini (fallback) in ${Date.now() - summaryStart}ms`);
-    }
-  } else {
-    summary = await summarizeWithClient(0, extractedText, materialId, userId);
-    console.log(`Summary generated with Gemini in ${Date.now() - summaryStart}ms`);
-  }
+  summary = await summarizeWithClient(0, extractedText, materialId, userId);
+  console.log(`Summary generated with Gemini in ${Date.now() - summaryStart}ms`);
 
-  // Step 4: Generate questions - try Groq first, fallback to Gemini
+  // Step 4: Generate questions with Gemini
   console.log('Step 4: Generating 10 questions...');
   const questionsStart = Date.now();
-  if (useGroq) {
-    try {
-      const questionsRaw = await generateQuestionsWithGroq(extractedText, 10, [], materialId, userId);
-      questions = formatQuestionsToMCQ(questionsRaw, extractedText);
-      console.log(`Questions generated with GROQ in ${Date.now() - questionsStart}ms (${questions.length} questions)`);
-    } catch (error) {
-      console.error('Groq questions failed, falling back to Gemini:', error.message);
-      const questionsRaw = await generateQuestionsWithClient(0, extractedText, 10, [], materialId, userId);
-      questions = formatQuestionsToMCQ(questionsRaw, extractedText);
-      console.log(`Questions generated with Gemini (fallback) in ${Date.now() - questionsStart}ms (${questions.length} questions)`);
-    }
-  } else {
-    const questionsRaw = await generateQuestionsWithClient(0, extractedText, 10, [], materialId, userId);
-    questions = formatQuestionsToMCQ(questionsRaw, extractedText);
-    console.log(`Questions generated with Gemini in ${Date.now() - questionsStart}ms (${questions.length} questions)`);
-  }
+  const questionsRaw = await generateQuestionsWithClient(0, extractedText, 10, [], materialId, userId);
+  questions = formatQuestionsToMCQ(questionsRaw, extractedText);
+  console.log(`Questions generated with Gemini in ${Date.now() - questionsStart}ms (${questions.length} questions)`);
 
   // Top up if the model returned fewer than 10
   if (questions.length < 10) {
     const missing = 10 - questions.length;
     console.warn(`Only ${questions.length} questions generated. Topping up ${missing} more...`);
     const excludeTexts = questions.map(q => q.questionText).filter(Boolean);
-    let topUp = [];
-    try {
-      const topUpRaw = useGroq
-        ? await generateQuestionsWithGroq(extractedText, missing, excludeTexts, materialId, userId)
-        : await generateQuestionsWithClient(0, extractedText, missing, excludeTexts, materialId, userId);
-      topUp = formatQuestionsToMCQ(topUpRaw, extractedText);
-    } catch (error) {
-      console.error('Top-up questions failed, trying Gemini fallback:', error.message);
-      const topUpRaw = await generateQuestionsWithClient(0, extractedText, missing, excludeTexts, materialId, userId);
-      topUp = formatQuestionsToMCQ(topUpRaw, extractedText);
-    }
+    const topUpRaw = await generateQuestionsWithClient(0, extractedText, missing, excludeTexts, materialId, userId);
+    const topUp = formatQuestionsToMCQ(topUpRaw, extractedText);
     questions = [...questions, ...topUp].slice(0, 10);
     console.log(`Top-up complete. Total initial questions: ${questions.length}`);
   }
@@ -1307,11 +1158,11 @@ async function generateQuestionsFromFile(tempFilePath, materialId = null, userId
   return { generated_text: result.response.text() };
 }
 
-// Generate remaining questions - uses GROQ (fast) with Gemini fallback
+// Generate remaining questions - uses Gemini 2.5 Flash (Tier 1)
+// Tier 1 limits: 300 RPM, 2M TPM - can handle batches quickly
 async function generateQuestionsParallel(pdfUrl, materialId, userId, targetCount, existingQuestions = []) {
   const startTime = Date.now();
-  const useGroq = isGroqAvailable();
-  console.log(`Generating ${targetCount} questions with ${useGroq ? 'GROQ' : 'Gemini'}...`);
+  console.log(`Generating ${targetCount} questions with Gemini 2.5 Flash (Tier 1)...`);
 
   // Download and extract text once
   console.log('Downloading PDF...');
@@ -1336,8 +1187,8 @@ async function generateQuestionsParallel(pdfUrl, materialId, userId, targetCount
   const excludeTexts = existingQuestions.map(q => q.questionText || q).filter(Boolean);
   const allQuestions = [];
 
-  // Generate in batches - Groq can handle larger batches faster
-  const batchSize = useGroq ? 20 : 15;
+  // Generate in batches - Gemini Tier 1 can handle 20 questions per batch
+  const batchSize = 20;
   let remaining = targetCount;
   let batchNum = 0;
   let consecutiveFailures = 0;
@@ -1351,19 +1202,7 @@ async function generateQuestionsParallel(pdfUrl, materialId, userId, targetCount
     const batchStart = Date.now();
 
     try {
-      let result;
-      if (useGroq) {
-        // Try Groq first
-        try {
-          result = await generateQuestionsWithGroq(extractedText, size, currentExclude, materialId, userId);
-        } catch (groqError) {
-          console.error('Groq batch failed, trying Gemini:', groqError.message);
-          result = await generateQuestionsWithClient(0, extractedText, size, currentExclude, materialId, userId);
-        }
-      } else {
-        result = await generateQuestionsWithClient(batchNum % getClientCount(), extractedText, size, currentExclude, materialId, userId);
-      }
-
+      const result = await generateQuestionsWithClient(0, extractedText, size, currentExclude, materialId, userId);
       const questions = formatQuestionsToMCQ(result, extractedText);
       allQuestions.push(...questions);
       console.log(`Batch ${batchNum} done in ${Date.now() - batchStart}ms (got ${questions.length} questions)`);
@@ -1373,7 +1212,7 @@ async function generateQuestionsParallel(pdfUrl, materialId, userId, targetCount
       console.error(`Batch ${batchNum} failed:`, error.message);
       consecutiveFailures++;
 
-      // If rate limited, wait before retry
+      // If rate limited, wait before retry (shouldn't happen often on Tier 1)
       if (error.message?.includes('429') || error.message?.includes('quota') || error.message?.includes('rate')) {
         console.log('Rate limited, waiting 3 seconds...');
         await sleep(3000);
@@ -1382,9 +1221,9 @@ async function generateQuestionsParallel(pdfUrl, materialId, userId, targetCount
       }
     }
 
-    // Small delay between batches
+    // Small delay between batches to be safe
     if (remaining > 0) {
-      await sleep(useGroq ? 500 : 1000); // Groq can handle faster requests
+      await sleep(500);
     }
   }
 

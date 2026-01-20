@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import { formatDate } from '../utils/dateHelper';
 import {
@@ -39,6 +39,7 @@ const StudentDashboard = () => {
   const [departments, setDepartments] = useState([]);
   const [courses, setCourses] = useState([]);
   const [uploadStats, setUploadStats] = useState(null);
+  const [completedCourseId, setCompletedCourseId] = useState(null);
 
   // New course form state
   const [newCourse, setNewCourse] = useState({ courseCode: '', courseName: '', creditUnits: 3 });
@@ -56,6 +57,8 @@ const StudentDashboard = () => {
   const pollStartRef = useRef(null);
   const pollDelayRef = useRef(3000);
   const lastPollStateRef = useRef({ hasSummary: null, questionsCount: 0 });
+  const completionBeepedRef = useRef(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchStats();
@@ -169,6 +172,29 @@ const StudentDashboard = () => {
     }
   };
 
+  const playCompletionBeep = () => {
+    try {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContext) return;
+      const context = new AudioContext();
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(880, context.currentTime);
+      gain.gain.setValueAtTime(0.15, context.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, context.currentTime + 0.6);
+
+      oscillator.connect(gain);
+      gain.connect(context.destination);
+      oscillator.start();
+      oscillator.stop(context.currentTime + 0.6);
+      oscillator.onended = () => context.close();
+    } catch (error) {
+      console.error('Unable to play beep:', error);
+    }
+  };
+
   const applyStatusUpdate = (payload) => {
     const {
       processingStatus: status,
@@ -223,9 +249,10 @@ const StudentDashboard = () => {
       });
       fetchUploadStats();
       fetchStats();
-      setTimeout(() => {
-        resetUploadModal();
-      }, 3000);
+      if (!completionBeepedRef.current) {
+        completionBeepedRef.current = true;
+        playCompletionBeep();
+      }
       shouldContinue = false;
     } else if (status === 'failed') {
       setProcessingStatus({
@@ -432,6 +459,7 @@ const StudentDashboard = () => {
       });
 
       const materialId = response.data.data._id;
+      setCompletedCourseId(uploadForm.courseId);
 
       // Update progress - file uploaded, now processing
       setProcessingStatus({
@@ -480,6 +508,16 @@ const StudentDashboard = () => {
     setUploadSuccess(null);
     setProcessingStatus({ stage: '', progress: 0, message: '' });
     setNewCourse({ courseCode: '', courseName: '', creditUnits: 3 });
+    setCompletedCourseId(null);
+    completionBeepedRef.current = false;
+  };
+
+  const handleCompletionClose = () => {
+    const courseId = completedCourseId;
+    resetUploadModal();
+    if (courseId) {
+      navigate(`/course/${courseId}`);
+    }
   };
 
   if (loading) {
@@ -830,12 +868,26 @@ const StudentDashboard = () => {
 
         {/* Upload Modal - Multi-Step */}
         {showUploadModal && (
-          <div className="modal-overlay" onClick={uploadStep !== 5 ? resetUploadModal : undefined}>
+          <div
+            className="modal-overlay"
+            onClick={
+              uploadStep !== 5
+                ? resetUploadModal
+                : processingStatus.stage === 'completed'
+                ? handleCompletionClose
+                : undefined
+            }
+          >
             <div className="modal-content upload-wizard" onClick={(e) => e.stopPropagation()}>
               <div className="modal-header">
                 <h2>{uploadStep === 5 ? 'Processing Material' : `Upload Material - Step ${uploadStep}/4`}</h2>
                 {uploadStep !== 5 && (
                   <button onClick={resetUploadModal} className="modal-close">
+                    <FiX />
+                  </button>
+                )}
+                {uploadStep === 5 && processingStatus.stage === 'completed' && (
+                  <button onClick={handleCompletionClose} className="modal-close">
                     <FiX />
                   </button>
                 )}
@@ -1114,6 +1166,12 @@ const StudentDashboard = () => {
                       {processingStatus.stage === 'failed' && (
                         <button onClick={resetUploadModal} className="btn btn-primary" style={{ marginTop: '24px' }}>
                           Try Again
+                        </button>
+                      )}
+
+                      {processingStatus.stage === 'completed' && (
+                        <button onClick={handleCompletionClose} className="btn btn-primary" style={{ marginTop: '24px' }}>
+                          Go to Course
                         </button>
                       )}
 

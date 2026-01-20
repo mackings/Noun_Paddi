@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const {
   submitForCheck,
+  getCheckStatus,
   getUserReports,
   getReportById,
   deleteReport,
@@ -27,6 +28,9 @@ const handleProjectUpload = (req, res, next) => {
 
 // Submit project for plagiarism check
 router.post('/check', protect, handleProjectUpload, submitForCheck);
+
+// Get plagiarism check status (for polling)
+router.get('/status/:id', protect, getCheckStatus);
 
 // Get user's plagiarism reports
 router.get('/reports', protect, getUserReports);
