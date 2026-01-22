@@ -321,13 +321,85 @@ exports.studentUploadMaterial = async (req, res) => {
       });
     }
 
-    const { title, courseId } = req.body;
+    const sanitizeText = (value) => String(value || '')
+      .replace(/<[^>]*>/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    const isSafeFilename = (value) => {
+      const name = String(value || '');
+      if (!name || name.length > 200) return false;
+      if (/[\\/:*?"<>|]/.test(name)) return false;
+      if (/[\u0000-\u001F]/.test(name)) return false;
+      return true;
+    };
+
+    const hasPdfSignature = (buffer) => {
+      if (!buffer || buffer.length < 4) return false;
+      return buffer.slice(0, 4).toString() === '%PDF';
+    };
+
+    const { courseId } = req.body;
+    const originalFilename = sanitizeText(req.body.originalFilename);
+    const safeTitleFromFile = originalFilename ? originalFilename.replace(/\.[^/.]+$/, '') : '';
+    const title = sanitizeText(req.body.title) || safeTitleFromFile || 'Course Material';
 
     if (!courseId) {
       return res.status(400).json({
         success: false,
         message: 'Please select a course',
       });
+    }
+
+    const allowedFileTypes = ['application/pdf'];
+    const detectedType = hasFileUpload ? req.file.mimetype : (req.body.fileType || 'application/pdf');
+    if (!allowedFileTypes.includes(detectedType)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Only PDF files are allowed',
+      });
+    }
+
+    const filenameToCheck = originalFilename || req.body.cloudinaryPublicId || '';
+    if (!isSafeFilename(filenameToCheck)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid file name',
+      });
+    }
+
+    if (hasFileUpload && req.file?.buffer && !hasPdfSignature(req.file.buffer)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid PDF file',
+      });
+    }
+
+    if (!hasFileUpload && req.body.cloudinaryUrl) {
+      const cloudinaryUrl = String(req.body.cloudinaryUrl || '');
+      const isCloudinaryUrl = cloudinaryUrl.includes('res.cloudinary.com') || cloudinaryUrl.includes('api.cloudinary.com');
+      try {
+        const signatureResponse = await axios.get(cloudinaryUrl, {
+          responseType: 'arraybuffer',
+          headers: { Range: 'bytes=0-4' },
+          timeout: 10000,
+        });
+        const signatureBuffer = Buffer.from(signatureResponse.data);
+        if (!hasPdfSignature(signatureBuffer)) {
+          return res.status(400).json({
+            success: false,
+            message: 'Invalid PDF file',
+          });
+        }
+      } catch (error) {
+        if (!isCloudinaryUrl || detectedType !== 'application/pdf') {
+          return res.status(400).json({
+            success: false,
+            message: 'Unable to validate uploaded PDF',
+          });
+        }
+        console.warn('PDF signature validation skipped for Cloudinary URL:', error.message);
+      }
     }
 
     // Generate file hash for duplicate detection
@@ -371,7 +443,7 @@ exports.studentUploadMaterial = async (req, res) => {
       courseId,
       cloudinaryUrl: hasFileUpload ? req.file.path : req.body.cloudinaryUrl,
       cloudinaryPublicId: hasFileUpload ? req.file.filename : req.body.cloudinaryPublicId,
-      fileType: hasFileUpload ? req.file.mimetype : (req.body.fileType || 'application/pdf'),
+      fileType: detectedType,
       uploadedBy: req.user._id,
       uploadedByRole: 'student',
       fileHash,

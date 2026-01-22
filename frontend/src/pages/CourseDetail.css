@@ -284,7 +284,12 @@
 }
 
 .summary-section {
-  margin-bottom: 32px;
+  margin-bottom: 28px;
+  padding: 22px 20px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
 }
 
 .section-title {
@@ -302,13 +307,63 @@
   color: #2d3748;
 }
 
-.section-content p {
+.module-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 18px 0 10px;
+}
+
+.unit-title {
+  font-size: 17px;
+  font-weight: 800;
+  color: #1f2937;
+  margin: 14px 0 8px;
+}
+
+.simple-explain {
+  margin: 10px 0 14px;
+  padding: 10px 14px;
+  border-left: 4px solid #667eea;
+  background: rgba(102, 126, 234, 0.08);
+  color: #1f2937;
+  border-radius: 10px;
+}
+
+.key-term {
   margin-bottom: 12px;
-  text-align: justify;
+  padding: 10px 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+}
+
+.key-term .term {
+  font-weight: 700;
+  color: #1d4ed8;
+}
+
+.bullet-block .term {
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 6px;
+}
+
+.bullet-block .bullet-body {
+  color: #2d3748;
+  line-height: 1.7;
+}
+
+.section-content p {
+  margin-bottom: 14px;
+  text-align: left;
 }
 
 .bullet-point {
-  padding-left: 24px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding-left: 4px;
   margin-bottom: 8px;
   position: relative;
   line-height: 1.6;
@@ -316,14 +371,16 @@
 
 .bullet-point::before {
   content: '•';
-  position: absolute;
-  left: 8px;
+  position: static;
   color: #667eea;
   font-weight: bold;
 }
 
 .numbered-item {
-  padding-left: 8px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding-left: 4px;
   margin-bottom: 12px;
   line-height: 1.6;
   color: #2d3748;
@@ -332,7 +389,7 @@
 .numbered-item .number {
   color: #667eea;
   font-weight: 600;
-  margin-right: 8px;
+  min-width: 22px;
 }
 
 .no-summary-placeholder,

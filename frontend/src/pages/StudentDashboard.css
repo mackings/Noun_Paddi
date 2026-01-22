@@ -644,9 +644,9 @@
 .modal-content {
   background: white;
   border-radius: 24px;
-  max-width: 950px;
+  max-width: 1100px;
   width: 100%;
-  max-height: 92vh;
+  max-height: 95vh;
   overflow-y: auto;
   box-shadow: 0 25px 80px rgba(0, 0, 0, 0.4);
   animation: modalSlideUp 0.3s ease-out;
@@ -804,7 +804,7 @@
 
 /* Multi-Step Upload Wizard */
 .upload-wizard {
-  max-width: 950px;
+  max-width: 1100px;
   width: 100%;
 }
 
@@ -854,7 +854,7 @@
 
 .step-content {
   padding: 40px 32px;
-  min-height: 420px;
+  min-height: 480px;
   background: #fafbfc;
   border-radius: 0 0 24px 24px;
 }

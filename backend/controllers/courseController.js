@@ -86,7 +86,39 @@ exports.searchCourses = async (req, res) => {
 // @access  Private/Admin
 exports.createCourse = async (req, res) => {
   try {
-    const course = await Course.create(req.body);
+    const sanitizeText = (value) => String(value || '')
+      .replace(/<[^>]*>/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    const rawCode = sanitizeText(req.body.courseCode);
+    const rawName = sanitizeText(req.body.courseName);
+    const departmentId = sanitizeText(req.body.departmentId);
+    const creditUnits = Number(req.body.creditUnits || 3);
+
+    if (!rawCode || !rawName || !departmentId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Course code, course name, and department are required',
+      });
+    }
+
+    const codeMatch = rawCode.match(/^([A-Za-z]{3})\s*([0-9]{3})$/);
+    if (!codeMatch) {
+      return res.status(400).json({
+        success: false,
+        message: 'Course code must be 3 letters and 3 numbers (e.g., BIO 101)',
+      });
+    }
+
+    const normalizedCode = `${codeMatch[1].toUpperCase()} ${codeMatch[2]}`;
+
+    const course = await Course.create({
+      courseCode: normalizedCode,
+      courseName: rawName,
+      departmentId,
+      creditUnits: Number.isFinite(creditUnits) ? creditUnits : 3,
+    });
 
     // Invalidate relevant caches
     cacheHelper.invalidate(courseCache, 'all_courses');

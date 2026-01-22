@@ -196,12 +196,61 @@ const CourseDetail = () => {
                                   const trimmedLine = line.trim();
                                   if (!trimmedLine) return null;
 
+                                  const cleanedLine = formatLine(trimmedLine);
+                                  const moduleMatch = cleanedLine.match(/^Module\s+\d+\s*:/i);
+                                  const unitMatch = cleanedLine.match(/^Unit\s+\d+\s*:/i);
+                                  const simpleMatch = cleanedLine.match(/^In simple terms[:,]/i);
+                                  const termMatch = trimmedLine.match(/^\*\*(.+?)\*\*:\s*(.+)$/);
+
+                                  if (moduleMatch) {
+                                    return (
+                                      <div key={lineIndex} className="module-title">
+                                        {cleanedLine}
+                                      </div>
+                                    );
+                                  }
+
+                                  if (unitMatch) {
+                                    return (
+                                      <div key={lineIndex} className="unit-title">
+                                        {cleanedLine}
+                                      </div>
+                                    );
+                                  }
+
+                                  if (simpleMatch) {
+                                    return (
+                                      <p key={lineIndex} className="simple-explain">
+                                        {cleanedLine}
+                                      </p>
+                                    );
+                                  }
+
+                                  if (termMatch) {
+                                    return (
+                                      <p key={lineIndex} className="key-term">
+                                        <span className="term">{formatLine(termMatch[1])}:</span> {formatLine(termMatch[2])}
+                                      </p>
+                                    );
+                                  }
+
                                   // Check if line is a bullet point
                                   if (trimmedLine.startsWith('•') || trimmedLine.startsWith('-') || trimmedLine.startsWith('*')) {
                                     const cleanedText = formatLine(trimmedLine.replace(/^[•\-\*]\s*/, ''));
+                                    if (!cleanedText || cleanedText === '-' || cleanedText === '--') {
+                                      return null;
+                                    }
+                                    const bulletTermMatch = cleanedText.match(/^([^:]{2,80}):\s*(.+)$/);
                                     return (
                                       <div key={lineIndex} className="bullet-point">
-                                        {cleanedText}
+                                        {bulletTermMatch ? (
+                                          <div className="bullet-block">
+                                            <div className="term">{bulletTermMatch[1]}:</div>
+                                            <div className="bullet-body">{bulletTermMatch[2]}</div>
+                                          </div>
+                                        ) : (
+                                          cleanedText
+                                        )}
                                       </div>
                                     );
                                   }

@@ -203,7 +203,7 @@ async function summarizeText(text, pdfUrl = null, materialId = null, userId = nu
     console.log(`Processing ${cleanedText.length} characters...`);
 
     // Create a detailed prompt for educational content
-    const prompt = `You are an expert educational content summarizer. Please provide a comprehensive, well-formatted summary of the following course material.
+    const prompt = `You are an expert educational content summarizer. Please provide a comprehensive, well-formatted summary of the following course material. The summary should be longer and more explanatory, breaking down complex ideas into simpler meanings.
 
 **CRITICAL FORMATTING REQUIREMENTS:**
 
@@ -219,6 +219,7 @@ async function summarizeText(text, pdfUrl = null, materialId = null, userId = nu
 - Use numbered lists for steps or sequences
 - Write detailed explanations in paragraph form, not as bullet points
 - Indent sub-bullets properly when showing hierarchical information
+- After complex concepts, add a short plain-language explanation sentence
 
 **Bullet Point Usage:**
 - Use bullets for listing types, components, or characteristics
@@ -247,11 +248,13 @@ async function summarizeText(text, pdfUrl = null, materialId = null, userId = nu
 5. Mix paragraphs (for explanations) with bullet points (for lists) appropriately
 6. Ensure proper indentation for sub-bullets
 7. Make it highly readable and student-friendly
+8. Include short "In simple terms," explanations where helpful
+9. Favor clarity over brevity; explain key ideas thoroughly
 
 Course Material:
 ${cleanedText}
 
-Please provide a well-structured, comprehensive summary with proper bold headers, effective use of paragraphs and bullet points:`;
+Please provide a well-structured, comprehensive summary with proper bold headers, effective use of paragraphs and bullet points. Make it detailed and easy to understand:`;
 
     const result = await withGeminiClient(async ({ genAI }) => {
       const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });

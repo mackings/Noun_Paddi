@@ -40,6 +40,7 @@ const StudentDashboard = () => {
   const [courses, setCourses] = useState([]);
   const [uploadStats, setUploadStats] = useState(null);
   const [completedCourseId, setCompletedCourseId] = useState(null);
+  const [createdCourseId, setCreatedCourseId] = useState(null);
 
   // New course form state
   const [newCourse, setNewCourse] = useState({ courseCode: '', courseName: '', creditUnits: 3 });
@@ -142,17 +143,25 @@ const StudentDashboard = () => {
   };
 
   const createCourse = async () => {
-    if (!newCourse.courseCode.trim() || !newCourse.courseName.trim()) {
-      setUploadError('Please enter course code and name');
+    const code = newCourse.courseCode.trim().toUpperCase();
+    const codeMatch = code.match(/^([A-Z]{3})\s*([0-9]{3})$/);
+    if (!codeMatch) {
+      setUploadError('Course code must be 3 letters and 3 numbers (e.g., BIO 101)');
+      return;
+    }
+    if (!newCourse.courseName.trim()) {
+      setUploadError('Please enter course name');
       return;
     }
     try {
       const response = await api.post('/courses', {
         ...newCourse,
+        courseCode: `${codeMatch[1]} ${codeMatch[2]}`,
         departmentId: uploadForm.departmentId
       });
       await fetchCourses(uploadForm.departmentId);
       setUploadForm({ ...uploadForm, courseId: response.data.data._id });
+      setCreatedCourseId(response.data.data._id);
       setNewCourse({ courseCode: '', courseName: '', creditUnits: 3 });
       setUploadError(null);
       setUploadStep(4);
@@ -411,6 +420,34 @@ const StudentDashboard = () => {
 
   const handleUploadSubmit = async (e) => {
     e.preventDefault();
+    if (!uploadForm.courseId) {
+      setUploadError('Please select a course');
+      return;
+    }
+    if (!uploadForm.file) {
+      setUploadError('Please select a PDF file to upload');
+      return;
+    }
+
+    if (uploadForm.file.type !== 'application/pdf') {
+      setUploadError('Only PDF files are allowed');
+      return;
+    }
+    if (uploadForm.file.size > 50 * 1024 * 1024) {
+      setUploadError('File size must be less than 50MB');
+      return;
+    }
+
+    const needsTitle = createdCourseId !== uploadForm.courseId;
+    const fallbackTitle = uploadForm.file.name.replace(/\.[^/.]+$/, '');
+    const resolvedTitle = needsTitle
+      ? (uploadForm.title || fallbackTitle)
+      : fallbackTitle;
+    if (needsTitle && !resolvedTitle.trim()) {
+      setUploadError('Please enter a material title');
+      return;
+    }
+
     setUploading(true);
     setUploadError(null);
     setUploadSuccess(null);
@@ -449,7 +486,7 @@ const StudentDashboard = () => {
       const fileHash = await computeFileHash(uploadForm.file);
 
       const response = await api.post('/materials/student-upload', {
-        title: uploadForm.title,
+        title: resolvedTitle,
         courseId: uploadForm.courseId,
         cloudinaryUrl: cloudinaryResponse.data.secure_url,
         cloudinaryPublicId: cloudinaryResponse.data.public_id,
@@ -509,6 +546,7 @@ const StudentDashboard = () => {
     setProcessingStatus({ stage: '', progress: 0, message: '' });
     setNewCourse({ courseCode: '', courseName: '', creditUnits: 3 });
     setCompletedCourseId(null);
+    setCreatedCourseId(null);
     completionBeepedRef.current = false;
   };
 
@@ -1056,17 +1094,19 @@ const StudentDashboard = () => {
                   <form onSubmit={handleUploadSubmit} className="step-content">
                     <h3>Upload Course Material</h3>
 
-                    <div className="form-group">
-                      <label>Material Title</label>
-                      <input
-                        type="text"
-                        value={uploadForm.title}
-                        onChange={(e) => setUploadForm({ ...uploadForm, title: e.target.value })}
-                        placeholder="e.g., Biology 101 - Chapter 1 Notes"
-                        className="form-input"
-                        required
-                      />
-                    </div>
+                    {createdCourseId !== uploadForm.courseId && (
+                      <div className="form-group">
+                        <label>Material Title</label>
+                        <input
+                          type="text"
+                          value={uploadForm.title}
+                          onChange={(e) => setUploadForm({ ...uploadForm, title: e.target.value })}
+                          placeholder="e.g., Biology 101 - Chapter 1 Notes"
+                          className="form-input"
+                          required
+                        />
+                      </div>
+                    )}
 
                     <div className="form-group">
                       <label>PDF File</label>
@@ -1080,6 +1120,12 @@ const StudentDashboard = () => {
                         <p className="file-selected">{uploadForm.file.name}</p>
                       )}
                     </div>
+
+                    {createdCourseId === uploadForm.courseId && (
+                      <div className="upload-info">
+                        <p><strong>Note:</strong> Your material title will be set from the file name.</p>
+                      </div>
+                    )}
 
                     {uploadError && (
                       <div className="upload-error">
@@ -1099,7 +1145,11 @@ const StudentDashboard = () => {
                       <button
                         type="submit"
                         className="btn btn-primary"
-                        disabled={uploading || !uploadForm.file || !uploadForm.title}
+                        disabled={
+                          uploading ||
+                          !uploadForm.file ||
+                          (createdCourseId !== uploadForm.courseId && !uploadForm.title)
+                        }
                       >
                         {uploading ? 'Uploading...' : 'Upload Material'}
                       </button>
