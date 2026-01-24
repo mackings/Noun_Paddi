@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FiBookOpen, FiFileText, FiSend, FiZap } from 'react-icons/fi';
 import SEO from '../components/SEO';
@@ -46,6 +46,7 @@ const Projects = () => {
       setLoading(false);
     }
   };
+
 
   return (
     <div className="projects-page">

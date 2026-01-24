@@ -20,6 +20,8 @@ import ITPlacement from './pages/ITPlacement';
 import Reminders from './pages/Reminders';
 import PlagiarismChecker from './pages/PlagiarismChecker';
 import Projects from './pages/Projects';
+import ConsultationTerms from './pages/ConsultationTerms';
+import ProjectConsultation from './pages/ProjectConsultation';
 import './App.css';
 
 // Protected Route Component
@@ -149,6 +151,22 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <Projects />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/projects/consultation"
+                  element={
+                    <ProtectedRoute>
+                      <ProjectConsultation />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/consultation-terms"
+                  element={
+                    <ProtectedRoute>
+                      <ConsultationTerms />
                     </ProtectedRoute>
                   }
                 />

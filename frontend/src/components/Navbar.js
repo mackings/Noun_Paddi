@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { FiMenu, FiX, FiLogOut, FiUser, FiSun, FiMoon, FiBook, FiBell, FiFolder } from 'react-icons/fi';
+import { FiMenu, FiX, FiLogOut, FiUser, FiSun, FiMoon, FiBook, FiBell, FiFolder, FiChevronDown } from 'react-icons/fi';
 import './Navbar.css';
 
 const Navbar = () => {
@@ -41,7 +41,15 @@ const Navbar = () => {
                     <Link to="/practice" className="nav-link">Practice Exam</Link>
                     <Link to="/it-placement" className="nav-link">IT Placement</Link>
                     <Link to="/reminders" className="nav-link"><FiBell size={16} /> Reminders</Link>
-                    <Link to="/projects" className="nav-link"><FiFolder size={16} /> Projects</Link>
+                    <div className="nav-dropdown">
+                      <button className="nav-link nav-dropdown-toggle" type="button">
+                        <FiFolder size={16} /> Projects <FiChevronDown size={14} />
+                      </button>
+                      <div className="nav-dropdown-menu">
+                        <Link to="/projects" className="nav-dropdown-link">Project Topics</Link>
+                        <Link to="/projects/consultation" className="nav-dropdown-link">Consultation</Link>
+                      </div>
+                    </div>
                   </>
                 )}
                 {user.role === 'admin' && (
@@ -113,9 +121,17 @@ const Navbar = () => {
                     <Link to="/reminders" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>
                       <FiBell size={16} /> Reminders
                     </Link>
-                    <Link to="/projects" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>
-                      <FiFolder size={16} /> Projects
-                    </Link>
+                    <div className="mobile-submenu">
+                      <div className="mobile-nav-link mobile-submenu-title">
+                        <FiFolder size={16} /> Projects
+                      </div>
+                      <Link to="/projects" className="mobile-submenu-link" onClick={() => setMobileMenuOpen(false)}>
+                        Project Topics
+                      </Link>
+                      <Link to="/projects/consultation" className="mobile-submenu-link" onClick={() => setMobileMenuOpen(false)}>
+                        Consultation
+                      </Link>
+                    </div>
                   </>
                 )}
                 {user.role === 'admin' && (

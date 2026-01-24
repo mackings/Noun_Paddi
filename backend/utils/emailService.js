@@ -411,4 +411,62 @@ exports.sendITPlacementEmail = async (application) => {
   }
 };
 
+/**
+ * Send project consultation request email to support inbox
+ */
+exports.sendConsultationRequest = async (payload) => {
+  const {
+    fullName,
+    email,
+    phone,
+    department,
+    projectTitle,
+    issueSummary,
+    preferredDate,
+    preferredTime,
+    paymentReference,
+    userId,
+  } = payload;
+
+  const mailOptions = {
+    from: `"${process.env.SMTP_FROM || 'NounPaddi'}" <${process.env.SMTP_USER}>`,
+    to: 'macsonline500@gmail.com',
+    subject: `New Project Consultation Request - ${fullName}`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <body style="font-family: Arial, sans-serif; background-color: #f8fafc; margin: 0; padding: 0;">
+        <div style="max-width: 640px; margin: 24px auto; background: #ffffff; border-radius: 12px; padding: 28px; border: 1px solid #e2e8f0;">
+          <h2 style="margin-top: 0; color: #0f172a;">Project Consultation Booking</h2>
+          <p style="color: #475569; margin-bottom: 20px;">A student has paid and submitted a consultation request.</p>
+          <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+            <tr><td style="padding: 6px 0; color: #64748b;">Name</td><td style="padding: 6px 0; color: #0f172a; font-weight: 600;">${fullName}</td></tr>
+            <tr><td style="padding: 6px 0; color: #64748b;">Email</td><td style="padding: 6px 0; color: #0f172a;">${email}</td></tr>
+            <tr><td style="padding: 6px 0; color: #64748b;">Phone</td><td style="padding: 6px 0; color: #0f172a;">${phone}</td></tr>
+            <tr><td style="padding: 6px 0; color: #64748b;">Department</td><td style="padding: 6px 0; color: #0f172a;">${department}</td></tr>
+            <tr><td style="padding: 6px 0; color: #64748b;">Project Title</td><td style="padding: 6px 0; color: #0f172a;">${projectTitle}</td></tr>
+            <tr><td style="padding: 6px 0; color: #64748b;">Preferred Date</td><td style="padding: 6px 0; color: #0f172a;">${preferredDate}</td></tr>
+            <tr><td style="padding: 6px 0; color: #64748b;">Preferred Time</td><td style="padding: 6px 0; color: #0f172a;">${preferredTime} (2 hours)</td></tr>
+            <tr><td style="padding: 6px 0; color: #64748b;">Payment Ref</td><td style="padding: 6px 0; color: #0f172a;">${paymentReference || 'Not provided'}</td></tr>
+            <tr><td style="padding: 6px 0; color: #64748b;">User ID</td><td style="padding: 6px 0; color: #0f172a;">${userId || 'N/A'}</td></tr>
+          </table>
+          <div style="margin-top: 20px; padding: 16px; background: #f1f5f9; border-radius: 10px;">
+            <strong style="display: block; margin-bottom: 8px; color: #0f172a;">Project Issues / Goals</strong>
+            <p style="margin: 0; color: #475569; line-height: 1.6;">${issueSummary}</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `,
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log('Consultation request email sent:', info.messageId);
+  } catch (error) {
+    console.error('Error sending consultation request email:', error);
+    throw new Error('Failed to send consultation request email');
+  }
+};
+
 module.exports.transporter = transporter;
