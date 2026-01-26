@@ -262,12 +262,12 @@ const PlagiarismChecker = () => {
     <div className="plagiarism-checker-container">
       <SEO
         title="Plagiarism Checker - NounPaddi"
-        description="Check your academic projects for plagiarism and AI-generated content"
+        description="Check your academic projects for plagiarism and system-detected content patterns"
       />
 
       <div className="plagiarism-header">
         <h1>Plagiarism Checker</h1>
-        <p>Check your projects for AI-generated content and web matches</p>
+        <p>Check your projects for system-detected content patterns and web matches</p>
       </div>
 
       <div className="plagiarism-tabs">
@@ -412,7 +412,7 @@ const PlagiarismChecker = () => {
               <div>
                 <strong>What we check:</strong>
                 <ul>
-                  <li>AI-generated content detection (ChatGPT, Claude, etc.)</li>
+                  <li>System-detected content patterns (including machine-generated text)</li>
                   <li>Web content matching and plagiarism</li>
                   <li>Paraphrased content identification</li>
                   <li>Personalized improvement suggestions</li>
@@ -456,11 +456,11 @@ const PlagiarismChecker = () => {
                     <FiCheckCircle color="#10b981" size={32} />
                   }
                 </div>
-                <h3>AI Detection</h3>
+                <h3>System Detection</h3>
                 <p className="score-percent">{100 - (result.plagiarismReport?.aiScore || 0)}% Human-Written</p>
                 <p className="score-detail">
                   {result.plagiarismReport?.aiAnalysis?.isAiGenerated ?
-                    'AI patterns detected' : 'Appears human-written'}
+                    'System patterns detected' : 'Appears human-written'}
                 </p>
               </div>
 
@@ -476,10 +476,10 @@ const PlagiarismChecker = () => {
               </div>
             </div>
 
-            {/* AI Analysis Details */}
+            {/* System Analysis Details */}
             {result.plagiarismReport?.aiAnalysis?.indicators?.length > 0 && (
               <div className="analysis-section">
-                <h3><FiAlertTriangle /> AI Content Indicators</h3>
+                <h3><FiAlertTriangle /> System Content Indicators</h3>
                 <ul className="indicators-list">
                   {result.plagiarismReport.aiAnalysis.indicators.map((indicator, idx) => (
                     <li key={idx}>{indicator}</li>
@@ -627,7 +627,7 @@ const PlagiarismChecker = () => {
                   </span>
                 </div>
                 <div className="modal-score-item">
-                  <span className="label">AI Score</span>
+                  <span className="label">System Score</span>
                   <span className="value">{100 - (selectedReport.plagiarismReport?.aiScore || 0)}% Human</span>
                 </div>
                 <div className="modal-score-item">

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiCamera, FiUser, FiMail, FiBook, FiMapPin, FiLock, FiSave, FiLogOut, FiArrowLeft } from 'react-icons/fi';
+import { FiCamera, FiUser, FiMail, FiBook, FiMapPin, FiLock, FiSave, FiLogOut, FiArrowLeft, FiMessageCircle, FiStar, FiSend } from 'react-icons/fi';
 import api from '../utils/api';
 import './Profile.css';
 
@@ -10,6 +10,8 @@ const Profile = () => {
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState('profile');
   const [message, setMessage] = useState({ type: '', text: '' });
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [reviewMessage, setReviewMessage] = useState({ type: '', text: '' });
 
   const [profile, setProfile] = useState({
     name: '',
@@ -29,6 +31,13 @@ const Profile = () => {
 
   const [imagePreview, setImagePreview] = useState(null);
   const [selectedImage, setSelectedImage] = useState(null);
+  const [review, setReview] = useState({
+    featureUsed: '',
+    sentiment: 'positive',
+    rating: 5,
+    reasons: '',
+    details: '',
+  });
 
   useEffect(() => {
     fetchProfile();
@@ -157,6 +166,38 @@ const Profile = () => {
     navigate('/login');
   };
 
+  const handleReviewChange = (field, value) => {
+    setReview((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  const handleReviewSubmit = async (e) => {
+    e.preventDefault();
+    setReviewSubmitting(true);
+    setReviewMessage({ type: '', text: '' });
+
+    try {
+      await api.post('/reviews', review);
+      setReviewMessage({ type: 'success', text: 'Thanks for your feedback! We appreciate it.' });
+      setReview({
+        featureUsed: '',
+        sentiment: 'positive',
+        rating: 5,
+        reasons: '',
+        details: '',
+      });
+    } catch (error) {
+      setReviewMessage({
+        type: 'error',
+        text: error.response?.data?.message || 'Failed to submit review. Please try again.',
+      });
+    } finally {
+      setReviewSubmitting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="profile-container">
@@ -224,6 +265,13 @@ const Profile = () => {
               >
                 <FiLock size={18} />
                 Change Password
+              </button>
+              <button
+                className={`nav-item ${activeTab === 'review' ? 'active' : ''}`}
+                onClick={() => setActiveTab('review')}
+              >
+                <FiMessageCircle size={18} />
+                Send us a Review
               </button>
             </nav>
           </div>
@@ -384,6 +432,103 @@ const Profile = () => {
                 <button type="submit" className="save-button" disabled={saving}>
                   <FiSave size={18} />
                   {saving ? 'Updating...' : 'Update Password'}
+                </button>
+              </form>
+            )}
+
+            {activeTab === 'review' && (
+              <form onSubmit={handleReviewSubmit} className="profile-form review-form">
+                <h3>Send us a Review</h3>
+
+                <div className="form-group">
+                  <label htmlFor="featureUsed">Which feature did you use?</label>
+                  <select
+                    id="featureUsed"
+                    value={review.featureUsed}
+                    onChange={(e) => handleReviewChange('featureUsed', e.target.value)}
+                    required
+                  >
+                    <option value="">Select a feature</option>
+                    <option value="Course Summaries">Course Summaries</option>
+                    <option value="Practice Exams">Practice Exams</option>
+                    <option value="POP Exams">POP Exams</option>
+                    <option value="Projects Topics">Project Topics</option>
+                    <option value="Plagiarism Check">Plagiarism Check</option>
+                    <option value="Project Consultation">Project Consultation</option>
+                    <option value="IT Placement">IT Placement</option>
+                    <option value="Reminders">Reminders</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>How was your experience?</label>
+                  <div className="review-sentiment">
+                    {['positive', 'neutral', 'negative'].map((option) => (
+                      <label key={option} className={`sentiment-chip ${review.sentiment === option ? 'active' : ''}`}>
+                        <input
+                          type="radio"
+                          name="sentiment"
+                          value={option}
+                          checked={review.sentiment === option}
+                          onChange={(e) => handleReviewChange('sentiment', e.target.value)}
+                        />
+                        {option.charAt(0).toUpperCase() + option.slice(1)}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Your rating</label>
+                  <div className="review-rating">
+                    {[1, 2, 3, 4, 5].map((value) => (
+                      <button
+                        type="button"
+                        key={value}
+                        className={`star-button ${review.rating >= value ? 'active' : ''}`}
+                        onClick={() => handleReviewChange('rating', value)}
+                        aria-label={`Rate ${value} star${value > 1 ? 's' : ''}`}
+                      >
+                        <FiStar />
+                      </button>
+                    ))}
+                    <span className="rating-label">{review.rating}/5</span>
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="reasons">Why did you rate it this way?</label>
+                  <textarea
+                    id="reasons"
+                    value={review.reasons}
+                    onChange={(e) => handleReviewChange('reasons', e.target.value)}
+                    rows="4"
+                    required
+                    placeholder="Tell us what worked well or what needs improvement."
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="details">More details (optional)</label>
+                  <textarea
+                    id="details"
+                    value={review.details}
+                    onChange={(e) => handleReviewChange('details', e.target.value)}
+                    rows="3"
+                    placeholder="Extra context or suggestions."
+                  />
+                </div>
+
+                {reviewMessage.text && (
+                  <div className={`message-banner ${reviewMessage.type}`}>
+                    {reviewMessage.text}
+                  </div>
+                )}
+
+                <button type="submit" className="save-button" disabled={reviewSubmitting}>
+                  <FiSend size={18} />
+                  {reviewSubmitting ? 'Submitting...' : 'Submit Review'}
                 </button>
               </form>
             )}

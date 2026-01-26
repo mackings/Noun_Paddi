@@ -266,7 +266,7 @@ async function searchWebForMatches(text) {
 **Text to analyze:**
 ${truncatedText}
 
-**Return your analysis in this exact JSON format:**
+**Return your analysis in this exact JSON format (up to 5 matches):**
 {
   "webMatchScore": number (0-100, overall percentage of content that appears to be from external sources),
   "matches": [
@@ -281,7 +281,7 @@ ${truncatedText}
   "analysis": "Brief explanation of findings"
 }
 
-Be thorough but reasonable - academic content may legitimately reference common knowledge. Focus on passages that are clearly copied rather than general topic overlap.
+Be thorough but balanced - flag passages that read like copied or heavily paraphrased source text without over-penalizing common knowledge.
 
 If the content appears to be mostly original, return a low webMatchScore and empty matches array.`;
 
@@ -321,14 +321,16 @@ If the content appears to be mostly original, return a low webMatchScore and emp
  */
 function calculatePlagiarismScore(aiResult, webResult) {
   // Overall originality = 100 - (weighted average of AI score and web match score)
-  // AI detection weight: 40%
-  // Web match weight: 60%
+  // AI detection weight: 42%
+  // Web match weight: 58% (slightly stricter than before)
 
   const aiScore = aiResult.aiScore || 0;
   const webScore = webResult.webMatchScore || 0;
 
   // Calculate plagiarism percentage
-  const plagiarismPercentage = (aiScore * 0.4) + (webScore * 0.6);
+  const basePercentage = (aiScore * 0.42) + (webScore * 0.58);
+  const strictnessBump = (aiScore > 40 || webScore > 40) ? 2 : 0;
+  const plagiarismPercentage = Math.min(100, basePercentage + strictnessBump);
 
   // Originality score is inverse of plagiarism
   const overallScore = Math.max(0, Math.min(100, 100 - plagiarismPercentage));

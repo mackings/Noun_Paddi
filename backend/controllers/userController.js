@@ -210,3 +210,67 @@ exports.deleteProfileImage = async (req, res) => {
     });
   }
 };
+
+// @desc    Get all users (admin)
+// @route   GET /api/users
+// @access  Private/Admin
+exports.getUsers = async (req, res) => {
+  try {
+    const { search } = req.query;
+    const query = {};
+
+    if (search) {
+      const safeSearch = String(search).trim();
+      if (safeSearch) {
+        query.$or = [
+          { name: { $regex: safeSearch, $options: 'i' } },
+          { email: { $regex: safeSearch, $options: 'i' } },
+          { faculty: { $regex: safeSearch, $options: 'i' } },
+          { department: { $regex: safeSearch, $options: 'i' } },
+          { matricNumber: { $regex: safeSearch, $options: 'i' } },
+        ];
+      }
+    }
+
+    const users = await User.find(query)
+      .select('name email role faculty department matricNumber profileImage createdAt')
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      data: users,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// @desc    Get user profile by id (admin)
+// @route   GET /api/users/:id
+// @access  Private/Admin
+exports.getUserById = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id)
+      .select('name email role faculty department matricNumber profileImage bio createdAt');
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: user,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};

@@ -28,6 +28,63 @@
   margin: 0;
 }
 
+.summary-cta {
+  margin-bottom: 28px;
+}
+
+.summary-cta-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  padding: 24px 28px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(14, 165, 233, 0.08));
+  border: 1px solid rgba(99, 102, 241, 0.18);
+  box-shadow: var(--shadow-lg);
+}
+
+.summary-cta-kicker {
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--primary-color);
+  margin-bottom: 6px;
+}
+
+.summary-cta-card h2 {
+  font-size: 22px;
+  margin: 0 0 8px;
+  color: var(--text-primary);
+}
+
+.summary-cta-card p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 15px;
+}
+
+.summary-cta-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px;
+  border-radius: 12px;
+  border: none;
+  background: var(--gradient-primary);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--shadow-md);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.summary-cta-button:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
 .profile-link-button {
   display: flex;
   align-items: center;
@@ -252,6 +309,27 @@
 
 /* Responsive Design */
 @media (max-width: 768px) {
+  .dashboard-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .profile-link-button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .summary-cta-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .summary-cta-button {
+    width: 100%;
+    justify-content: center;
+  }
+
   .progress-section {
     grid-template-columns: 1fr;
   }

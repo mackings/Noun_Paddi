@@ -10,6 +10,7 @@ const Navbar = () => {
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [projectsMenuOpen, setProjectsMenuOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -19,12 +20,17 @@ const Navbar = () => {
 
   const toggleMobileMenu = () => {
     setMobileMenuOpen(!mobileMenuOpen);
+    setProjectsMenuOpen(false);
+  };
+
+  const toggleProjectsMenu = () => {
+    setProjectsMenuOpen((prev) => !prev);
   };
 
   return (
     <nav className="navbar">
       <div className="container">
-        <div className="navbar-content">
+          <div className="navbar-content">
           <Link to="/" className="navbar-brand" onClick={() => setMobileMenuOpen(false)}>
             <FiBook className="brand-icon" />
             <span className="brand-text">NounPaddi</span>
@@ -41,13 +47,33 @@ const Navbar = () => {
                     <Link to="/practice" className="nav-link">Practice Exam</Link>
                     <Link to="/it-placement" className="nav-link">IT Placement</Link>
                     <Link to="/reminders" className="nav-link"><FiBell size={16} /> Reminders</Link>
-                    <div className="nav-dropdown">
-                      <button className="nav-link nav-dropdown-toggle" type="button">
+                    <div
+                      className={`nav-dropdown ${projectsMenuOpen ? 'open' : ''}`}
+                      onMouseLeave={() => setProjectsMenuOpen(false)}
+                    >
+                      <button
+                        className="nav-link nav-dropdown-toggle"
+                        type="button"
+                        onClick={toggleProjectsMenu}
+                        aria-expanded={projectsMenuOpen}
+                      >
                         <FiFolder size={16} /> Projects <FiChevronDown size={14} />
                       </button>
                       <div className="nav-dropdown-menu">
-                        <Link to="/projects" className="nav-dropdown-link">Project Topics</Link>
-                        <Link to="/projects/consultation" className="nav-dropdown-link">Consultation</Link>
+                        <Link
+                          to="/projects"
+                          className="nav-dropdown-link"
+                          onClick={() => setProjectsMenuOpen(false)}
+                        >
+                          Project Topics
+                        </Link>
+                        <Link
+                          to="/projects/consultation"
+                          className="nav-dropdown-link"
+                          onClick={() => setProjectsMenuOpen(false)}
+                        >
+                          Consultation
+                        </Link>
                       </div>
                     </div>
                   </>
@@ -57,6 +83,7 @@ const Navbar = () => {
                     <Link to="/admin/dashboard" className="nav-link">Dashboard</Link>
                     <Link to="/admin/materials" className="nav-link">Materials</Link>
                     <Link to="/admin/upload" className="nav-link">Upload</Link>
+                    <Link to="/admin/users" className="nav-link">Users</Link>
                   </>
                 )}
                 <button
@@ -144,6 +171,9 @@ const Navbar = () => {
                     </Link>
                     <Link to="/admin/upload" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>
                       Upload
+                    </Link>
+                    <Link to="/admin/users" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>
+                      Users
                     </Link>
                   </>
                 )}

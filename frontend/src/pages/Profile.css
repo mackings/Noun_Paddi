@@ -216,7 +216,8 @@
 }
 
 .form-group input,
-.form-group textarea {
+.form-group textarea,
+.form-group select {
   width: 100%;
   padding: 14px 16px;
   border: 2px solid #e0e0e0;
@@ -227,7 +228,8 @@
 }
 
 .form-group input:focus,
-.form-group textarea:focus {
+.form-group textarea:focus,
+.form-group select:focus {
   outline: none;
   border-color: #667eea;
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
@@ -242,6 +244,71 @@
 .form-group textarea {
   resize: vertical;
   min-height: 100px;
+}
+
+.review-form .form-group textarea {
+  min-height: 110px;
+}
+
+.review-sentiment {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.sentiment-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 2px solid #e0e0e0;
+  font-weight: 600;
+  color: #555;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sentiment-chip input {
+  display: none;
+}
+
+.sentiment-chip.active {
+  border-color: #667eea;
+  background: rgba(102, 126, 234, 0.12);
+  color: #667eea;
+}
+
+.review-rating {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.star-button {
+  background: rgba(102, 126, 234, 0.1);
+  border: 2px solid transparent;
+  color: #cbd5f5;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.star-button.active {
+  color: #ffb703;
+  border-color: rgba(255, 183, 3, 0.5);
+  background: rgba(255, 183, 3, 0.15);
+}
+
+.rating-label {
+  font-weight: 600;
+  color: #666;
 }
 
 .form-group small {

@@ -78,6 +78,7 @@ app.use('/api/leaderboard', require('./routes/leaderboard'));
 app.use('/api/reminders', require('./routes/readingReminder'));
 app.use('/api/plagiarism', require('./routes/plagiarism'));
 app.use('/api/projects', require('./routes/project'));
+app.use('/api/reviews', require('./routes/review'));
 
 // Root route
 app.get('/', (req, res) => {

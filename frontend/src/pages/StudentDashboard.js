@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import api from '../utils/api';
 import { formatDate } from '../utils/dateHelper';
 import {
@@ -60,12 +60,21 @@ const StudentDashboard = () => {
   const lastPollStateRef = useRef({ hasSummary: null, questionsCount: 0 });
   const completionBeepedRef = useRef(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     fetchStats();
     fetchFaculties();
     fetchUploadStats();
   }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('upload') === '1') {
+      setShowUploadModal(true);
+      setUploadStep(1);
+    }
+  }, [location.search]);
 
   const fetchStats = async () => {
     try {
@@ -247,7 +256,7 @@ const StudentDashboard = () => {
         setProcessingStatus({
           stage: 'generating-summary',
           progress: 35,
-          message: 'Generating AI summary...'
+          message: 'Generating summary...'
         });
       }
     } else if (status === 'completed' && hasSummary && hasAllQuestions) {
@@ -502,7 +511,7 @@ const StudentDashboard = () => {
       setProcessingStatus({
         stage: 'generating-summary',
         progress: 25,
-        message: 'File uploaded! Generating AI summary...'
+        message: 'File uploaded! Generating summary...'
       });
 
       // Start polling for processing status
@@ -583,6 +592,26 @@ const StudentDashboard = () => {
             <FiUser size={18} />
             My Profile
           </Link>
+        </div>
+
+        <div className="summary-cta">
+          <div className="summary-cta-card">
+            <div>
+              <p className="summary-cta-kicker">Need a course summary?</p>
+              <h2>Get Course Summary & Questions</h2>
+              <p>Upload your course material once and we will generate a clean summary plus exam questions.</p>
+            </div>
+            <button
+              className="summary-cta-button"
+              onClick={() => {
+                setShowUploadModal(true);
+                setUploadStep(1);
+              }}
+            >
+              <FiUpload size={18} />
+              Get Course Summary
+            </button>
+          </div>
         </div>
 
         {/* Stats Cards */}
@@ -1156,7 +1185,7 @@ const StudentDashboard = () => {
                     </div>
 
                     <div className="upload-info">
-                      <p><strong>Note:</strong> Our AI will automatically generate summaries and practice questions. You'll earn 10 points!</p>
+                      <p><strong>Note:</strong> Our system will generate summaries and practice questions automatically. You'll earn 10 points!</p>
                     </div>
                   </form>
                 )}
@@ -1226,7 +1255,7 @@ const StudentDashboard = () => {
                       )}
 
                       {processingStatus.stage !== 'completed' && processingStatus.stage !== 'failed' && (
-                        <p className="processing-note">Please wait while our AI processes your material. This may take a few minutes.</p>
+                        <p className="processing-note">Please wait while our system processes your material. This may take a few minutes.</p>
                       )}
                     </div>
                   </div>

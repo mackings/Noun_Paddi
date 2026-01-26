@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../utils/api';
 import SEO from '../components/SEO';
-import { FiSearch, FiBook, FiArrowRight, FiAward } from 'react-icons/fi';
+import { FiSearch, FiBook, FiArrowRight, FiAward, FiUpload } from 'react-icons/fi';
 import './Explore.css';
 
 const Explore = () => {
   const [faculties, setFaculties] = useState([]);
   const [courses, setCourses] = useState([]);
+  const [allCourses, setAllCourses] = useState([]);
+  const [facultyCourses, setFacultyCourses] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFaculty, setSelectedFaculty] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -29,7 +31,9 @@ const Explore = () => {
   const fetchCourses = async () => {
     try {
       const response = await api.get('/courses');
-      setCourses(response.data.data);
+      const courseList = response.data.data || [];
+      setAllCourses(courseList);
+      setCourses(courseList);
       setLoading(false);
     } catch (error) {
       console.error('Error fetching courses:', error);
@@ -37,34 +41,37 @@ const Explore = () => {
     }
   };
 
-  const handleSearch = async (query) => {
-    const searchTerm = query || searchQuery;
-    if (!searchTerm) {
-      fetchCourses();
+  const applyFilters = (query, baseCourses) => {
+    const trimmed = String(query || '').trim().toLowerCase();
+    if (!trimmed) {
+      setCourses(baseCourses);
       return;
     }
 
-    try {
-      setLoading(true);
-      const response = await api.get(`/courses/search?query=${searchTerm}`);
-      setCourses(response.data.data);
-      setLoading(false);
-    } catch (error) {
-      console.error('Error searching courses:', error);
-      setLoading(false);
-    }
+    const filtered = baseCourses.filter((course) => {
+      const code = String(course.courseCode || '').toLowerCase();
+      const name = String(course.courseName || '').toLowerCase();
+      return code.includes(trimmed) || name.includes(trimmed);
+    });
+    setCourses(filtered);
+  };
+
+  const handleSearch = (query) => {
+    const searchTerm = query ?? searchQuery;
+    const baseCourses = selectedFaculty ? facultyCourses : allCourses;
+    applyFilters(searchTerm, baseCourses);
   };
 
   const handleSearchInput = (e) => {
     const value = e.target.value;
     setSearchQuery(value);
-    if (value === '') {
-      fetchCourses();
-    }
+    const baseCourses = selectedFaculty ? facultyCourses : allCourses;
+    applyFilters(value, baseCourses);
   };
 
   const handleFacultyClick = async (facultyId) => {
     setSelectedFaculty(facultyId);
+    setSearchQuery('');
     try {
       setLoading(true);
       const response = await api.get(`/faculties/${facultyId}/departments`);
@@ -77,6 +84,7 @@ const Explore = () => {
         allCourses.push(...coursesResponse.data.data);
       }
       
+      setFacultyCourses(allCourses);
       setCourses(allCourses);
       setLoading(false);
     } catch (error) {
@@ -114,18 +122,35 @@ const Explore = () => {
           <p>Discover personalized study materials and master your subjects with confidence</p>
         </div>
 
+        <div className="summary-cta">
+          <div className="summary-cta-card">
+            <div>
+              <p className="summary-cta-kicker">Get course summary</p>
+              <h2>Upload your material to generate summaries</h2>
+              <p>Head to the upload flow to get a clean summary and practice questions for any course.</p>
+            </div>
+            <Link to="/dashboard?upload=1" className="summary-cta-button">
+              <FiUpload size={18} />
+              Get Course Summary
+            </Link>
+          </div>
+        </div>
+
         {/* Search Bar */}
         <div className="search-section">
           <div className="search-bar">
             <FiSearch className="search-icon" />
             <input
               type="text"
-              placeholder="Search for courses by code or name..."
+              placeholder="Search by course code or name..."
               value={searchQuery}
               onChange={handleSearchInput}
               onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
               className="search-input"
             />
+            <button className="search-btn" onClick={() => handleSearch()}>
+              Search
+            </button>
           </div>
         </div>
 
@@ -137,7 +162,9 @@ const Explore = () => {
               className={`faculty-chip ${!selectedFaculty ? 'active' : ''}`}
               onClick={() => {
                 setSelectedFaculty(null);
-                fetchCourses();
+                setSearchQuery('');
+                setCourses(allCourses);
+                setFacultyCourses([]);
               }}
             >
               All
@@ -160,8 +187,23 @@ const Explore = () => {
           
           {loading ? (
             <div className="loading-container">
-              <div className="spinner"></div>
-              <p className="loading-text">Loading courses...</p>
+              <div className="loading-header">
+                <div>
+                  <h3>Loading courses</h3>
+                  <p>Preparing the latest catalog for you.</p>
+                </div>
+                <div className="loading-pulse"></div>
+              </div>
+              <div className="loading-grid">
+                {Array.from({ length: 6 }).map((_, index) => (
+                  <div key={index} className="course-skeleton">
+                    <div className="skeleton-icon"></div>
+                    <div className="skeleton-line wide"></div>
+                    <div className="skeleton-line"></div>
+                    <div className="skeleton-chip"></div>
+                  </div>
+                ))}
+              </div>
             </div>
           ) : courses.length === 0 ? (
             <div className="no-results">

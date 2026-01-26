@@ -130,7 +130,7 @@
   z-index: 20;
 }
 
-.nav-dropdown:hover .nav-dropdown-menu {
+.nav-dropdown.open .nav-dropdown-menu {
   opacity: 1;
   pointer-events: auto;
   transform: translateY(0);

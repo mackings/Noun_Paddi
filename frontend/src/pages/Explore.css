@@ -1,7 +1,10 @@
 .explore-container {
   min-height: calc(100vh - 80px);
   padding: 60px 0;
-  background: var(--bg-primary);
+  background:
+    radial-gradient(circle at 10% 10%, rgba(37, 99, 235, 0.12), transparent 40%),
+    radial-gradient(circle at 90% 20%, rgba(16, 185, 129, 0.15), transparent 45%),
+    var(--bg-primary);
 }
 
 .explore-header {
@@ -23,12 +26,9 @@
 
 .explore-header h1 {
   font-size: 48px;
-  font-weight: 700;
+  font-weight: 800;
   margin-bottom: 16px;
-  background: var(--gradient-primary);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: var(--text-primary);
 }
 
 .explore-header p {
@@ -36,6 +36,63 @@
   font-size: 18px;
   max-width: 600px;
   margin: 0 auto;
+}
+
+.summary-cta {
+  margin: 0 auto 40px;
+  animation: fadeInUp 0.6s ease-out 0.05s backwards;
+}
+
+.summary-cta-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 24px 28px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(14, 165, 233, 0.08));
+  border: 1px solid rgba(99, 102, 241, 0.18);
+  box-shadow: var(--shadow-lg);
+}
+
+.summary-cta-kicker {
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--primary-color);
+  margin-bottom: 6px;
+}
+
+.summary-cta-card h2 {
+  font-size: 24px;
+  margin: 0 0 8px;
+  color: var(--text-primary);
+}
+
+.summary-cta-card p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 15px;
+}
+
+.summary-cta-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px;
+  border-radius: 12px;
+  background: var(--gradient-primary);
+  color: white;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: var(--shadow-md);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.summary-cta-button:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
 }
 
 /* Search Section */
@@ -81,6 +138,21 @@
 
 .search-input::placeholder {
   color: var(--text-tertiary);
+}
+
+.search-btn {
+  background: var(--gradient-primary);
+  color: white;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 999px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.search-btn:hover {
+  transform: translateY(-1px);
 }
 
 /* Faculties Section */
@@ -146,7 +218,7 @@
 
 .course-card {
   background-color: var(--card-bg);
-  border: 2px solid var(--border-color);
+  border: 1px solid var(--border-color);
   border-radius: 20px;
   padding: 28px;
   text-decoration: none;
@@ -178,9 +250,9 @@
 }
 
 .course-card:hover {
-  transform: translateY(-8px);
+  transform: translateY(-6px);
   box-shadow: var(--shadow-xl);
-  border-color: var(--primary-color);
+  border-color: rgba(37, 99, 235, 0.35);
 }
 
 .course-header {
@@ -216,7 +288,7 @@
 .course-code {
   font-size: 14px;
   font-weight: 600;
-  color: var(--primary-color);
+  color: var(--text-secondary);
   margin-bottom: 8px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -266,7 +338,7 @@
 }
 
 .course-arrow {
-  color: var(--primary-color);
+  color: var(--text-primary);
   transition: all 0.3s ease;
   font-size: 24px;
 }
@@ -314,15 +386,110 @@
 .loading-container {
   display: flex;
   flex-direction: column;
+  gap: 24px;
+  padding: 40px 10px;
+}
+
+.loading-header {
+  display: flex;
   align-items: center;
-  justify-content: center;
-  padding: 60px 20px;
+  justify-content: space-between;
+  background: var(--card-bg);
+  border-radius: 18px;
+  padding: 20px 24px;
+  border: 1px solid var(--border-color);
+}
+
+.loading-header h3 {
+  margin: 0 0 6px;
+  font-size: 20px;
+}
+
+.loading-header p {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.loading-pulse {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: rgba(37, 99, 235, 0.15);
+  position: relative;
+  overflow: hidden;
+}
+
+.loading-pulse::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+  animation: shimmer 1.4s infinite;
+}
+
+.loading-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 20px;
 }
 
-.loading-text {
-  color: var(--text-secondary);
-  font-size: 16px;
+.course-skeleton {
+  background: var(--card-bg);
+  border-radius: 20px;
+  padding: 24px;
+  border: 1px solid var(--border-color);
+  display: grid;
+  gap: 12px;
+}
+
+.skeleton-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: rgba(148, 163, 184, 0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton-line {
+  height: 12px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton-line.wide {
+  height: 16px;
+  width: 80%;
+}
+
+.skeleton-chip {
+  width: 120px;
+  height: 24px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton-icon::after,
+.skeleton-line::after,
+.skeleton-chip::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+  animation: shimmer 1.4s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
 }
 
 /* Empty State */
@@ -375,6 +542,16 @@
     padding: 40px 0;
   }
 
+  .summary-cta-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .summary-cta-button {
+    width: 100%;
+    justify-content: center;
+  }
+
   .explore-header h1 {
     font-size: 36px;
   }
@@ -384,7 +561,20 @@
   }
 
   .search-bar {
-    padding: 14px 20px;
+    padding: 18px 20px;
+    flex-wrap: wrap;
+    gap: 14px;
+  }
+
+  .search-btn {
+    width: 100%;
+    padding: 14px 18px;
+    font-size: 16px;
+  }
+
+  .search-input {
+    font-size: 16px;
+    min-height: 48px;
   }
 
   .faculty-chips {
@@ -412,6 +602,18 @@
 }
 
 @media (max-width: 480px) {
+  .search-bar {
+    padding: 18px 18px;
+  }
+
+  .search-input {
+    font-size: 16px;
+  }
+
+  .search-btn {
+    padding: 14px 18px;
+  }
+
   .explore-header h1 {
     font-size: 28px;
   }

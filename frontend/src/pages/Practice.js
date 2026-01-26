@@ -503,7 +503,7 @@ const Practice = () => {
                       <div className="pop-score-header">
                         <div>
                           <h2>POP Exam Score Sheet</h2>
-                          <p>AI‑graded summary with feedback and model answers.</p>
+                          <p>System‑graded summary with feedback and model answers.</p>
                         </div>
                         <div className="pop-score-chip">
                           {popPercentage.toFixed(0)}%
@@ -575,7 +575,7 @@ const Practice = () => {
                       Answers Drafted
                     </div>
                     <div className="result-message">
-                      <p className="text-secondary">Submit for AI grading to see your score.</p>
+                      <p className="text-secondary">Submit for system grading to see your score.</p>
                     </div>
                   </>
                 )}
@@ -778,7 +778,7 @@ const Practice = () => {
               >
                 <div className="exam-mode-title">POP Exam</div>
                 <div className="exam-mode-tag">Write answers</div>
-                <p>Type your responses offhand. AI grading after submit.</p>
+                <p>Type your responses offhand. System grading after submit.</p>
               </button>
             </div>
             <div className="timer-setup-actions">

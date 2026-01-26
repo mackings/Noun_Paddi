@@ -4,6 +4,110 @@
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
+.course-loading {
+  display: grid;
+  gap: 24px;
+}
+
+.skeleton-card {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 16px;
+  padding: 28px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+}
+
+.skeleton-icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 16px;
+  background: rgba(148, 163, 184, 0.25);
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton-lines {
+  flex: 1;
+  display: grid;
+  gap: 10px;
+}
+
+.skeleton-line,
+.skeleton-pill {
+  height: 14px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.25);
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton-line.medium {
+  width: 70%;
+}
+
+.skeleton-line.short {
+  width: 45%;
+}
+
+.skeleton-line.wide {
+  height: 18px;
+  width: 85%;
+}
+
+.skeleton-tabs {
+  display: flex;
+  gap: 12px;
+}
+
+.skeleton-pill {
+  height: 38px;
+  width: 140px;
+}
+
+.skeleton-content {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 24px;
+}
+
+.skeleton-panel {
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: 16px;
+  padding: 24px;
+  display: grid;
+  gap: 12px;
+  min-height: 280px;
+}
+
+.skeleton-list-item {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(148, 163, 184, 0.12);
+}
+
+.skeleton-icon::after,
+.skeleton-line::after,
+.skeleton-pill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.7), transparent);
+  animation: shimmer 1.4s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
 .breadcrumb {
   display: inline-flex;
   align-items: center;
@@ -464,6 +568,10 @@
     grid-template-columns: 1fr;
   }
 
+  .skeleton-content {
+    grid-template-columns: 1fr;
+  }
+
   .materials-sidebar {
     order: 2;
   }
@@ -497,5 +605,14 @@
   .summary-header {
     flex-direction: column;
     gap: 16px;
+  }
+
+  .skeleton-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .skeleton-pill {
+    width: 120px;
   }
 }

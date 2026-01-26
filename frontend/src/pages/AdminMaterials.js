@@ -226,7 +226,7 @@ const AdminMaterials = () => {
             <h3>No Materials Found</h3>
             <p>
               {materials.length === 0
-                ? 'Upload materials to get started with AI processing.'
+                ? 'Upload materials to get started with system processing.'
                 : 'Try adjusting your search or filters.'}
             </p>
           </div>

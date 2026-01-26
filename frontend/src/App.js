@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
@@ -11,6 +11,7 @@ import Practice from './pages/Practice';
 import AdminUpload from './pages/AdminUpload';
 import AdminDashboard from './pages/AdminDashboard';
 import AdminMaterials from './pages/AdminMaterials';
+import AdminUsers from './pages/AdminUsers';
 import StudentDashboard from './pages/StudentDashboard';
 import CourseDetail from './pages/CourseDetail';
 import Profile from './pages/Profile';
@@ -22,6 +23,7 @@ import PlagiarismChecker from './pages/PlagiarismChecker';
 import Projects from './pages/Projects';
 import ConsultationTerms from './pages/ConsultationTerms';
 import ProjectConsultation from './pages/ProjectConsultation';
+import Footer from './components/Footer';
 import './App.css';
 
 // Protected Route Component
@@ -66,15 +68,17 @@ const Home = () => {
   return <Navigate to="/login" />;
 };
 
-function App() {
+const AppLayout = () => {
+  const location = useLocation();
+  const hideFooterRoutes = ['/login', '/signup', '/forgot-password', '/reset-password'];
+  const shouldHideFooter = hideFooterRoutes.includes(location.pathname);
+
   return (
-    <HelmetProvider>
-      <Router>
-        <ThemeProvider>
-          <AuthProvider>
-            <div className="App">
-              <Navbar />
-              <Routes>
+    <ThemeProvider>
+      <AuthProvider>
+        <div className="App">
+          <Navbar />
+          <Routes>
                 <Route path="/" element={<Home />} />
                 <Route path="/signup" element={<Signup />} />
                 <Route path="/login" element={<Login />} />
@@ -196,13 +200,30 @@ function App() {
                     </ProtectedRoute>
                   }
                 />
+                <Route
+                  path="/admin/users"
+                  element={
+                    <ProtectedRoute adminOnly>
+                      <AdminUsers />
+                    </ProtectedRoute>
+                  }
+                />
 
                 {/* Catch all */}
-                <Route path="*" element={<Navigate to="/" />} />
-              </Routes>
-            </div>
-          </AuthProvider>
-        </ThemeProvider>
+            <Route path="*" element={<Navigate to="/" />} />
+          </Routes>
+          {!shouldHideFooter && <Footer />}
+        </div>
+      </AuthProvider>
+    </ThemeProvider>
+  );
+};
+
+function App() {
+  return (
+    <HelmetProvider>
+      <Router>
+        <AppLayout />
       </Router>
     </HelmetProvider>
   );

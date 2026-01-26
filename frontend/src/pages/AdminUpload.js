@@ -558,7 +558,7 @@ const AdminUpload = () => {
                   </div>
                   <h2>Material Uploaded Successfully!</h2>
                   <p className="upload-success-subtitle">
-                    <strong>{uploadedMaterial?.title}</strong> has been uploaded and is ready for AI processing
+                    <strong>{uploadedMaterial?.title}</strong> has been uploaded and is ready for system processing
                   </p>
                 </div>
 
@@ -566,8 +566,8 @@ const AdminUpload = () => {
                   <div className="info-card">
                     <FiFileText size={24} />
                     <div>
-                      <h4>AI Summary Generation</h4>
-                      <p>Generate a comprehensive summary with simplified explanations of complex terms using Google Gemini AI</p>
+                      <h4>Summary Generation</h4>
+                      <p>Generate a comprehensive summary with simplified explanations of complex terms using our system.</p>
                     </div>
                   </div>
                   <div className="info-card">
@@ -593,7 +593,7 @@ const AdminUpload = () => {
                     ) : (
                       <>
                         <FiFileText size={20} />
-                        <span>Generate AI Summary</span>
+                        <span>Generate Summary</span>
                       </>
                     )}
                   </button>

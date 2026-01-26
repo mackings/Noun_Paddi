@@ -41,17 +41,15 @@ const CourseDetail = () => {
     try {
       setLoading(true);
       const response = await api.get(`/materials/course/${courseId}`);
-      setMaterials(response.data.data || []);
+      const materialList = Array.isArray(response.data.data) ? response.data.data : [];
+      setMaterials(materialList);
 
       // Auto-select first material with a summary
-      const materialWithSummary = response.data.data.find(m => m.hasSummary);
-      if (materialWithSummary) {
-        setSelectedMaterial(materialWithSummary);
-      }
-
-      setLoading(false);
+      const materialWithSummary = materialList.find(m => m.hasSummary && m.summary);
+      setSelectedMaterial(materialWithSummary || materialList[0] || null);
     } catch (error) {
       console.error('Error fetching course materials:', error);
+    } finally {
       setLoading(false);
     }
   };
@@ -60,9 +58,37 @@ const CourseDetail = () => {
     return (
       <div className="course-detail-container">
         <div className="container">
-          <div className="loading-container">
-            <div className="spinner"></div>
-            <p>Loading course materials...</p>
+          <div className="course-loading">
+            <div className="skeleton-card header">
+              <div className="skeleton-icon"></div>
+              <div className="skeleton-lines">
+                <div className="skeleton-line wide"></div>
+                <div className="skeleton-line medium"></div>
+                <div className="skeleton-line short"></div>
+              </div>
+            </div>
+            <div className="skeleton-tabs">
+              <div className="skeleton-pill"></div>
+              <div className="skeleton-pill"></div>
+              <div className="skeleton-pill"></div>
+            </div>
+            <div className="skeleton-content">
+              <div className="skeleton-panel">
+                {Array.from({ length: 5 }).map((_, index) => (
+                  <div key={index} className="skeleton-list-item">
+                    <div className="skeleton-line wide"></div>
+                    <div className="skeleton-line short"></div>
+                  </div>
+                ))}
+              </div>
+              <div className="skeleton-panel">
+                <div className="skeleton-line wide"></div>
+                <div className="skeleton-line medium"></div>
+                <div className="skeleton-line"></div>
+                <div className="skeleton-line"></div>
+                <div className="skeleton-line short"></div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -287,7 +313,7 @@ const CourseDetail = () => {
                     <div className="select-material-placeholder">
                       <FiFileText size={64} />
                       <h3>Select a Material</h3>
-                      <p>Choose a material from the list to view its AI-generated summary.</p>
+                      <p>Choose a material from the list to view its system-generated summary.</p>
                     </div>
                   )}
                 </div>

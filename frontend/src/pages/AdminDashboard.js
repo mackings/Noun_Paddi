@@ -153,7 +153,7 @@ const AdminDashboard = () => {
             <div className="stat-details">
               <h3>{stats?.overview?.summaryPercentage || 0}%</h3>
               <p>Processing Rate</p>
-              <span className="stat-badge">Materials with AI summaries</span>
+              <span className="stat-badge">Materials with system summaries</span>
             </div>
           </div>
         </div>
@@ -272,6 +272,16 @@ const AdminDashboard = () => {
               <FiFileText size={32} />
               <h3>Upload Material</h3>
               <p>Upload new study materials and generate summaries</p>
+            </a>
+            <a href="/admin/materials" className="quick-action-card">
+              <FiGrid size={32} />
+              <h3>Manage Materials</h3>
+              <p>Review, regenerate, or remove materials as needed</p>
+            </a>
+            <a href="/admin/users" className="quick-action-card">
+              <FiUsers size={32} />
+              <h3>View Users</h3>
+              <p>Inspect student profiles and account details</p>
             </a>
           </div>
         </div>
