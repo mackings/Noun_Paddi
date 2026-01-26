@@ -20,6 +20,12 @@ const AdminUpload = () => {
   const [departments, setDepartments] = useState([]);
   const [courses, setCourses] = useState([]);
   const [message, setMessage] = useState({ type: '', text: '' });
+  const [editingFacultyId, setEditingFacultyId] = useState(null);
+  const [editingDepartmentId, setEditingDepartmentId] = useState(null);
+  const [editingCourseId, setEditingCourseId] = useState(null);
+  const [showArchivedFaculties, setShowArchivedFaculties] = useState(false);
+  const [showArchivedDepartments, setShowArchivedDepartments] = useState(false);
+  const [showArchivedCourses, setShowArchivedCourses] = useState(false);
 
   // Faculty form
   const [facultyForm, setFacultyForm] = useState({ name: '', code: '' });
@@ -54,7 +60,7 @@ const AdminUpload = () => {
 
   const fetchFaculties = async () => {
     try {
-      const response = await api.get('/faculties');
+      const response = await api.get('/admin/faculties?includeArchived=true');
       setFaculties(response.data.data || []);
     } catch (error) {
       console.error('Error fetching faculties:', error);
@@ -63,7 +69,7 @@ const AdminUpload = () => {
 
   const fetchDepartments = async () => {
     try {
-      const response = await api.get('/departments');
+      const response = await api.get('/admin/departments?includeArchived=true');
       setDepartments(response.data.data || []);
     } catch (error) {
       console.error('Error fetching departments:', error);
@@ -72,7 +78,7 @@ const AdminUpload = () => {
 
   const fetchCourses = async () => {
     try {
-      const response = await api.get('/courses');
+      const response = await api.get('/admin/courses?includeArchived=true');
       setCourses(response.data.data || []);
     } catch (error) {
       console.error('Error fetching courses:', error);
@@ -83,13 +89,33 @@ const AdminUpload = () => {
   const handleCreateFaculty = async (e) => {
     e.preventDefault();
     try {
-      await api.post('/faculties', facultyForm);
-      setMessage({ type: 'success', text: 'Faculty created successfully!' });
+      if (editingFacultyId) {
+        await api.put(`/faculties/${editingFacultyId}`, facultyForm);
+        setMessage({ type: 'success', text: 'Faculty updated successfully!' });
+      } else {
+        await api.post('/faculties', facultyForm);
+        setMessage({ type: 'success', text: 'Faculty created successfully!' });
+      }
       setFacultyForm({ name: '', code: '' });
+      setEditingFacultyId(null);
       fetchFaculties();
       setTimeout(() => setMessage({ type: '', text: '' }), 3000);
     } catch (error) {
-      setMessage({ type: 'error', text: error.response?.data?.message || 'Failed to create faculty' });
+      setMessage({ type: 'error', text: error.response?.data?.message || 'Failed to save faculty' });
+    }
+  };
+
+  const handleEditFaculty = (faculty) => {
+    setFacultyForm({ name: faculty.name || '', code: faculty.code || '' });
+    setEditingFacultyId(faculty._id);
+  };
+
+  const handleArchiveFaculty = async (faculty) => {
+    try {
+      await api.patch(`/faculties/${faculty._id}/archive`, { archived: !faculty.isArchived });
+      fetchFaculties();
+    } catch (error) {
+      setMessage({ type: 'error', text: error.response?.data?.message || 'Failed to update faculty status' });
     }
   };
 
@@ -97,13 +123,37 @@ const AdminUpload = () => {
   const handleCreateDepartment = async (e) => {
     e.preventDefault();
     try {
-      await api.post('/departments', departmentForm);
-      setMessage({ type: 'success', text: 'Department created successfully!' });
+      if (editingDepartmentId) {
+        await api.put(`/departments/${editingDepartmentId}`, departmentForm);
+        setMessage({ type: 'success', text: 'Department updated successfully!' });
+      } else {
+        await api.post('/departments', departmentForm);
+        setMessage({ type: 'success', text: 'Department created successfully!' });
+      }
       setDepartmentForm({ name: '', code: '', facultyId: '' });
+      setEditingDepartmentId(null);
       fetchDepartments();
       setTimeout(() => setMessage({ type: '', text: '' }), 3000);
     } catch (error) {
-      setMessage({ type: 'error', text: error.response?.data?.message || 'Failed to create department' });
+      setMessage({ type: 'error', text: error.response?.data?.message || 'Failed to save department' });
+    }
+  };
+
+  const handleEditDepartment = (department) => {
+    setDepartmentForm({
+      name: department.name || '',
+      code: department.code || '',
+      facultyId: department.facultyId?._id || department.facultyId || '',
+    });
+    setEditingDepartmentId(department._id);
+  };
+
+  const handleArchiveDepartment = async (department) => {
+    try {
+      await api.patch(`/departments/${department._id}/archive`, { archived: !department.isArchived });
+      fetchDepartments();
+    } catch (error) {
+      setMessage({ type: 'error', text: error.response?.data?.message || 'Failed to update department status' });
     }
   };
 
@@ -111,13 +161,38 @@ const AdminUpload = () => {
   const handleCreateCourse = async (e) => {
     e.preventDefault();
     try {
-      await api.post('/courses', courseForm);
-      setMessage({ type: 'success', text: 'Course created successfully!' });
+      if (editingCourseId) {
+        await api.put(`/courses/${editingCourseId}`, courseForm);
+        setMessage({ type: 'success', text: 'Course updated successfully!' });
+      } else {
+        await api.post('/courses', courseForm);
+        setMessage({ type: 'success', text: 'Course created successfully!' });
+      }
       setCourseForm({ courseCode: '', courseName: '', creditUnits: 3, departmentId: '' });
+      setEditingCourseId(null);
       fetchCourses();
       setTimeout(() => setMessage({ type: '', text: '' }), 3000);
     } catch (error) {
-      setMessage({ type: 'error', text: error.response?.data?.message || 'Failed to create course' });
+      setMessage({ type: 'error', text: error.response?.data?.message || 'Failed to save course' });
+    }
+  };
+
+  const handleEditCourse = (course) => {
+    setCourseForm({
+      courseCode: course.courseCode || '',
+      courseName: course.courseName || '',
+      creditUnits: course.creditUnits || 3,
+      departmentId: course.departmentId?._id || course.departmentId || '',
+    });
+    setEditingCourseId(course._id);
+  };
+
+  const handleArchiveCourse = async (course) => {
+    try {
+      await api.patch(`/courses/${course._id}/archive`, { archived: !course.isArchived });
+      fetchCourses();
+    } catch (error) {
+      setMessage({ type: 'error', text: error.response?.data?.message || 'Failed to update course status' });
     }
   };
 
@@ -210,8 +285,10 @@ const AdminUpload = () => {
           <div className="admin-header-icon">
             <FiSettings />
           </div>
-          <h1>Admin Dashboard</h1>
-          <p>Manage faculties, departments, courses, and upload study materials</p>
+          <div>
+            <h1>Admin Management</h1>
+            <p>Manage faculties, departments, courses, and upload study materials</p>
+          </div>
         </div>
 
         {/* Tab Navigation */}
@@ -240,7 +317,7 @@ const AdminUpload = () => {
             <div className="admin-grid">
               <div className="admin-form-card">
                 <h2>
-                  <FiPlus /> Create New Faculty
+                  <FiPlus /> {editingFacultyId ? 'Update Faculty' : 'Create New Faculty'}
                 </h2>
                 <form onSubmit={handleCreateFaculty}>
                   <div className="form-group">
@@ -266,8 +343,20 @@ const AdminUpload = () => {
                     />
                   </div>
                   <button type="submit" className="btn btn-primary btn-block">
-                    <FiPlus /> Create Faculty
+                    <FiPlus /> {editingFacultyId ? 'Update Faculty' : 'Create Faculty'}
                   </button>
+                  {editingFacultyId && (
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-block"
+                      onClick={() => {
+                        setEditingFacultyId(null);
+                        setFacultyForm({ name: '', code: '' });
+                      }}
+                    >
+                      Cancel Edit
+                    </button>
+                  )}
                 </form>
               </div>
 
@@ -275,6 +364,16 @@ const AdminUpload = () => {
                 <h2>
                   <FiBriefcase /> Existing Faculties
                 </h2>
+                <div className="admin-filter-row">
+                  <label className="admin-toggle">
+                    <input
+                      type="checkbox"
+                      checked={showArchivedFaculties}
+                      onChange={(e) => setShowArchivedFaculties(e.target.checked)}
+                    />
+                    <span>Show archived</span>
+                  </label>
+                </div>
                 {faculties.length === 0 ? (
                   <div className="empty-state-small">
                     <FiBriefcase size={32} />
@@ -282,7 +381,9 @@ const AdminUpload = () => {
                   </div>
                 ) : (
                   <div className="item-list">
-                    {faculties.map((faculty) => (
+                    {faculties
+                      .filter((faculty) => showArchivedFaculties || !faculty.isArchived)
+                      .map((faculty) => (
                       <div key={faculty._id} className="item-card">
                         <div className="item-icon">
                           <FiBriefcase />
@@ -290,6 +391,23 @@ const AdminUpload = () => {
                         <div className="item-info">
                           <h3>{faculty.name}</h3>
                           <p>{faculty.code}</p>
+                          {faculty.isArchived && <span className="item-meta archived">Archived</span>}
+                        </div>
+                        <div className="item-actions">
+                          <button
+                            type="button"
+                            className="btn btn-outline-secondary btn-sm"
+                            onClick={() => handleEditFaculty(faculty)}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-outline-danger btn-sm"
+                            onClick={() => handleArchiveFaculty(faculty)}
+                          >
+                            {faculty.isArchived ? 'Unarchive' : 'Archive'}
+                          </button>
                         </div>
                       </div>
                     ))}
@@ -306,7 +424,7 @@ const AdminUpload = () => {
             <div className="admin-grid">
               <div className="admin-form-card">
                 <h2>
-                  <FiPlus /> Create New Department
+                  <FiPlus /> {editingDepartmentId ? 'Update Department' : 'Create New Department'}
                 </h2>
                 <form onSubmit={handleCreateDepartment}>
                   <div className="form-group">
@@ -348,8 +466,20 @@ const AdminUpload = () => {
                     />
                   </div>
                   <button type="submit" className="btn btn-primary btn-block">
-                    <FiPlus /> Create Department
+                    <FiPlus /> {editingDepartmentId ? 'Update Department' : 'Create Department'}
                   </button>
+                  {editingDepartmentId && (
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-block"
+                      onClick={() => {
+                        setEditingDepartmentId(null);
+                        setDepartmentForm({ name: '', code: '', facultyId: '' });
+                      }}
+                    >
+                      Cancel Edit
+                    </button>
+                  )}
                 </form>
               </div>
 
@@ -357,6 +487,16 @@ const AdminUpload = () => {
                 <h2>
                   <FiLayers /> Existing Departments
                 </h2>
+                <div className="admin-filter-row">
+                  <label className="admin-toggle">
+                    <input
+                      type="checkbox"
+                      checked={showArchivedDepartments}
+                      onChange={(e) => setShowArchivedDepartments(e.target.checked)}
+                    />
+                    <span>Show archived</span>
+                  </label>
+                </div>
                 {departments.length === 0 ? (
                   <div className="empty-state-small">
                     <FiLayers size={32} />
@@ -364,7 +504,9 @@ const AdminUpload = () => {
                   </div>
                 ) : (
                   <div className="item-list">
-                    {departments.map((dept) => (
+                    {departments
+                      .filter((dept) => showArchivedDepartments || !dept.isArchived)
+                      .map((dept) => (
                       <div key={dept._id} className="item-card">
                         <div className="item-icon">
                           <FiLayers />
@@ -372,6 +514,26 @@ const AdminUpload = () => {
                         <div className="item-info">
                           <h3>{dept.name}</h3>
                           <p>{dept.code}</p>
+                          <span className="item-meta">
+                            {dept.facultyId?.name || 'No faculty'}
+                          </span>
+                          {dept.isArchived && <span className="item-meta archived">Archived</span>}
+                        </div>
+                        <div className="item-actions">
+                          <button
+                            type="button"
+                            className="btn btn-outline-secondary btn-sm"
+                            onClick={() => handleEditDepartment(dept)}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-outline-danger btn-sm"
+                            onClick={() => handleArchiveDepartment(dept)}
+                          >
+                            {dept.isArchived ? 'Unarchive' : 'Archive'}
+                          </button>
                         </div>
                       </div>
                     ))}
@@ -388,7 +550,7 @@ const AdminUpload = () => {
             <div className="admin-grid">
               <div className="admin-form-card">
                 <h2>
-                  <FiPlus /> Create New Course
+                  <FiPlus /> {editingCourseId ? 'Update Course' : 'Create New Course'}
                 </h2>
                 <form onSubmit={handleCreateCourse}>
                   <div className="form-group">
@@ -442,8 +604,20 @@ const AdminUpload = () => {
                     />
                   </div>
                   <button type="submit" className="btn btn-primary btn-block">
-                    <FiPlus /> Create Course
+                    <FiPlus /> {editingCourseId ? 'Update Course' : 'Create Course'}
                   </button>
+                  {editingCourseId && (
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-block"
+                      onClick={() => {
+                        setEditingCourseId(null);
+                        setCourseForm({ courseCode: '', courseName: '', creditUnits: 3, departmentId: '' });
+                      }}
+                    >
+                      Cancel Edit
+                    </button>
+                  )}
                 </form>
               </div>
 
@@ -451,6 +625,16 @@ const AdminUpload = () => {
                 <h2>
                   <FiBookOpen /> Existing Courses
                 </h2>
+                <div className="admin-filter-row">
+                  <label className="admin-toggle">
+                    <input
+                      type="checkbox"
+                      checked={showArchivedCourses}
+                      onChange={(e) => setShowArchivedCourses(e.target.checked)}
+                    />
+                    <span>Show archived</span>
+                  </label>
+                </div>
                 {courses.length === 0 ? (
                   <div className="empty-state-small">
                     <FiBookOpen size={32} />
@@ -458,7 +642,9 @@ const AdminUpload = () => {
                   </div>
                 ) : (
                   <div className="item-list">
-                    {courses.map((course) => (
+                    {courses
+                      .filter((course) => showArchivedCourses || !course.isArchived)
+                      .map((course) => (
                       <div key={course._id} className="item-card">
                         <div className="item-icon">
                           <FiBook />
@@ -467,6 +653,26 @@ const AdminUpload = () => {
                           <h3>{course.courseCode}</h3>
                           <p>{course.courseName}</p>
                           <span className="item-meta">{course.creditUnits} Units</span>
+                          {course.departmentId?.name && (
+                            <span className="item-meta">{course.departmentId.name}</span>
+                          )}
+                          {course.isArchived && <span className="item-meta archived">Archived</span>}
+                        </div>
+                        <div className="item-actions">
+                          <button
+                            type="button"
+                            className="btn btn-outline-secondary btn-sm"
+                            onClick={() => handleEditCourse(course)}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-outline-danger btn-sm"
+                            onClick={() => handleArchiveCourse(course)}
+                          >
+                            {course.isArchived ? 'Unarchive' : 'Archive'}
+                          </button>
                         </div>
                       </div>
                     ))}

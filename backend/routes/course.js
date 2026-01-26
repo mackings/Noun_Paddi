@@ -8,6 +8,8 @@ const {
   getCourseMaterials,
   getCourse,
   deleteCourse,
+  updateCourse,
+  setCourseArchiveStatus,
 } = require('../controllers/courseController');
 const { protect, authorize } = require('../middleware/auth');
 
@@ -21,6 +23,9 @@ router.get('/:courseId/materials', getCourseMaterials);
 
 router.route('/:id')
   .get(getCourse)
+  .put(protect, authorize('admin'), updateCourse)
   .delete(protect, authorize('admin'), deleteCourse);
+
+router.patch('/:id/archive', protect, authorize('admin'), setCourseArchiveStatus);
 
 module.exports = router;

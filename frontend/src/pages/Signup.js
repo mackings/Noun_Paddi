@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import SEO from '../components/SEO';
-import { FiUser, FiMail, FiLock, FiBook, FiHash, FiBriefcase, FiFileText, FiEye, FiEyeOff } from 'react-icons/fi';
+import { FiUser, FiMail, FiLock, FiBook, FiHash, FiFileText, FiEye, FiEyeOff } from 'react-icons/fi';
 import './Auth.css';
 
 const Signup = () => {
@@ -93,6 +93,40 @@ const Signup = () => {
             </div>
           </div>
 
+          {formData.role === 'student' && (
+            <>
+              <div className="form-group">
+                <label className="form-label">Matric Number</label>
+                <div className="input-group">
+                  <FiHash className="input-icon" size={20} />
+                  <input
+                    type="text"
+                    name="matricNumber"
+                    className="form-control"
+                    value={formData.matricNumber}
+                    onChange={handleChange}
+                    placeholder="e.g., NOU/123456"
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Department</label>
+                <div className="input-group">
+                  <FiFileText className="input-icon" size={20} />
+                  <input
+                    type="text"
+                    name="department"
+                    className="form-control"
+                    value={formData.department}
+                    onChange={handleChange}
+                    placeholder="e.g., Computer Science"
+                  />
+                </div>
+              </div>
+            </>
+          )}
+
           <div className="form-group">
             <label className="form-label">Password</label>
             <div className="input-group">
@@ -117,55 +151,6 @@ const Signup = () => {
               </button>
             </div>
           </div>
-
-          {formData.role === 'student' && (
-            <>
-              <div className="form-group">
-                <label className="form-label">Matric Number</label>
-                <div className="input-group">
-                  <FiHash className="input-icon" size={20} />
-                  <input
-                    type="text"
-                    name="matricNumber"
-                    className="form-control"
-                    value={formData.matricNumber}
-                    onChange={handleChange}
-                    placeholder="e.g., NOU/123456"
-                  />
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Faculty</label>
-                <div className="input-group">
-                  <FiBriefcase className="input-icon" size={20} />
-                  <input
-                    type="text"
-                    name="faculty"
-                    className="form-control"
-                    value={formData.faculty}
-                    onChange={handleChange}
-                    placeholder="e.g., Science"
-                  />
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Department</label>
-                <div className="input-group">
-                  <FiFileText className="input-icon" size={20} />
-                  <input
-                    type="text"
-                    name="department"
-                    className="form-control"
-                    value={formData.department}
-                    onChange={handleChange}
-                    placeholder="e.g., Computer Science"
-                  />
-                </div>
-              </div>
-            </>
-          )}
 
           <button
             type="submit"

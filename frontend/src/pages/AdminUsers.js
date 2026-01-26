@@ -17,6 +17,8 @@ const AdminUsers = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [error, setError] = useState('');
+  const [inviteForm, setInviteForm] = useState({ name: '', email: '' });
+  const [inviteStatus, setInviteStatus] = useState({ type: '', text: '' });
 
   useEffect(() => {
     fetchUsers();
@@ -45,6 +47,21 @@ const AdminUsers = () => {
     setSearchTerm(event.target.value);
     if (!event.target.value) {
       fetchUsers('');
+    }
+  };
+
+  const handleInvite = async (event) => {
+    event.preventDefault();
+    setInviteStatus({ type: '', text: '' });
+    try {
+      await api.post('/admin/invite', inviteForm);
+      setInviteStatus({ type: 'success', text: 'Invite sent successfully.' });
+      setInviteForm({ name: '', email: '' });
+    } catch (err) {
+      setInviteStatus({
+        type: 'error',
+        text: err.response?.data?.message || 'Failed to send invite.',
+      });
     }
   };
 
@@ -81,6 +98,38 @@ const AdminUsers = () => {
           <button className="btn btn-primary" onClick={handleSearch}>
             Search
           </button>
+        </div>
+
+        <div className="admin-invite-card">
+          <div>
+            <p className="admin-users-kicker">Invite admin</p>
+            <h2>Add a new admin</h2>
+            <p>Send a temporary password to a trusted teammate. They can update it after login.</p>
+          </div>
+          <form onSubmit={handleInvite} className="admin-invite-form">
+            <input
+              type="text"
+              placeholder="Full name"
+              value={inviteForm.name}
+              onChange={(event) => setInviteForm({ ...inviteForm, name: event.target.value })}
+              required
+            />
+            <input
+              type="email"
+              placeholder="Email address"
+              value={inviteForm.email}
+              onChange={(event) => setInviteForm({ ...inviteForm, email: event.target.value })}
+              required
+            />
+            <button type="submit" className="btn btn-primary">
+              Send Invite
+            </button>
+          </form>
+          {inviteStatus.text && (
+            <div className={`invite-status ${inviteStatus.type}`}>
+              {inviteStatus.text}
+            </div>
+          )}
         </div>
 
         {error && <div className="alert alert-danger">{error}</div>}

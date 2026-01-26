@@ -220,6 +220,23 @@ const AdminMaterials = () => {
           </div>
         </div>
 
+        <div className="materials-status-row">
+          <div className="status-count">
+            Showing <strong>{filteredMaterials.length}</strong> of <strong>{materials.length}</strong>
+          </div>
+          <div className="status-chips">
+            <span className="status-chip">
+              {materials.filter((item) => !item.hasSummary).length} missing summary
+            </span>
+            <span className="status-chip">
+              {materials.filter((item) => item.hasSummary && item.questionsCount === 0).length} missing questions
+            </span>
+            <span className="status-chip">
+              {materials.filter((item) => item.hasSummary && item.questionsCount > 0).length} complete
+            </span>
+          </div>
+        </div>
+
         {filteredMaterials.length === 0 ? (
           <div className="empty-state">
             <FiFileText size={64} />

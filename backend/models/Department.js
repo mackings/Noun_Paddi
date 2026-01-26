@@ -21,6 +21,14 @@ const departmentSchema = new mongoose.Schema({
     type: String,
     default: '',
   },
+  isArchived: {
+    type: Boolean,
+    default: false,
+  },
+  archivedAt: {
+    type: Date,
+    default: null,
+  },
   createdAt: {
     type: Date,
     default: Date.now,

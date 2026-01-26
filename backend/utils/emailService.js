@@ -244,6 +244,124 @@ exports.sendWelcomeEmail = async (email, userName) => {
 };
 
 /**
+ * Send admin invite email with temporary password
+ */
+exports.sendAdminInviteEmail = async ({ email, userName, tempPassword }) => {
+  const loginUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/login`;
+
+  const mailOptions = {
+    from: `"${process.env.SMTP_FROM || 'NounPaddi'}" <${process.env.SMTP_USER}>`,
+    to: email,
+    subject: 'Admin Access Invite - NounPaddi',
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+          }
+          .container {
+            max-width: 600px;
+            margin: 40px auto;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+          }
+          .header {
+            background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%);
+            padding: 40px 20px;
+            text-align: center;
+            color: white;
+          }
+          .header h1 {
+            margin: 0;
+            font-size: 26px;
+            font-weight: 700;
+          }
+          .content {
+            padding: 36px 30px;
+          }
+          .content h2 {
+            color: #0f172a;
+            font-size: 20px;
+            margin-top: 0;
+          }
+          .content p {
+            color: #475569;
+            font-size: 15px;
+            line-height: 1.6;
+          }
+          .credentials {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 16px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            color: #0f172a;
+            margin: 16px 0 24px;
+          }
+          .button {
+            display: inline-block;
+            padding: 12px 28px;
+            background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            margin: 10px 0 0;
+          }
+          .footer {
+            background: #f9fafb;
+            padding: 18px 30px;
+            text-align: center;
+            color: #94a3b8;
+            font-size: 13px;
+            border-top: 1px solid #e2e8f0;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>Admin Access Granted</h1>
+          </div>
+          <div class="content">
+            <h2>Hello ${userName || 'there'},</h2>
+            <p>You have been invited to manage the NounPaddi admin dashboard. Use the temporary password below to sign in and change your password immediately.</p>
+            <div class="credentials">
+              Email: ${email}<br />
+              Temporary Password: <strong>${tempPassword}</strong>
+            </div>
+            <a href="${loginUrl}" class="button">Sign In</a>
+            <p style="margin-top: 18px; font-size: 13px; color: #64748b;">
+              After login, go to Profile → Change Password to set your own password.
+            </p>
+          </div>
+          <div class="footer">
+            © ${new Date().getFullYear()} NounPaddi. All rights reserved.
+          </div>
+        </div>
+      </body>
+      </html>
+    `,
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log('Admin invite email sent:', info.messageId);
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error('Error sending admin invite email:', error);
+    throw new Error('Failed to send admin invite email');
+  }
+};
+
+/**
  * Send IT placement application confirmation email
  */
 exports.sendITApplicationEmail = async (application) => {

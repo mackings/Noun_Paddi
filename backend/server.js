@@ -70,6 +70,7 @@ app.use('/api/users', require('./routes/user'));
 app.use('/api/faculties', require('./routes/faculty'));
 app.use('/api/departments', require('./routes/department'));
 app.use('/api/courses', require('./routes/course'));
+app.use('/api/admin', require('./routes/admin'));
 app.use('/api/materials', require('./routes/material'));
 app.use('/api/questions', require('./routes/question'));
 app.use('/api/stats', require('./routes/stats'));

@@ -26,6 +26,14 @@ const courseSchema = new mongoose.Schema({
     type: Number,
     default: 3,
   },
+  isArchived: {
+    type: Boolean,
+    default: false,
+  },
+  archivedAt: {
+    type: Date,
+    default: null,
+  },
   createdAt: {
     type: Date,
     default: Date.now,

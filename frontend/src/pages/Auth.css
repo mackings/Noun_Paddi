@@ -51,8 +51,8 @@
   background-color: var(--card-bg);
   border-radius: 24px;
   padding: 48px;
-  max-width: 480px;
-  width: 100%;
+  max-width: 520px;
+  width: min(100%, 520px);
   box-shadow: var(--shadow-xl);
   border: 2px solid var(--border-color);
   position: relative;
@@ -107,7 +107,7 @@
 .auth-form {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
 }
 
 .auth-footer {
@@ -233,17 +233,14 @@
 
 .input-icon {
   position: absolute;
-  left: 14px;
+  left: 22px;
   top: 50%;
   transform: translateY(-50%);
   color: var(--text-tertiary);
   pointer-events: none;
   z-index: 1;
-}
-
-.input-group .form-control {
-  padding-left: 56px;
-  box-sizing: border-box;
+  width: 22px;
+  height: 22px;
 }
 
 .input-group .password-input {
@@ -424,7 +421,7 @@
   margin-bottom: 10px;
 }
 
-.form-group input {
+.form-group > input {
   width: 100%;
   padding: 14px 16px;
   border: 2px solid #e0e0e0;
@@ -433,10 +430,23 @@
   transition: all 0.3s ease;
 }
 
-.form-group input:focus {
+.auth-card .form-group {
+  margin-bottom: 16px;
+}
+
+.auth-card .form-label {
+  font-size: 13px;
+}
+
+.form-group > input:focus {
   outline: none;
   border-color: #667eea;
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.form-group .input-group .form-control {
+  padding-left: 80px;
+  line-height: 1.4;
 }
 
 .submit-button {
@@ -512,6 +522,11 @@
 
 /* Responsive */
 @media (max-width: 640px) {
+  .auth-container {
+    align-items: flex-start;
+    padding: 24px 16px 32px;
+  }
+
   .auth-card {
     padding: 32px 24px;
   }
@@ -538,20 +553,32 @@
   .role-selection {
     grid-template-columns: 1fr;
   }
+
+  .input-icon {
+    left: 18px;
+  }
+
+  .input-group .form-control {
+    padding-left: 76px;
+  }
+
+  .password-toggle {
+    right: 12px;
+  }
 }
 
 @media (max-width: 480px) {
   .auth-container {
-    padding: 12px;
+    padding: 20px 12px 28px;
   }
 
   .auth-card {
-    padding: 24px 20px;
+    padding: 24px 16px;
     border-radius: 20px;
   }
 
   .auth-title {
-    font-size: 24px;
+    font-size: 22px;
   }
 
   .auth-subtitle {
@@ -567,5 +594,16 @@
   .auth-logo svg {
     width: 32px;
     height: 32px;
+  }
+
+  .form-control {
+    font-size: 15px;
+    min-height: 44px;
+  }
+
+  .submit-button,
+  .btn.btn-primary {
+    font-size: 15px;
+    padding: 14px 16px;
   }
 }
