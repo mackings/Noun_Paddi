@@ -101,6 +101,20 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function trimTextForSummary(text, ratio = 0.85) {
+  if (!text || ratio >= 1) return text;
+
+  const targetLength = Math.floor(text.length * ratio);
+  if (targetLength >= text.length) return text;
+
+  // Preserve both start and end so late modules/units remain visible.
+  const headLength = Math.floor(targetLength * 0.7);
+  const tailLength = targetLength - headLength;
+  if (tailLength <= 0) return text.slice(0, targetLength);
+
+  return `${text.slice(0, headLength)}\n\n[...content omitted for brevity...]\n\n${text.slice(text.length - tailLength)}`;
+}
+
 async function withGeminiClient(fn) {
   const clients = getGeminiClients();
   if (!clients.length) {
@@ -189,12 +203,12 @@ async function summarizeText(text, pdfUrl = null, materialId = null, userId = nu
       throw new Error('Text is too short to summarize. Need at least 200 characters.');
     }
 
-    // Trim very long inputs by 15% to reduce latency while keeping more detail
+    // Trim long inputs while preserving both start and end.
     if (cleanedText.length > 0) {
-      const trimmedLength = Math.floor(cleanedText.length * 0.85);
-      if (trimmedLength < cleanedText.length) {
-        console.log(`Trimming summary input from ${cleanedText.length} to ${trimmedLength} characters`);
-        cleanedText = cleanedText.substring(0, trimmedLength);
+      const trimmedText = trimTextForSummary(cleanedText, 0.85);
+      if (trimmedText.length < cleanedText.length) {
+        console.log(`Trimming summary input from ${cleanedText.length} to ${trimmedText.length} characters`);
+        cleanedText = trimmedText;
       }
     }
 
@@ -250,6 +264,7 @@ async function summarizeText(text, pdfUrl = null, materialId = null, userId = nu
 7. Make it highly readable and student-friendly
 8. Include short "In simple terms," explanations where helpful
 9. Favor clarity over brevity; explain key ideas thoroughly
+10. If a module or unit is missing or unclear, do NOT stop or mention that it is unavailable. Continue summarizing the remaining content that is present.
 
 Course Material:
 ${cleanedText}
@@ -280,6 +295,7 @@ Please provide a well-structured, comprehensive summary with proper bold headers
     throw new Error(error.message || 'Failed to generate summary');
   }
 }
+
 
 // New function to handle PDF summarization using File API
 async function summarizePDFDirectly(pdfUrl, materialId = null, userId = null) {
@@ -373,6 +389,7 @@ async function summarizePDFDirectly(pdfUrl, materialId = null, userId = null) {
 6. Ensure proper indentation for sub-bullets
 7. Make it highly readable and student-friendly
 8. Cover content from beginning, middle, and end of document
+9. If a module or unit is missing or unclear, do NOT stop or mention that it is unavailable. Continue summarizing the remaining content that is present.
 
 Please provide a well-structured, comprehensive summary with proper bold headers, effective use of paragraphs and bullet points:`
         },
@@ -1005,10 +1022,10 @@ async function summarizeWithClient(clientIndex, text, materialId = null, userId 
     throw new Error('Text is too short to summarize');
   }
 
-  // Trim to 85% for speed while keeping more detail
-  const trimmedLength = Math.floor(cleanedText.length * 0.85);
-  if (trimmedLength < cleanedText.length) {
-    cleanedText = cleanedText.substring(0, trimmedLength);
+  // Trim while preserving both start and end so late modules are still visible.
+  const trimmedText = trimTextForSummary(cleanedText, 0.85);
+  if (trimmedText.length < cleanedText.length) {
+    cleanedText = trimmedText;
   }
 
   const prompt = `You are an expert educational content summarizer. Provide a comprehensive, well-formatted summary.
@@ -1022,7 +1039,7 @@ async function summarizeWithClient(clientIndex, text, materialId = null, userId 
 Course Material:
 ${cleanedText}
 
-Provide a well-structured, comprehensive summary:`;
+Provide a well-structured, comprehensive summary. If a module or unit is missing or unclear, do NOT stop or mention that it is unavailable. Continue summarizing the remaining content that is present:`;
 
   // Try each key until one works
   let lastError;
@@ -1134,7 +1151,7 @@ async function summarizePDFDirectlyFromFile(tempFilePath, materialId = null, use
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
     return await model.generateContent([
       { fileData: { mimeType: uploadResult.file.mimeType, fileUri: uploadResult.file.uri } },
-      { text: 'Provide a comprehensive, well-formatted summary of this PDF. Use bold headers for modules/units, bullet points for lists, and paragraphs for explanations.' }
+      { text: 'Provide a comprehensive, well-formatted summary of this PDF. Use bold headers for modules/units, bullet points for lists, and paragraphs for explanations. If a module or unit is missing or unclear, do NOT stop or mention that it is unavailable. Continue summarizing the remaining content that is present.' }
     ]);
   });
 
