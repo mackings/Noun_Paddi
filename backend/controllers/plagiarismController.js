@@ -12,6 +12,27 @@ exports.submitForCheck = async (req, res) => {
     console.log('Body:', req.body);
     console.log('User:', req.user?._id);
 
+    const now = new Date();
+    const dayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    const nextDayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1));
+
+    const existingToday = await ProjectSubmission.findOne({
+      userId: req.user._id,
+      createdAt: { $gte: dayStart, $lt: nextDayStart },
+    }).select('_id createdAt status');
+
+    if (existingToday) {
+      return res.status(429).json({
+        success: false,
+        message: 'You can only run one plagiarism check per day. Please try again tomorrow.',
+        data: {
+          nextAllowedAt: nextDayStart.toISOString(),
+          lastSubmissionId: existingToday._id,
+          lastStatus: existingToday.status,
+        },
+      });
+    }
+
     if (!req.file) {
       return res.status(400).json({
         success: false,

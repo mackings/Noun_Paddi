@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import api from '../utils/api';
 import { formatDate } from '../utils/dateHelper';
+import { trackFeatureVisit } from '../utils/featureTracking';
 import {
   FiBook,
   FiFileText,
@@ -67,6 +68,7 @@ const StudentDashboard = () => {
     fetchStats();
     fetchFaculties();
     fetchUploadStats();
+    trackFeatureVisit('dashboard');
   }, []);
 
   useEffect(() => {

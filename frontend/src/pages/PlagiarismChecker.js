@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../utils/api';
 import SEO from '../components/SEO';
+import { trackFeatureVisit } from '../utils/featureTracking';
 import {
   FiUpload, FiFileText, FiCheckCircle, FiAlertTriangle,
   FiAlertCircle, FiClock, FiTrash2, FiEye, FiX,
@@ -32,6 +33,7 @@ const PlagiarismChecker = () => {
   useEffect(() => {
     fetchFaculties();
     fetchReports();
+    trackFeatureVisit('plagiarism');
   }, []);
 
   const fetchFaculties = async () => {

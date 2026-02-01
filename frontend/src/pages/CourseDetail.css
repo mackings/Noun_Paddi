@@ -385,6 +385,11 @@
 
 .summary-content {
   animation: fadeIn 0.3s ease-in;
+  user-select: none;
+}
+
+.summary-content * {
+  user-select: none;
 }
 
 .summary-section {

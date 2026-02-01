@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../utils/api';
 import SEO from '../components/SEO';
+import { trackFeatureVisit } from '../utils/featureTracking';
 import {
   FiCode, FiServer, FiSmartphone, FiCloud, FiLayers,
   FiCheckCircle, FiAlertCircle, FiClock, FiMapPin,
@@ -91,6 +92,7 @@ const ITPlacement = () => {
 
   useEffect(() => {
     fetchApplication();
+    trackFeatureVisit('it_placement');
   }, []);
 
   const fetchApplication = async () => {

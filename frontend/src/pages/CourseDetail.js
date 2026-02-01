@@ -3,6 +3,7 @@ import { useParams, Link, useLocation } from 'react-router-dom';
 import api from '../utils/api';
 import { formatDate } from '../utils/dateHelper';
 import { splitSummaryIntoSections, formatLine } from '../utils/formatSummary';
+import { trackFeatureVisit } from '../utils/featureTracking';
 import {
   FiBook,
   FiFileText,
@@ -28,7 +29,23 @@ const CourseDetail = () => {
   useEffect(() => {
     fetchCourseDetails();
     fetchCourseMaterials();
+    trackFeatureVisit('summary');
   }, [courseId]);
+
+  const blockCopy = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+  };
+
+  const blockCopyShortcuts = (event) => {
+    if (event.ctrlKey || event.metaKey) {
+      const key = event.key?.toLowerCase();
+      if (key === 'c' || key === 'x' || key === 'v' || key === 'a' || key === 's' || key === 'p') {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    }
+  };
 
   const fetchCourseDetails = async () => {
     try {
@@ -255,7 +272,15 @@ const CourseDetail = () => {
                       </div>
 
                       {selectedMaterial.hasSummary ? (
-                        <div className="summary-content">
+                        <div
+                          className="summary-content"
+                          onCopy={blockCopy}
+                          onCut={blockCopy}
+                          onPaste={blockCopy}
+                          onContextMenu={blockCopy}
+                          onKeyDown={blockCopyShortcuts}
+                          tabIndex={0}
+                        >
                           {splitSummaryIntoSections(selectedMaterial.summary).map((section, index) => (
                             <div key={index} className="summary-section">
                               {section.title && <h3 className="section-title">{formatLine(section.title)}</h3>}

@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { FiCalendar, FiClock, FiMail, FiPhone, FiSend } from 'react-icons/fi';
 import SEO from '../components/SEO';
 import api from '../utils/api';
+import { trackFeatureVisit } from '../utils/featureTracking';
 import './ProjectConsultation.css';
 
 const ProjectConsultation = () => {
@@ -22,6 +23,10 @@ const ProjectConsultation = () => {
   });
   const [consultationStatus, setConsultationStatus] = useState({ loading: false, error: '', success: '' });
   const [paymentStatus, setPaymentStatus] = useState({ loading: false, error: '' });
+
+  useEffect(() => {
+    trackFeatureVisit('project_consultation');
+  }, []);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 import { formatDate } from '../utils/dateHelper';
+import { trackFeatureVisit } from '../utils/featureTracking';
 import {
   FiFileText,
   FiGrid,
@@ -23,6 +24,7 @@ const AdminMaterials = () => {
 
   useEffect(() => {
     fetchMaterials();
+    trackFeatureVisit('admin_materials');
   }, []);
 
   const fetchMaterials = async () => {

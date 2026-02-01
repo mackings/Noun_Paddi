@@ -81,6 +81,7 @@ app.use('/api/plagiarism', require('./routes/plagiarism'));
 app.use('/api/projects', require('./routes/project'));
 app.use('/api/reviews', require('./routes/review'));
 app.use('/api/share', require('./routes/share'));
+app.use('/api/analytics', require('./routes/analytics'));
 
 // Root route
 app.get('/', (req, res) => {

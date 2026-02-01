@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
 import { formatDate } from '../utils/dateHelper';
+import { trackFeatureVisit } from '../utils/featureTracking';
 import {
   FiBook,
   FiBriefcase,
@@ -18,11 +19,14 @@ import './AdminDashboard.css';
 const AdminDashboard = () => {
   const [stats, setStats] = useState(null);
   const [apiUsage, setApiUsage] = useState(null);
+  const [featureStats, setFeatureStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchStats();
     fetchAPIUsage();
+    fetchFeatureStats();
+    trackFeatureVisit('admin_dashboard');
   }, []);
 
   const fetchStats = async () => {
@@ -43,6 +47,15 @@ const AdminDashboard = () => {
       setApiUsage(response.data.data);
     } catch (error) {
       console.error('Error fetching API usage:', error);
+    }
+  };
+
+  const fetchFeatureStats = async () => {
+    try {
+      const response = await api.get('/analytics/feature-stats');
+      setFeatureStats(response.data.data);
+    } catch (error) {
+      console.error('Error fetching feature stats:', error);
     }
   };
 
@@ -204,6 +217,26 @@ const AdminDashboard = () => {
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {featureStats && (
+          <div className="api-usage-section">
+            <h2>Most Visited Features</h2>
+            <div className="api-usage-grid">
+              {(featureStats.totals || []).slice(0, 6).map((item) => (
+                <div key={item._id} className="api-stat-card">
+                  <h3>{item.total}</h3>
+                  <p>{item._id}</p>
+                </div>
+              ))}
+              {featureStats.totals?.length === 0 && (
+                <div className="api-stat-card">
+                  <h3>0</h3>
+                  <p>No visits tracked yet</p>
+                </div>
+              )}
+            </div>
           </div>
         )}
 

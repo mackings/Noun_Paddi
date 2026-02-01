@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import api from '../utils/api';
 import SEO from '../components/SEO';
 import { convertHalfToTrueFalse } from '../utils/questionTransformer';
+import { trackFeatureVisit } from '../utils/featureTracking';
 import { FiCheckCircle, FiXCircle, FiAward } from 'react-icons/fi';
 import './Practice.css';
 
@@ -38,6 +39,10 @@ const Practice = () => {
   const [timerActive, setTimerActive] = useState(false);
   const [startTime, setStartTime] = useState(null);
   const [endTime, setEndTime] = useState(null);
+
+  useEffect(() => {
+    trackFeatureVisit('exams');
+  }, []);
 
   // Leaderboard states
   const [showLeaderboard, setShowLeaderboard] = useState(false);

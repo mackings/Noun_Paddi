@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../utils/api';
+import { trackFeatureVisit } from '../utils/featureTracking';
 import SEO from '../components/SEO';
 import { FiSearch, FiBook, FiArrowRight, FiAward, FiUpload } from 'react-icons/fi';
 import './Explore.css';
@@ -17,6 +18,7 @@ const Explore = () => {
   useEffect(() => {
     fetchFaculties();
     fetchCourses();
+    trackFeatureVisit('courses');
   }, []);
 
   const fetchFaculties = async () => {
