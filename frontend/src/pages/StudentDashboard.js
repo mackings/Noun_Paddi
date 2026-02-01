@@ -37,10 +37,11 @@ const StudentDashboard = () => {
   const [uploadError, setUploadError] = useState(null);
   const [faculties, setFaculties] = useState([]);
   const [departments, setDepartments] = useState([]);
-  const [courses, setCourses] = useState([]);
   const [uploadStats, setUploadStats] = useState(null);
   const [completedCourseId, setCompletedCourseId] = useState(null);
   const [createdCourseId, setCreatedCourseId] = useState(null);
+  const [pendingCourse, setPendingCourse] = useState(null);
+  const [duplicateInfo, setDuplicateInfo] = useState(null);
 
   // New course form state
   const [newCourse, setNewCourse] = useState({ courseCode: '', courseName: '', creditUnits: 3 });
@@ -76,6 +77,49 @@ const StudentDashboard = () => {
     }
   }, [location.search]);
 
+  const CACHE_TTL_MS = 12 * 60 * 60 * 1000;
+  const FACULTY_CACHE_KEY = 'np_faculties_cache_v1';
+  const DEPT_CACHE_PREFIX = 'np_departments_cache_v1:';
+
+  const readCache = (key) => {
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (!parsed || !parsed.ts) return null;
+      if (Date.now() - parsed.ts > CACHE_TTL_MS) return null;
+      return parsed.data;
+    } catch (error) {
+      return null;
+    }
+  };
+
+  const writeCache = (key, data) => {
+    try {
+      localStorage.setItem(key, JSON.stringify({ ts: Date.now(), data }));
+    } catch (error) {
+      // Ignore cache write failures (e.g., private mode)
+    }
+  };
+
+  const normalizeCourseCode = (value) => {
+    const raw = String(value || '').trim().toUpperCase();
+    const match = raw.match(/^([A-Z]{3})\s*([0-9]{3})$/);
+    if (!match) return null;
+    return `${match[1]} ${match[2]}`;
+  };
+
+  const checkCourseExists = async (normalizedCode) => {
+    try {
+      const response = await api.get(`/courses/search?query=${encodeURIComponent(normalizedCode)}`);
+      const results = response.data.data || [];
+      return results.find((course) => (course.courseCode || '').toUpperCase() === normalizedCode) || null;
+    } catch (error) {
+      console.error('Error checking course:', error);
+      return null;
+    }
+  };
+
   const fetchStats = async () => {
     try {
       setLoading(true);
@@ -89,32 +133,39 @@ const StudentDashboard = () => {
   };
 
   const fetchFaculties = async () => {
+    const cached = readCache(FACULTY_CACHE_KEY);
+    if (cached) {
+      setFaculties(cached);
+      return;
+    }
     try {
       const response = await api.get('/faculties');
-      setFaculties(response.data.data || []);
+      const data = response.data.data || [];
+      setFaculties(data);
+      writeCache(FACULTY_CACHE_KEY, data);
     } catch (error) {
       console.error('Error fetching faculties:', error);
     }
   };
 
   const fetchDepartments = async (facultyId) => {
+    const cacheKey = `${DEPT_CACHE_PREFIX}${facultyId}`;
+    const cached = readCache(cacheKey);
+    if (cached) {
+      setDepartments(cached);
+      return;
+    }
     try {
       const response = await api.get(`/faculties/${facultyId}/departments`);
-      setDepartments(response.data.data || []);
+      const data = response.data.data || [];
+      setDepartments(data);
+      writeCache(cacheKey, data);
     } catch (error) {
       console.error('Error fetching departments:', error);
       setDepartments([]);
     }
   };
 
-  const fetchCourses = async (departmentId) => {
-    try {
-      const response = await api.get(`/courses/department/${departmentId}`);
-      setCourses(response.data.data || []);
-    } catch (error) {
-      console.error('Error fetching courses:', error);
-    }
-  };
 
   const fetchUploadStats = async () => {
     try {
@@ -138,7 +189,6 @@ const StudentDashboard = () => {
     setUploadForm({ ...uploadForm, departmentId, courseId: '' });
     setUploadError(null);
     if (departmentId) {
-      await fetchCourses(departmentId);
       setUploadStep(3);
     }
   };
@@ -152,9 +202,8 @@ const StudentDashboard = () => {
   };
 
   const createCourse = async () => {
-    const code = newCourse.courseCode.trim().toUpperCase();
-    const codeMatch = code.match(/^([A-Z]{3})\s*([0-9]{3})$/);
-    if (!codeMatch) {
+    const normalizedCode = normalizeCourseCode(newCourse.courseCode);
+    if (!normalizedCode) {
       setUploadError('Course code must be 3 letters and 3 numbers (e.g., BIO 101)');
       return;
     }
@@ -162,21 +211,27 @@ const StudentDashboard = () => {
       setUploadError('Please enter course name');
       return;
     }
-    try {
-      const response = await api.post('/courses', {
-        ...newCourse,
-        courseCode: `${codeMatch[1]} ${codeMatch[2]}`,
-        departmentId: uploadForm.departmentId
+
+    const existingCourse = await checkCourseExists(normalizedCode);
+    if (existingCourse) {
+      setDuplicateInfo({
+        kind: 'course',
+        courseId: existingCourse._id,
+        title: existingCourse.courseCode,
+        name: existingCourse.courseName,
       });
-      await fetchCourses(uploadForm.departmentId);
-      setUploadForm({ ...uploadForm, courseId: response.data.data._id });
-      setCreatedCourseId(response.data.data._id);
-      setNewCourse({ courseCode: '', courseName: '', creditUnits: 3 });
-      setUploadError(null);
-      setUploadStep(4);
-    } catch (error) {
-      setUploadError(error.response?.data?.message || 'Failed to create course');
+      setPendingCourse(null);
+      setUploadForm({ ...uploadForm, courseId: '' });
+      return;
     }
+
+    setPendingCourse({
+      ...newCourse,
+      courseCode: normalizedCode
+    });
+    setUploadForm({ ...uploadForm, courseId: 'new' });
+    setUploadError(null);
+    setUploadStep(4);
   };
 
   const closeStatusStream = () => {
@@ -457,6 +512,27 @@ const StudentDashboard = () => {
       return;
     }
 
+    if (uploadForm.courseId === 'new' && !pendingCourse) {
+      setUploadError('Please enter course details before uploading');
+      setUploadStep(3);
+      return;
+    }
+
+    if (uploadForm.courseId === 'new' && pendingCourse) {
+      const existingCourse = await checkCourseExists(pendingCourse.courseCode);
+      if (existingCourse) {
+        setDuplicateInfo({
+          kind: 'course',
+          courseId: existingCourse._id,
+          title: existingCourse.courseCode,
+          name: existingCourse.courseName,
+        });
+        setPendingCourse(null);
+        setUploadForm({ ...uploadForm, courseId: '' });
+        return;
+      }
+    }
+
     setUploading(true);
     setUploadError(null);
     setUploadSuccess(null);
@@ -468,6 +544,8 @@ const StudentDashboard = () => {
       progress: 10,
       message: 'Uploading your file...'
     });
+
+    let resolvedCourseId = uploadForm.courseId;
 
     try {
       const cloudName = process.env.REACT_APP_CLOUDINARY_CLOUD_NAME;
@@ -492,11 +570,23 @@ const StudentDashboard = () => {
         cloudinaryData
       );
 
+      if (resolvedCourseId === 'new') {
+        const response = await api.post('/courses', {
+          ...pendingCourse,
+          departmentId: uploadForm.departmentId
+        });
+        resolvedCourseId = response.data.data._id;
+        setCreatedCourseId(resolvedCourseId);
+        setUploadForm((prev) => ({ ...prev, courseId: resolvedCourseId }));
+        setPendingCourse(null);
+        setNewCourse({ courseCode: '', courseName: '', creditUnits: 3 });
+      }
+
       const fileHash = await computeFileHash(uploadForm.file);
 
       const response = await api.post('/materials/student-upload', {
         title: resolvedTitle,
-        courseId: uploadForm.courseId,
+        courseId: resolvedCourseId,
         cloudinaryUrl: cloudinaryResponse.data.secure_url,
         cloudinaryPublicId: cloudinaryResponse.data.public_id,
         fileType: uploadForm.file.type,
@@ -505,7 +595,7 @@ const StudentDashboard = () => {
       });
 
       const materialId = response.data.data._id;
-      setCompletedCourseId(uploadForm.courseId);
+      setCompletedCourseId(resolvedCourseId);
 
       // Update progress - file uploaded, now processing
       setProcessingStatus({
@@ -525,6 +615,35 @@ const StudentDashboard = () => {
 
     } catch (error) {
       console.error('Upload error:', error);
+      const status = error.response?.status;
+      if (status === 409) {
+        const existingCourse = error.response?.data?.data;
+        if (existingCourse?._id) {
+          setDuplicateInfo({
+            kind: 'course',
+            courseId: existingCourse._id,
+            title: existingCourse.courseCode,
+            name: existingCourse.courseName,
+          });
+          setPendingCourse(null);
+          setUploadForm({ ...uploadForm, courseId: '' });
+          setProcessingStatus({ stage: '', progress: 0, message: '' });
+          setUploadStep(3);
+          return;
+        }
+
+        const existing = error.response?.data?.existingMaterial || {};
+        setDuplicateInfo({
+          kind: 'material',
+          courseId: resolvedCourseId !== 'new' ? resolvedCourseId : uploadForm.courseId,
+          title: existing.title,
+          uploadedBy: existing.uploadedBy?.name || existing.uploadedBy || 'another student',
+          uploadDate: existing.uploadDate
+        });
+        setProcessingStatus({ stage: '', progress: 0, message: '' });
+        setUploadStep(4);
+        return;
+      }
       setUploadError(error.response?.data?.message || 'Failed to upload material');
       setProcessingStatus({
         stage: 'failed',
@@ -556,6 +675,8 @@ const StudentDashboard = () => {
     setNewCourse({ courseCode: '', courseName: '', creditUnits: 3 });
     setCompletedCourseId(null);
     setCreatedCourseId(null);
+    setPendingCourse(null);
+    setDuplicateInfo(null);
     completionBeepedRef.current = false;
   };
 
@@ -1032,24 +1153,13 @@ const StudentDashboard = () => {
                   </div>
                 )}
 
-                {/* Step 3: Course Selection or Creation */}
+                {/* Step 3: Course Creation */}
                 {uploadStep === 3 && (
                   <div className="step-content">
-                    <h3>Select or Create Course</h3>
-                    <p className="step-description">Choose an existing course or create a new one</p>
+                    <h3>Create Course</h3>
+                    <p className="step-description">Add a new course for this department</p>
 
-                    <div className="selection-grid">
-                      {courses.map((course) => (
-                        <button
-                          key={course._id}
-                          className={`selection-card ${uploadForm.courseId === course._id ? 'selected' : ''}`}
-                          onClick={() => handleCourseSelect(course._id)}
-                        >
-                          <FiBook size={24} />
-                          <span>{course.courseCode}</span>
-                          <small>{course.courseName}</small>
-                        </button>
-                      ))}
+                    <div className="selection-grid create-only">
                       <button
                         className={`selection-card create-new ${uploadForm.courseId === 'new' ? 'selected' : ''}`}
                         onClick={() => handleCourseSelect('new')}
@@ -1088,7 +1198,10 @@ const StudentDashboard = () => {
                         <div className="form-actions">
                           <button
                             type="button"
-                            onClick={() => setUploadForm({ ...uploadForm, courseId: '' })}
+                            onClick={() => {
+                              setUploadForm({ ...uploadForm, courseId: '' });
+                              setPendingCourse(null);
+                            }}
                             className="btn btn-secondary"
                           >
                             Cancel
@@ -1099,16 +1212,16 @@ const StudentDashboard = () => {
                             className="btn btn-primary"
                             disabled={!newCourse.courseCode.trim() || !newCourse.courseName.trim()}
                           >
-                            Create & Continue
+                            Continue to Upload
                           </button>
                         </div>
                       </div>
                     )}
 
-                    {courses.length === 0 && uploadForm.courseId !== 'new' && (
+                    {uploadForm.courseId && uploadForm.courseId !== 'new' && (
                       <div className="empty-message">
                         <FiBook size={48} />
-                        <p>No courses in this department yet. Click "Create New Course" to add one!</p>
+                        <p>Course created for this department. Click "Create New Course" to add another.</p>
                       </div>
                     )}
 
@@ -1267,6 +1380,46 @@ const StudentDashboard = () => {
                   </div>
                 )}
               </div>
+
+              {duplicateInfo && (
+                <div className="duplicate-dialog-overlay">
+                  <div className="duplicate-dialog" onClick={(e) => e.stopPropagation()}>
+                    <h3>
+                      {duplicateInfo.kind === 'course'
+                        ? 'Course Already Exists'
+                        : 'Material Already Uploaded'}
+                    </h3>
+                    <p>
+                      {duplicateInfo.kind === 'course'
+                        ? `"${duplicateInfo.title || 'This course'}"${duplicateInfo.name ? ` (${duplicateInfo.name})` : ''} already exists.`
+                        : `"${duplicateInfo.title || 'This material'}" has already been uploaded for this course.`}
+                    </p>
+                    <div className="dialog-actions">
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={() => setDuplicateInfo(null)}
+                      >
+                        Close
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-primary"
+                        onClick={() => {
+                          const courseId = duplicateInfo.courseId;
+                          setDuplicateInfo(null);
+                          resetUploadModal();
+                          if (courseId && courseId !== 'new') {
+                            navigate(`/course/${courseId}`);
+                          }
+                        }}
+                      >
+                        Go to Course
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}

@@ -23,6 +23,7 @@ import PlagiarismChecker from './pages/PlagiarismChecker';
 import Projects from './pages/Projects';
 import ConsultationTerms from './pages/ConsultationTerms';
 import ProjectConsultation from './pages/ProjectConsultation';
+import ShareRedirect from './pages/ShareRedirect';
 import Footer from './components/Footer';
 import './App.css';
 
@@ -71,7 +72,7 @@ const Home = () => {
 const AppLayout = () => {
   const location = useLocation();
   const hideFooterRoutes = ['/login', '/signup', '/forgot-password', '/reset-password'];
-  const shouldHideFooter = hideFooterRoutes.includes(location.pathname);
+  const shouldHideFooter = hideFooterRoutes.includes(location.pathname) || location.pathname.startsWith('/share');
 
   return (
     <ThemeProvider>
@@ -84,6 +85,7 @@ const AppLayout = () => {
                 <Route path="/login" element={<Login />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/share/:token" element={<ShareRedirect />} />
 
                 {/* Student Routes */}
                 <Route

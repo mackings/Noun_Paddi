@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import SEO from '../components/SEO';
 import { FiUser, FiMail, FiLock, FiBook, FiHash, FiFileText, FiEye, FiEyeOff } from 'react-icons/fi';
@@ -20,6 +20,15 @@ const Signup = () => {
   const [showPassword, setShowPassword] = useState(false);
   const { signup } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const getSafeRedirect = () => {
+    const params = new URLSearchParams(location.search);
+    const redirect = params.get('redirect');
+    if (!redirect) return null;
+    if (!redirect.startsWith('/') || redirect.startsWith('//')) return null;
+    return redirect;
+  };
 
   const handleChange = (e) => {
     setFormData({
@@ -35,6 +44,11 @@ const Signup = () => {
 
     try {
       await signup(formData);
+      const redirect = getSafeRedirect();
+      if (redirect) {
+        navigate(redirect);
+        return;
+      }
       navigate(formData.role === 'admin' ? '/admin/upload' : '/explore');
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to create account');

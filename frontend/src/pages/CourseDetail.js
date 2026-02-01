@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useLocation } from 'react-router-dom';
 import api from '../utils/api';
 import { formatDate } from '../utils/dateHelper';
 import { splitSummaryIntoSections, formatLine } from '../utils/formatSummary';
@@ -7,7 +7,7 @@ import {
   FiBook,
   FiFileText,
   FiGrid,
-  FiDownload,
+  FiShare2,
   FiArrowLeft,
   FiClock,
   FiUser,
@@ -17,11 +17,13 @@ import './CourseDetail.css';
 
 const CourseDetail = () => {
   const { courseId } = useParams();
+  const location = useLocation();
   const [course, setCourse] = useState(null);
   const [materials, setMaterials] = useState([]);
   const [selectedMaterial, setSelectedMaterial] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('summaries');
+  const [shareState, setShareState] = useState({ loading: false, message: '', type: '' });
 
   useEffect(() => {
     fetchCourseDetails();
@@ -44,13 +46,48 @@ const CourseDetail = () => {
       const materialList = Array.isArray(response.data.data) ? response.data.data : [];
       setMaterials(materialList);
 
-      // Auto-select first material with a summary
+      const params = new URLSearchParams(location.search);
+      const requestedMaterialId = params.get('materialId');
+      const requestedMaterial = requestedMaterialId
+        ? materialList.find(m => m._id === requestedMaterialId)
+        : null;
+
+      // Auto-select requested material, then first with summary, then first item
       const materialWithSummary = materialList.find(m => m.hasSummary && m.summary);
-      setSelectedMaterial(materialWithSummary || materialList[0] || null);
+      setSelectedMaterial(requestedMaterial || materialWithSummary || materialList[0] || null);
     } catch (error) {
       console.error('Error fetching course materials:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSharePdf = async () => {
+    if (!selectedMaterial?._id) return;
+
+    try {
+      setShareState({ loading: true, message: '', type: '' });
+      const response = await api.post(`/share/materials/${selectedMaterial._id}`);
+      const shareUrl = response.data?.data?.shareUrl;
+
+      if (!shareUrl) {
+        setShareState({ loading: false, message: 'Unable to create share link.', type: 'error' });
+        return;
+      }
+
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareUrl);
+        setShareState({ loading: false, message: 'Share link copied to clipboard.', type: 'success' });
+      } else {
+        window.prompt('Copy this share link:', shareUrl);
+        setShareState({ loading: false, message: 'Share link ready to copy.', type: 'success' });
+      }
+    } catch (error) {
+      setShareState({
+        loading: false,
+        message: error.response?.data?.message || 'Failed to create share link.',
+        type: 'error'
+      });
     }
   };
 
@@ -189,17 +226,22 @@ const CourseDetail = () => {
                       <div className="summary-header">
                         <h2>{selectedMaterial.title}</h2>
                         <div className="summary-actions">
-                          <a
-                            href={selectedMaterial.cloudinaryUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                          <button
+                            type="button"
                             className="btn btn-outline-primary"
+                            onClick={handleSharePdf}
+                            disabled={shareState.loading}
                           >
-                            <FiDownload />
-                            Download PDF
-                          </a>
+                            <FiShare2 />
+                            {shareState.loading ? 'Creating Link...' : 'Share PDF'}
+                          </button>
                         </div>
                       </div>
+                      {shareState.message && (
+                        <div className={`alert ${shareState.type === 'success' ? 'alert-success' : 'alert-danger'}`}>
+                          {shareState.message}
+                        </div>
+                      )}
 
                       <div className="summary-meta">
                         <span>

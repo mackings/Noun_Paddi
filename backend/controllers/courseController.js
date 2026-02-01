@@ -116,6 +116,18 @@ exports.createCourse = async (req, res) => {
 
     const normalizedCode = `${codeMatch[1].toUpperCase()} ${codeMatch[2]}`;
 
+    const existingCourse = await Course.findOne({
+      courseCode: normalizedCode,
+      isArchived: { $ne: true },
+    }).lean();
+    if (existingCourse) {
+      return res.status(409).json({
+        success: false,
+        message: 'Course already exists',
+        data: existingCourse,
+      });
+    }
+
     const department = await Department.findById(departmentId);
     if (department && department.isArchived) {
       return res.status(400).json({

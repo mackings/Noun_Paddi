@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import SEO from '../components/SEO';
 import { FiMail, FiLock, FiBook, FiEye, FiEyeOff } from 'react-icons/fi';
@@ -15,6 +15,15 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const getSafeRedirect = () => {
+    const params = new URLSearchParams(location.search);
+    const redirect = params.get('redirect');
+    if (!redirect) return null;
+    if (!redirect.startsWith('/') || redirect.startsWith('//')) return null;
+    return redirect;
+  };
 
   const handleChange = (e) => {
     setFormData({
@@ -30,6 +39,11 @@ const Login = () => {
 
     try {
       const response = await login(formData.email, formData.password);
+      const redirect = getSafeRedirect();
+      if (redirect) {
+        navigate(redirect);
+        return;
+      }
       const userRole = response.data.role;
       navigate(userRole === 'admin' ? '/admin/upload' : '/explore');
     } catch (err) {

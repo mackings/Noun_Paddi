@@ -80,6 +80,7 @@ app.use('/api/reminders', require('./routes/readingReminder'));
 app.use('/api/plagiarism', require('./routes/plagiarism'));
 app.use('/api/projects', require('./routes/project'));
 app.use('/api/reviews', require('./routes/review'));
+app.use('/api/share', require('./routes/share'));
 
 // Root route
 app.get('/', (req, res) => {
