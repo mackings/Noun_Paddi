@@ -32,6 +32,39 @@ const CourseDetail = () => {
     trackFeatureVisit('summary');
   }, [courseId]);
 
+  useEffect(() => {
+    document.body.classList.add('disable-course-print');
+
+    const handlePrintShortcut = (event) => {
+      if ((event.ctrlKey || event.metaKey) && event.key?.toLowerCase() === 'p') {
+        event.preventDefault();
+        event.stopPropagation();
+        setShareState({
+          loading: false,
+          message: 'Printing is disabled for this summary page.',
+          type: 'error'
+        });
+      }
+    };
+
+    const handleBeforePrint = () => {
+      setShareState({
+        loading: false,
+        message: 'Printing is disabled for this summary page.',
+        type: 'error'
+      });
+    };
+
+    window.addEventListener('keydown', handlePrintShortcut, true);
+    window.addEventListener('beforeprint', handleBeforePrint);
+
+    return () => {
+      document.body.classList.remove('disable-course-print');
+      window.removeEventListener('keydown', handlePrintShortcut, true);
+      window.removeEventListener('beforeprint', handleBeforePrint);
+    };
+  }, []);
+
   const blockCopy = (event) => {
     event.preventDefault();
     event.stopPropagation();

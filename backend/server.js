@@ -15,18 +15,22 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Handle preflight OPTIONS requests explicitly
-app.options('*', (req, res) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
-  res.header('Access-Control-Max-Age', '86400');
-  res.sendStatus(204);
-});
+const normalizeOrigin = (value) => String(value || '').trim().replace(/\/+$/, '');
+
+const configuredOrigins = [
+  process.env.FRONTEND_URL,
+  ...(process.env.CORS_ORIGINS || '').split(','),
+  'https://paddi.com.ng',
+  'https://www.paddi.com.ng',
+].filter(Boolean).map(normalizeOrigin);
+
+const allowedOrigins = new Set(configuredOrigins);
 
 // Enable CORS - Allow all Vercel deployments and localhost
-app.use(cors({
+const corsOptions = {
   origin: function(origin, callback) {
+    const normalizedOrigin = normalizeOrigin(origin);
+
     // Allow requests with no origin (like mobile apps, curl, or Postman)
     if (!origin) return callback(null, true);
 
@@ -41,7 +45,7 @@ app.use(cors({
     }
 
     // Allow custom frontend URL from env
-    if (process.env.FRONTEND_URL && origin === process.env.FRONTEND_URL) {
+    if (allowedOrigins.has(normalizedOrigin)) {
       return callback(null, true);
     }
 
@@ -61,7 +65,12 @@ app.use(cors({
   maxAge: 86400, // 24 hours
   preflightContinue: false,
   optionsSuccessStatus: 204
-}));
+};
+
+app.use(cors(corsOptions));
+
+// Handle preflight OPTIONS requests
+app.options('*', cors(corsOptions));
 
 
 // Routes

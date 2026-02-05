@@ -621,3 +621,23 @@
     width: 120px;
   }
 }
+
+@media print {
+  body.disable-course-print * {
+    visibility: hidden !important;
+  }
+
+  body.disable-course-print::before {
+    content: 'Printing is disabled for this summary page.';
+    visibility: visible !important;
+    position: fixed;
+    top: 30%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 22px;
+    font-weight: 700;
+    color: #111827;
+    text-align: center;
+    width: 80%;
+  }
+}

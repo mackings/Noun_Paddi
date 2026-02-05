@@ -9,6 +9,7 @@ const APIUsage = require('../models/APIUsage');
 const { cloudinary } = require('../config/cloudinary');
 const { extractTextFromPDF, extractTextFromBuffer } = require('./pdfHelper');
 
+
 // ============================================
 // GROQ CLIENT SETUP - COMMENTED OUT
 // Using Gemini 2.5 Flash on Tier 1 instead (better rate limits: 300 RPM, 2M TPM)

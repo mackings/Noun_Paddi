@@ -246,11 +246,44 @@
   animation: fadeInUp 0.6s ease-out 0.3s backwards;
 }
 
+.courses-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
 .courses-section h2 {
   font-size: 28px;
   font-weight: 700;
-  margin-bottom: 32px;
+  margin-bottom: 0;
   color: var(--explore-ink);
+}
+
+.view-all-courses-btn {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 10px 18px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 10px 20px rgba(37, 99, 235, 0.25);
+}
+
+.view-all-courses-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px rgba(37, 99, 235, 0.3);
+}
+
+.view-all-courses-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: 0 8px 16px rgba(37, 99, 235, 0.2);
 }
 
 .course-card {
@@ -625,6 +658,11 @@
   .faculty-chip {
     font-size: 13px;
     padding: 10px 20px;
+  }
+
+  .courses-header {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
   .course-card {

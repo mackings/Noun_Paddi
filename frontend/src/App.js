@@ -1,12 +1,14 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, Link } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
+import { FiBriefcase, FiCheckCircle, FiGrid, FiShield, FiUserPlus } from 'react-icons/fi';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import Navbar from './components/Navbar';
 import Signup from './pages/Signup';
 import Login from './pages/Login';
 import Explore from './pages/Explore';
+import AllCourses from './pages/AllCourses';
 import Practice from './pages/Practice';
 import AdminUpload from './pages/AdminUpload';
 import AdminDashboard from './pages/AdminDashboard';
@@ -26,6 +28,74 @@ import ProjectConsultation from './pages/ProjectConsultation';
 import ShareRedirect from './pages/ShareRedirect';
 import Footer from './components/Footer';
 import './App.css';
+
+const FIRST_VISIT_KEY = 'np_first_visit_seen_v1';
+
+const WelcomeLanding = () => {
+  const markSeen = () => {
+    try {
+      localStorage.setItem(FIRST_VISIT_KEY, '1');
+    } catch (error) {
+      // Ignore localStorage failures
+    }
+  };
+
+  return (
+    <div className="welcome-landing">
+      <div className="container">
+        <div className="welcome-hero-shell">
+          <div className="welcome-glow welcome-glow-one"></div>
+          <div className="welcome-glow welcome-glow-two"></div>
+          <div className="welcome-glow welcome-glow-three"></div>
+          <div className="welcome-landing-card">
+            <p className="welcome-kicker">Welcome to NounPaddi</p>
+            <h1>Study smarter with a modern NOUN learning platform</h1>
+            <p className="welcome-lead">
+              Everything you need in one focused workspace: discover materials, get free summaries,
+              and practice confidently before exams.
+            </p>
+            <div className="welcome-proof-strip">
+              <span>Built for NOUN students</span>
+              <span>Fast & simple onboarding</span>
+              <span>Mobile friendly</span>
+            </div>
+
+            <div className="welcome-feature-grid">
+              <div className="welcome-feature">
+                <FiCheckCircle />
+                <span>Free Course Summaries</span>
+              </div>
+              <div className="welcome-feature">
+                <FiGrid />
+                <span>Practice Questions</span>
+              </div>
+              <div className="welcome-feature">
+                <FiShield />
+                <span>Free Project Plagiarism Checker</span>
+              </div>
+              <div className="welcome-feature">
+                <FiBriefcase />
+                <span>SIWES & IT Placement</span>
+              </div>
+            </div>
+
+            <div className="welcome-actions">
+              <Link to="/signup" className="btn btn-primary" onClick={markSeen}>
+                <FiUserPlus />
+                Sign Up to Get Started
+              </Link>
+              <Link to="/login" className="btn btn-outline" onClick={markSeen}>
+                Existing User? Sign In
+              </Link>
+            </div>
+
+            <p className="welcome-footnote">Join now and start learning in minutes.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 // Protected Route Component
 const ProtectedRoute = ({ children, adminOnly = false }) => {
@@ -66,6 +136,17 @@ const Home = () => {
     return <Navigate to={user.role === 'admin' ? '/admin/dashboard' : '/explore'} />;
   }
 
+  let hasSeenFirstVisit = false;
+  try {
+    hasSeenFirstVisit = localStorage.getItem(FIRST_VISIT_KEY) === '1';
+  } catch (error) {
+    hasSeenFirstVisit = false;
+  }
+
+  if (!hasSeenFirstVisit) {
+    return <WelcomeLanding />;
+  }
+
   return <Navigate to="/login" />;
 };
 
@@ -101,6 +182,14 @@ const AppLayout = () => {
                   element={
                     <ProtectedRoute>
                       <Explore />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/courses"
+                  element={
+                    <ProtectedRoute>
+                      <AllCourses />
                     </ProtectedRoute>
                   }
                 />

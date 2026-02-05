@@ -10,7 +10,6 @@ const Explore = () => {
   const [faculties, setFaculties] = useState([]);
   const [courses, setCourses] = useState([]);
   const [allCourses, setAllCourses] = useState([]);
-  const [facultyCourses, setFacultyCourses] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFaculty, setSelectedFaculty] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -43,57 +42,60 @@ const Explore = () => {
     }
   };
 
-  const applyFilters = (query, baseCourses) => {
+  const getFacultyIdFromCourse = (course) => {
+    const faculty = course?.departmentId?.facultyId;
+    if (!faculty) return null;
+    return typeof faculty === 'object' ? faculty._id : faculty;
+  };
+
+  const applyFilters = (query, facultyId = selectedFaculty) => {
     const trimmed = String(query || '').trim().toLowerCase();
+
+    let filtered = [...allCourses];
+
+    // Search is global across all courses
+    if (!trimmed && facultyId) {
+      filtered = filtered.filter((course) => getFacultyIdFromCourse(course) === facultyId);
+    }
+
     if (!trimmed) {
-      setCourses(baseCourses);
+      setCourses(filtered);
       return;
     }
 
-    const filtered = baseCourses.filter((course) => {
+    filtered = filtered.filter((course) => {
       const code = String(course.courseCode || '').toLowerCase();
       const name = String(course.courseName || '').toLowerCase();
       return code.includes(trimmed) || name.includes(trimmed);
     });
+
     setCourses(filtered);
   };
 
   const handleSearch = (query) => {
     const searchTerm = query ?? searchQuery;
-    const baseCourses = selectedFaculty ? facultyCourses : allCourses;
-    applyFilters(searchTerm, baseCourses);
+    applyFilters(searchTerm);
   };
 
   const handleSearchInput = (e) => {
     const value = e.target.value;
     setSearchQuery(value);
-    const baseCourses = selectedFaculty ? facultyCourses : allCourses;
-    applyFilters(value, baseCourses);
+    applyFilters(value);
   };
 
-  const handleFacultyClick = async (facultyId) => {
+  const handleFacultyClick = (facultyId) => {
     setSelectedFaculty(facultyId);
     setSearchQuery('');
-    try {
-      setLoading(true);
-      const response = await api.get(`/faculties/${facultyId}/departments`);
-      const departments = response.data.data;
-      
-      // Fetch courses for all departments in this faculty
-      const allCourses = [];
-      for (const dept of departments) {
-        const coursesResponse = await api.get(`/courses/department/${dept._id}`);
-        allCourses.push(...coursesResponse.data.data);
-      }
-      
-      setFacultyCourses(allCourses);
-      setCourses(allCourses);
-      setLoading(false);
-    } catch (error) {
-      console.error('Error fetching faculty courses:', error);
-      setLoading(false);
-    }
+    applyFilters('', facultyId);
   };
+
+  useEffect(() => {
+    applyFilters(searchQuery);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allCourses]);
+
+  const trimmedSearch = searchQuery.trim();
+  const displayedCourses = trimmedSearch ? courses : courses.slice(0, 50);
 
   const structuredData = {
     "@context": "https://schema.org",
@@ -165,8 +167,7 @@ const Explore = () => {
               onClick={() => {
                 setSelectedFaculty(null);
                 setSearchQuery('');
-                setCourses(allCourses);
-                setFacultyCourses([]);
+                applyFilters('', null);
               }}
             >
               All
@@ -185,7 +186,12 @@ const Explore = () => {
 
         {/* Courses Grid */}
         <div className="courses-section">
-          <h2>Available Courses</h2>
+          <div className="courses-header">
+            <h2>Available Courses</h2>
+            <Link className="view-all-courses-btn" to="/courses">
+              View All Courses
+            </Link>
+          </div>
           
           {loading ? (
             <div className="loading-container">
@@ -207,7 +213,7 @@ const Explore = () => {
                 ))}
               </div>
             </div>
-          ) : courses.length === 0 ? (
+          ) : displayedCourses.length === 0 ? (
             <div className="no-results">
               <div className="no-results-icon">
                 <FiBook />
@@ -216,7 +222,7 @@ const Explore = () => {
             </div>
           ) : (
             <div className="grid grid-3">
-              {courses.map((course) => (
+              {displayedCourses.map((course) => (
                 <Link
                   key={course._id}
                   to={`/course/${course._id}`}
