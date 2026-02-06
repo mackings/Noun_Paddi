@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import api from '../utils/api';
 import { formatDate } from '../utils/dateHelper';
 import { trackFeatureVisit } from '../utils/featureTracking';
@@ -301,21 +302,21 @@ const AdminDashboard = () => {
         <div className="quick-actions-section">
           <h2>Quick Actions</h2>
           <div className="quick-actions-grid">
-            <a href="/admin/upload" className="quick-action-card">
+            <Link to="/admin/upload" className="quick-action-card">
               <FiFileText size={32} />
               <h3>Upload Material</h3>
               <p>Upload new study materials and generate summaries</p>
-            </a>
-            <a href="/admin/materials" className="quick-action-card">
+            </Link>
+            <Link to="/admin/materials" className="quick-action-card">
               <FiGrid size={32} />
               <h3>Manage Materials</h3>
               <p>Review, regenerate, or remove materials as needed</p>
-            </a>
-            <a href="/admin/users" className="quick-action-card">
+            </Link>
+            <Link to="/admin/users" className="quick-action-card">
               <FiUsers size={32} />
               <h3>View Users</h3>
               <p>Inspect student profiles and account details</p>
-            </a>
+            </Link>
           </div>
         </div>
       </div>

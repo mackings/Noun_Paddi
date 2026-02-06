@@ -11,8 +11,29 @@ export const useAuth = () => {
   return context;
 };
 
+const loadCachedUser = () => {
+  try {
+    const cached = localStorage.getItem('user');
+    return cached ? JSON.parse(cached) : null;
+  } catch (error) {
+    return null;
+  }
+};
+
+const cacheUser = (nextUser) => {
+  try {
+    if (nextUser) {
+      localStorage.setItem('user', JSON.stringify(nextUser));
+    } else {
+      localStorage.removeItem('user');
+    }
+  } catch (error) {
+    // Ignore localStorage failures
+  }
+};
+
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => loadCachedUser());
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -22,9 +43,18 @@ export const AuthProvider = ({ children }) => {
         try {
           const response = await api.get('/auth/me');
           setUser(response.data.data);
+          cacheUser(response.data.data);
         } catch (error) {
-          localStorage.removeItem('token');
+          const status = error?.response?.status;
+          if (status === 401 || status === 403) {
+            localStorage.removeItem('token');
+            setUser(null);
+            cacheUser(null);
+          }
         }
+      } else {
+        setUser(null);
+        cacheUser(null);
       }
       setLoading(false);
     };
@@ -36,6 +66,7 @@ export const AuthProvider = ({ children }) => {
     const { token, ...userData } = response.data.data;
     localStorage.setItem('token', token);
     setUser(userData);
+    cacheUser(userData);
     return response.data;
   };
 
@@ -44,11 +75,13 @@ export const AuthProvider = ({ children }) => {
     const { token, ...user } = response.data.data;
     localStorage.setItem('token', token);
     setUser(user);
+    cacheUser(user);
     return response.data;
   };
 
   const logout = () => {
     localStorage.removeItem('token');
+    cacheUser(null);
     setUser(null);
   };
 
