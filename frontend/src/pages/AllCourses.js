@@ -7,6 +7,8 @@ import './Explore.css';
 import './AllCourses.css';
 
 const COURSES_PER_PAGE = 24;
+const normalizeSearchValue = (value) => String(value || '').toLowerCase().trim();
+const compactSearchValue = (value) => normalizeSearchValue(value).replace(/[^a-z0-9]/g, '');
 
 const AllCourses = () => {
   const [allCourses, setAllCourses] = useState([]);
@@ -51,7 +53,8 @@ const AllCourses = () => {
   }, [departments, selectedFaculty]);
 
   const filteredCourses = useMemo(() => {
-    const normalizedSearch = searchQuery.trim().toLowerCase();
+    const normalizedSearch = normalizeSearchValue(searchQuery);
+    const compactQuery = compactSearchValue(searchQuery);
 
     return allCourses.filter((course) => {
       const courseFaculty = course?.departmentId?.facultyId;
@@ -62,8 +65,10 @@ const AllCourses = () => {
       const matchesFaculty = !selectedFaculty || facultyId === selectedFaculty;
       const matchesDepartment = !selectedDepartment || departmentId === selectedDepartment;
       const matchesSearch = !normalizedSearch
-        || String(course.courseCode || '').toLowerCase().includes(normalizedSearch)
-        || String(course.courseName || '').toLowerCase().includes(normalizedSearch);
+        || normalizeSearchValue(course.courseCode).includes(normalizedSearch)
+        || normalizeSearchValue(course.courseName).includes(normalizedSearch)
+        || compactSearchValue(course.courseCode).includes(compactQuery)
+        || compactSearchValue(course.courseName).includes(compactQuery);
 
       return matchesFaculty && matchesDepartment && matchesSearch;
     });

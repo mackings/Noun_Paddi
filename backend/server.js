@@ -16,6 +16,13 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 const normalizeOrigin = (value) => String(value || '').trim().replace(/\/+$/, '');
+const getHostname = (value) => {
+  try {
+    return new URL(value).hostname.toLowerCase();
+  } catch {
+    return '';
+  }
+};
 
 const configuredOrigins = [
   process.env.FRONTEND_URL,
@@ -25,27 +32,38 @@ const configuredOrigins = [
 ].filter(Boolean).map(normalizeOrigin);
 
 const allowedOrigins = new Set(configuredOrigins);
+const allowedHostnames = new Set(
+  configuredOrigins
+    .map((origin) => getHostname(origin))
+    .filter(Boolean)
+);
 
 // Enable CORS - Allow all Vercel deployments and localhost
 const corsOptions = {
   origin: function(origin, callback) {
     const normalizedOrigin = normalizeOrigin(origin);
+    const hostname = getHostname(origin);
 
     // Allow requests with no origin (like mobile apps, curl, or Postman)
     if (!origin) return callback(null, true);
 
     // Allow localhost origins
-    if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
       return callback(null, true);
     }
 
     // Allow all Vercel deployments (*.vercel.app)
-    if (origin.includes('vercel.app')) {
+    if (hostname === 'vercel.app' || hostname.endsWith('.vercel.app')) {
       return callback(null, true);
     }
 
-    // Allow custom frontend URL from env
+    // Allow exact custom frontend URL from env
     if (allowedOrigins.has(normalizedOrigin)) {
+      return callback(null, true);
+    }
+
+    // Also allow by hostname to handle apex/www origin variations.
+    if (allowedHostnames.has(hostname)) {
       return callback(null, true);
     }
 

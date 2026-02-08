@@ -6,6 +6,9 @@ import SEO from '../components/SEO';
 import { FiSearch, FiBook, FiArrowRight, FiAward, FiUpload } from 'react-icons/fi';
 import './Explore.css';
 
+const normalizeSearchValue = (value) => String(value || '').toLowerCase().trim();
+const compactSearchValue = (value) => normalizeSearchValue(value).replace(/[^a-z0-9]/g, '');
+
 const Explore = () => {
   const [faculties, setFaculties] = useState([]);
   const [courses, setCourses] = useState([]);
@@ -49,7 +52,8 @@ const Explore = () => {
   };
 
   const applyFilters = (query, facultyId = selectedFaculty) => {
-    const trimmed = String(query || '').trim().toLowerCase();
+    const trimmed = normalizeSearchValue(query);
+    const compactQuery = compactSearchValue(query);
 
     let filtered = [...allCourses];
 
@@ -64,9 +68,17 @@ const Explore = () => {
     }
 
     filtered = filtered.filter((course) => {
-      const code = String(course.courseCode || '').toLowerCase();
-      const name = String(course.courseName || '').toLowerCase();
-      return code.includes(trimmed) || name.includes(trimmed);
+      const code = normalizeSearchValue(course.courseCode);
+      const name = normalizeSearchValue(course.courseName);
+      const compactCode = compactSearchValue(course.courseCode);
+      const compactName = compactSearchValue(course.courseName);
+
+      return (
+        code.includes(trimmed)
+        || name.includes(trimmed)
+        || compactCode.includes(compactQuery)
+        || compactName.includes(compactQuery)
+      );
     });
 
     setCourses(filtered);

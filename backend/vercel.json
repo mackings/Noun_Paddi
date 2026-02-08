@@ -10,21 +10,11 @@
     {
       "src": "/api/(.*)",
       "methods": ["OPTIONS"],
-      "dest": "server.js",
-      "headers": {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS, PATCH",
-        "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With, Accept",
-        "Access-Control-Max-Age": "86400"
-      }
+      "dest": "server.js"
     },
     {
       "src": "/(.*)",
-      "dest": "server.js",
-      "headers": {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Credentials": "true"
-      }
+      "dest": "server.js"
     }
   ],
   "env": {
