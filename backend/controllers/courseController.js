@@ -98,6 +98,8 @@ exports.createCourse = async (req, res) => {
     const rawName = sanitizeText(req.body.courseName);
     const departmentId = sanitizeText(req.body.departmentId);
     const creditUnits = Number(req.body.creditUnits || 3);
+    const normalizedName = rawName.toLowerCase();
+    const normalizedCreditUnits = Number.isFinite(creditUnits) ? creditUnits : 3;
 
     if (!rawCode || !rawName || !departmentId) {
       return res.status(400).json({
@@ -116,15 +118,34 @@ exports.createCourse = async (req, res) => {
 
     const normalizedCode = `${codeMatch[1].toUpperCase()} ${codeMatch[2]}`;
 
-    const existingCourse = await Course.findOne({
+    // Duplicate means all submitted details already exist for an active course.
+    const sameDetailsCourse = await Course.findOne({
       courseCode: normalizedCode,
+      departmentId,
+      creditUnits: normalizedCreditUnits,
       isArchived: { $ne: true },
     }).lean();
-    if (existingCourse) {
+    if (
+      sameDetailsCourse &&
+      sanitizeText(sameDetailsCourse.courseName).toLowerCase() === normalizedName
+    ) {
       return res.status(409).json({
         success: false,
         message: 'Course already exists',
-        data: existingCourse,
+        data: sameDetailsCourse,
+      });
+    }
+
+    // Keep course code unique among active courses to avoid ambiguous course identity.
+    const codeConflictCourse = await Course.findOne({
+      courseCode: normalizedCode,
+      isArchived: { $ne: true },
+    }).lean();
+    if (codeConflictCourse) {
+      return res.status(409).json({
+        success: false,
+        message: 'This course code is already in use by another course',
+        data: codeConflictCourse,
       });
     }
 
@@ -140,7 +161,7 @@ exports.createCourse = async (req, res) => {
       courseCode: normalizedCode,
       courseName: rawName,
       departmentId,
-      creditUnits: Number.isFinite(creditUnits) ? creditUnits : 3,
+      creditUnits: normalizedCreditUnits,
     });
 
     // Invalidate relevant caches

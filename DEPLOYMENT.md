@@ -172,14 +172,31 @@ This guide will walk you through deploying the NounPaddi application to Vercel.
 8. Wait for deployment to complete
 9. Note your frontend URL
 
+### Option C: Deploy Frontend to Netlify (while keeping backend on Vercel)
+
+1. Go to [Netlify](https://app.netlify.com/) and click **Add new site** → **Import an existing project**
+2. Connect your Git repository
+3. Configure build settings:
+   - Base directory: `frontend`
+   - Build command: `npm run build`
+   - Publish directory: `build`
+4. Add environment variable:
+   - Key: `REACT_APP_API_URL`
+   - Value: `https://your-backend-url.vercel.app/api`
+5. Deploy site
+6. Note your Netlify frontend URL (e.g., `https://nounpaddi.netlify.app`)
+
 ## Step 6: Update Backend CORS Settings
 
 1. Go to your backend project in Vercel Dashboard
 2. Go to "Settings" → "Environment Variables"
 3. Add a new variable:
    - Key: `FRONTEND_URL`
-   - Value: Your frontend URL (e.g., `https://nounpaddi-frontend.vercel.app`)
-4. Redeploy the backend:
+   - Value: Primary frontend URL (e.g., `https://nounpaddi-frontend.vercel.app` or `https://nounpaddi.netlify.app`)
+4. If you are serving frontend from both Vercel and Netlify, also add:
+   - Key: `CORS_ORIGINS`
+   - Value: Comma-separated list, e.g. `https://nounpaddi-frontend.vercel.app,https://nounpaddi.netlify.app`
+5. Redeploy the backend:
    ```bash
    cd backend
    vercel --prod

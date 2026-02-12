@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import api from '../utils/api';
 import { formatDate } from '../utils/dateHelper';
@@ -21,6 +20,25 @@ import {
 } from 'react-icons/fi';
 import './StudentDashboard.css';
 
+// Upload flow:
+// 1) If PDF <= 10MB: upload directly to Cloudinary (raw upload).
+// 2) If PDF > 10MB: block upload and send the user to a PDF compression site.
+const MAX_CLOUDINARY_RAW_UPLOAD_BYTES = 10 * 1024 * 1024;
+const PDF_COMPRESS_SITES = [
+  { label: 'iLovePDF', url: 'https://www.ilovepdf.com/compress_pdf' },
+  { label: 'Smallpdf', url: 'https://smallpdf.com/compress-pdf' },
+];
+
+const formatBytes = (bytes) => {
+  const n = Number(bytes || 0);
+  if (!Number.isFinite(n) || n <= 0) return '0 B';
+  const units = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.min(Math.floor(Math.log(n) / Math.log(1024)), units.length - 1);
+  const v = n / Math.pow(1024, i);
+  const digits = i === 0 ? 0 : (i === 1 ? 0 : 1);
+  return `${v.toFixed(digits)} ${units[i]}`;
+};
+
 const StudentDashboard = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -40,6 +58,7 @@ const StudentDashboard = () => {
   const [departments, setDepartments] = useState([]);
   const [uploadStats, setUploadStats] = useState(null);
   const [completedCourseId, setCompletedCourseId] = useState(null);
+  const [completedMaterialId, setCompletedMaterialId] = useState(null);
   const [createdCourseId, setCreatedCourseId] = useState(null);
   const [pendingCourse, setPendingCourse] = useState(null);
   const [duplicateInfo, setDuplicateInfo] = useState(null);
@@ -111,11 +130,21 @@ const StudentDashboard = () => {
     return `${match[1]} ${match[2]}`;
   };
 
-  const checkCourseExists = async (normalizedCode) => {
+  const checkCourseExists = async ({ normalizedCode, courseName, departmentId, creditUnits }) => {
     try {
       const response = await api.get(`/courses/search?query=${encodeURIComponent(normalizedCode)}`);
       const results = response.data.data || [];
-      return results.find((course) => (course.courseCode || '').toUpperCase() === normalizedCode) || null;
+      const normalizedName = String(courseName || '').trim().toLowerCase();
+      const normalizedDepartmentId = String(departmentId || '');
+      const normalizedCreditUnits = Number(creditUnits || 3);
+
+      return results.find((course) => {
+        const sameCode = (course.courseCode || '').toUpperCase() === normalizedCode;
+        const sameName = String(course.courseName || '').trim().toLowerCase() === normalizedName;
+        const sameDepartment = String(course.departmentId?._id || course.departmentId || '') === normalizedDepartmentId;
+        const sameCredits = Number(course.creditUnits || 3) === normalizedCreditUnits;
+        return sameCode && sameName && sameDepartment && sameCredits;
+      }) || null;
     } catch (error) {
       console.error('Error checking course:', error);
       return null;
@@ -214,7 +243,12 @@ const StudentDashboard = () => {
       return;
     }
 
-    const existingCourse = await checkCourseExists(normalizedCode);
+    const existingCourse = await checkCourseExists({
+      normalizedCode,
+      courseName: newCourse.courseName,
+      departmentId: uploadForm.departmentId,
+      creditUnits: newCourse.creditUnits,
+    });
     if (existingCourse) {
       setDuplicateInfo({
         kind: 'course',
@@ -299,9 +333,6 @@ const StudentDashboard = () => {
         });
         fetchUploadStats();
         fetchStats();
-        setTimeout(() => {
-          resetUploadModal();
-        }, 2500);
         shouldContinue = false;
       } else if (hasSummary && !hasAllQuestions) {
         setProcessingStatus({
@@ -499,8 +530,19 @@ const StudentDashboard = () => {
       setUploadError('Only PDF files are allowed');
       return;
     }
-    if (uploadForm.file.size > 50 * 1024 * 1024) {
-      setUploadError('File size must be less than 50MB');
+    if (uploadForm.file.size > MAX_CLOUDINARY_RAW_UPLOAD_BYTES) {
+      setUploadError(
+        <span>
+          File is too large ({formatBytes(uploadForm.file.size)}). Maximum allowed is {formatBytes(MAX_CLOUDINARY_RAW_UPLOAD_BYTES)}. Compress it and re-upload using:{' '}
+          {PDF_COMPRESS_SITES.map((s, idx) => (
+            <span key={s.url}>
+              <a href={s.url} target="_blank" rel="noreferrer">{s.label}</a>
+              {idx === PDF_COMPRESS_SITES.length - 1 ? '' : ' or '}
+            </span>
+          ))}
+          .
+        </span>
+      );
       return;
     }
 
@@ -521,7 +563,12 @@ const StudentDashboard = () => {
     }
 
     if (uploadForm.courseId === 'new' && pendingCourse) {
-      const existingCourse = await checkCourseExists(pendingCourse.courseCode);
+      const existingCourse = await checkCourseExists({
+        normalizedCode: pendingCourse.courseCode,
+        courseName: pendingCourse.courseName,
+        departmentId: uploadForm.departmentId,
+        creditUnits: pendingCourse.creditUnits,
+      });
       if (existingCourse) {
         setDuplicateInfo({
           kind: 'course',
@@ -550,27 +597,7 @@ const StudentDashboard = () => {
     let resolvedCourseId = uploadForm.courseId;
 
     try {
-      const cloudName = process.env.REACT_APP_CLOUDINARY_CLOUD_NAME;
-      const apiKey = process.env.REACT_APP_CLOUDINARY_API_KEY;
-
-      if (!cloudName || !apiKey) {
-        throw new Error('Cloudinary configuration is missing on the frontend');
-      }
-
-      const signatureResponse = await api.post('/materials/upload-signature');
-      const { timestamp, signature, folder } = signatureResponse.data.data;
-
-      const cloudinaryData = new FormData();
-      cloudinaryData.append('file', uploadForm.file);
-      cloudinaryData.append('api_key', apiKey);
-      cloudinaryData.append('timestamp', timestamp);
-      cloudinaryData.append('signature', signature);
-      cloudinaryData.append('folder', folder);
-
-      const cloudinaryResponse = await axios.post(
-        `https://api.cloudinary.com/v1_1/${cloudName}/raw/upload`,
-        cloudinaryData
-      );
+      // On Vercel we can't send large files to the API (body limits). Upload to storage first, then notify the API.
 
       if (resolvedCourseId === 'new') {
         const response = await api.post('/courses', {
@@ -584,20 +611,60 @@ const StudentDashboard = () => {
         setNewCourse({ courseCode: '', courseName: '', creditUnits: 3 });
       }
 
+      // Hash the uploaded PDF for duplicate detection.
       const fileHash = await computeFileHash(uploadForm.file);
+      const fileToUpload = uploadForm.file;
+
+      let cloudinaryUrl = '';
+      let cloudinaryPublicId = '';
+
+      const cloudName = process.env.REACT_APP_CLOUDINARY_CLOUD_NAME;
+      const apiKey = process.env.REACT_APP_CLOUDINARY_API_KEY;
+
+      if (!cloudName || !apiKey) {
+        throw new Error('Cloudinary configuration is missing on the frontend');
+      }
+
+      const signatureResponse = await api.post('/materials/upload-signature');
+      const { timestamp, signature, folder } = signatureResponse.data.data;
+
+      const cloudinaryData = new FormData();
+      cloudinaryData.append('file', fileToUpload);
+      cloudinaryData.append('api_key', apiKey);
+      cloudinaryData.append('timestamp', timestamp);
+      cloudinaryData.append('signature', signature);
+      cloudinaryData.append('folder', folder);
+
+      const cloudinaryResp = await fetch(
+        `https://api.cloudinary.com/v1_1/${cloudName}/raw/upload`,
+        { method: 'POST', body: cloudinaryData }
+      );
+      const cloudinaryJson = await cloudinaryResp.json().catch(() => null);
+      if (!cloudinaryResp.ok) {
+        const msg = cloudinaryJson?.error?.message || 'Failed to upload PDF to storage';
+        throw new Error(msg);
+      }
+
+      cloudinaryUrl = cloudinaryJson?.secure_url;
+      cloudinaryPublicId = cloudinaryJson?.public_id;
+
+      if (!cloudinaryUrl || !cloudinaryPublicId) {
+        throw new Error('Upload failed. Missing storage reference for uploaded file.');
+      }
 
       const response = await api.post('/materials/student-upload', {
         title: resolvedTitle,
         courseId: resolvedCourseId,
-        cloudinaryUrl: cloudinaryResponse.data.secure_url,
-        cloudinaryPublicId: cloudinaryResponse.data.public_id,
-        fileType: uploadForm.file.type,
-        originalFilename: uploadForm.file.name,
+        cloudinaryUrl,
+        cloudinaryPublicId,
+        fileType: fileToUpload.type,
+        originalFilename: fileToUpload.name,
         fileHash,
       });
 
       const materialId = response.data.data._id;
       setCompletedCourseId(resolvedCourseId);
+      setCompletedMaterialId(materialId);
 
       // Update progress - file uploaded, now processing
       setProcessingStatus({
@@ -618,9 +685,10 @@ const StudentDashboard = () => {
     } catch (error) {
       console.error('Upload error:', error);
       const status = error.response?.status;
+      const backendMessage = error.response?.data?.message;
       if (status === 409) {
         const existingCourse = error.response?.data?.data;
-        if (existingCourse?._id) {
+        if (backendMessage === 'Course already exists' && existingCourse?._id) {
           setDuplicateInfo({
             kind: 'course',
             courseId: existingCourse._id,
@@ -642,22 +710,28 @@ const StudentDashboard = () => {
           uploadedBy: existing.uploadedBy?.name || existing.uploadedBy || 'another student',
           uploadDate: existing.uploadDate
         });
-        setProcessingStatus({ stage: '', progress: 0, message: '' });
-        setUploadStep(4);
-        return;
+      setProcessingStatus({ stage: '', progress: 0, message: '' });
+      setUploadStep(4);
+      return;
       }
-      setUploadError(error.response?.data?.message || 'Failed to upload material');
+
+      const cloudinaryMessage = error.response?.data?.error?.message;
+      const rawMessage = cloudinaryMessage || backendMessage || error.message || 'Failed to upload material';
+      const normalizedMessage = String(rawMessage || '');
+
+      setUploadError(normalizedMessage);
+
       setProcessingStatus({
         stage: 'failed',
         progress: 0,
-        message: error.response?.data?.message || 'Failed to upload material'
+        message: normalizedMessage || 'Failed to upload material'
       });
     } finally {
       setUploading(false);
     }
   };
 
-  const resetUploadModal = () => {
+  const resetUploadState = () => {
     // Stop any ongoing polling
     if (pollingIntervalRef.current) {
       clearInterval(pollingIntervalRef.current);
@@ -668,7 +742,6 @@ const StudentDashboard = () => {
       pollingTimeoutRef.current = null;
     }
     closeStatusStream();
-    setShowUploadModal(false);
     setUploadStep(1);
     setUploadForm({ title: '', facultyId: '', departmentId: '', courseId: '', file: null });
     setUploadError(null);
@@ -676,17 +749,27 @@ const StudentDashboard = () => {
     setProcessingStatus({ stage: '', progress: 0, message: '' });
     setNewCourse({ courseCode: '', courseName: '', creditUnits: 3 });
     setCompletedCourseId(null);
+    setCompletedMaterialId(null);
     setCreatedCourseId(null);
     setPendingCourse(null);
     setDuplicateInfo(null);
     completionBeepedRef.current = false;
   };
 
+  const closeUploadModal = () => {
+    resetUploadState();
+    setShowUploadModal(false);
+  };
+
   const handleCompletionClose = () => {
     const courseId = completedCourseId;
-    resetUploadModal();
+    const materialId = completedMaterialId;
     if (courseId) {
-      navigate(`/course/${courseId}`);
+      if (materialId) {
+        navigate(`/course/${courseId}?materialId=${encodeURIComponent(materialId)}`);
+      } else {
+        navigate(`/course/${courseId}`);
+      }
     }
   };
 
@@ -1058,29 +1141,18 @@ const StudentDashboard = () => {
 
         {/* Upload Modal - Multi-Step */}
         {showUploadModal && (
-          <div
-            className="modal-overlay"
-            onClick={
-              uploadStep !== 5
-                ? resetUploadModal
-                : processingStatus.stage === 'completed'
-                ? handleCompletionClose
-                : undefined
-            }
-          >
+          <div className="modal-overlay">
             <div className="modal-content upload-wizard" onClick={(e) => e.stopPropagation()}>
               <div className="modal-header">
                 <h2>{uploadStep === 5 ? 'Processing Material' : `Upload Material - Step ${uploadStep}/4`}</h2>
-                {uploadStep !== 5 && (
-                  <button onClick={resetUploadModal} className="modal-close">
-                    <FiX />
-                  </button>
-                )}
-                {uploadStep === 5 && processingStatus.stage === 'completed' && (
-                  <button onClick={handleCompletionClose} className="modal-close">
-                    <FiX />
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={closeUploadModal}
+                  className="modal-close"
+                  aria-label="Close upload dialog"
+                >
+                  <FiX />
+                </button>
               </div>
 
               {/* Progress Steps */}
@@ -1257,7 +1329,39 @@ const StudentDashboard = () => {
                       <input
                         type="file"
                         accept=".pdf"
-                        onChange={(e) => setUploadForm({ ...uploadForm, file: e.target.files[0] })}
+                        onChange={(e) => {
+                          const file = e.target.files && e.target.files[0];
+                          if (!file) {
+                            setUploadForm({ ...uploadForm, file: null });
+                            return;
+                          }
+                          if (file.type !== 'application/pdf') {
+                            setUploadError('Only PDF files are allowed');
+                            setUploadForm({ ...uploadForm, file: null });
+                            e.target.value = '';
+                            return;
+                          }
+                          if (file.size > MAX_CLOUDINARY_RAW_UPLOAD_BYTES) {
+                            setUploadError(
+                              <span>
+                                File is too large ({formatBytes(file.size)}). Maximum allowed is {formatBytes(MAX_CLOUDINARY_RAW_UPLOAD_BYTES)}. Compress it and re-upload using:{' '}
+                                {PDF_COMPRESS_SITES.map((s, idx) => (
+                                  <span key={s.url}>
+                                    <a href={s.url} target="_blank" rel="noreferrer">{s.label}</a>
+                                    {idx === PDF_COMPRESS_SITES.length - 1 ? '' : ' or '}
+                                  </span>
+                                ))}
+                                .
+                              </span>
+                            );
+                            setUploadForm({ ...uploadForm, file: null });
+                            e.target.value = '';
+                            return;
+                          }
+                          // Cloudinary raw upload limit is 10MB on the current plan.
+                          setUploadError(null);
+                          setUploadForm({ ...uploadForm, file });
+                        }}
                         required
                       />
                       {uploadForm.file && (
@@ -1301,6 +1405,16 @@ const StudentDashboard = () => {
 
                     <div className="upload-info">
                       <p><strong>Note:</strong> Our system will generate summaries and practice questions automatically. You'll earn 10 points!</p>
+                      <p>
+                        <strong>Tip:</strong> Keep your PDF under {formatBytes(MAX_CLOUDINARY_RAW_UPLOAD_BYTES)}. If it is larger, compress it and re-upload using:{' '}
+                        {PDF_COMPRESS_SITES.map((s, idx) => (
+                          <span key={s.url}>
+                            <a href={s.url} target="_blank" rel="noreferrer">{s.label}</a>
+                            {idx === PDF_COMPRESS_SITES.length - 1 ? '' : ', '}
+                          </span>
+                        ))}
+                        .
+                      </p>
                     </div>
                   </form>
                 )}
@@ -1358,14 +1472,22 @@ const StudentDashboard = () => {
                       </div>
 
                       {processingStatus.stage === 'failed' && (
-                        <button onClick={resetUploadModal} className="btn btn-primary" style={{ marginTop: '24px' }}>
+                        <button
+                          onClick={() => {
+                            closeStatusStream();
+                            setProcessingStatus({ stage: '', progress: 0, message: '' });
+                            setUploadStep(4);
+                          }}
+                          className="btn btn-primary"
+                          style={{ marginTop: '24px' }}
+                        >
                           Try Again
                         </button>
                       )}
 
                       {processingStatus.stage === 'completed' && (
                         <button onClick={handleCompletionClose} className="btn btn-primary" style={{ marginTop: '24px' }}>
-                          Go to Course
+                          View Material
                         </button>
                       )}
 
@@ -1410,7 +1532,6 @@ const StudentDashboard = () => {
                         onClick={() => {
                           const courseId = duplicateInfo.courseId;
                           setDuplicateInfo(null);
-                          resetUploadModal();
                           if (courseId && courseId !== 'new') {
                             navigate(`/course/${courseId}`);
                           }

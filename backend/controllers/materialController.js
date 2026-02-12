@@ -1,6 +1,7 @@
 const Material = require('../models/Material');
 const Summary = require('../models/Summary');
 const Question = require('../models/Question');
+const axios = require('axios');
 const {
   summarizeText,
   generateQuestions,
@@ -340,7 +341,7 @@ exports.studentUploadMaterial = async (req, res) => {
     };
 
     const { courseId } = req.body;
-    const originalFilename = sanitizeText(req.body.originalFilename);
+    const originalFilename = sanitizeText(req.body.originalFilename || req.file?.originalname);
     const safeTitleFromFile = originalFilename ? originalFilename.replace(/\.[^/.]+$/, '') : '';
     const title = sanitizeText(req.body.title) || safeTitleFromFile || 'Course Material';
 
@@ -409,7 +410,7 @@ exports.studentUploadMaterial = async (req, res) => {
           .createHash('sha256')
           .update(
             hasFileUpload
-              ? (req.file.buffer || req.file.path)
+              ? (req.file.buffer || req.file.originalname || '')
               : (req.body.cloudinaryPublicId || req.body.cloudinaryUrl)
           )
           .digest('hex');
@@ -431,18 +432,28 @@ exports.studentUploadMaterial = async (req, res) => {
     console.log('Creating material with data:', {
       title,
       courseId,
-      cloudinaryUrl: hasFileUpload ? req.file.path : req.body.cloudinaryUrl,
-      cloudinaryPublicId: hasFileUpload ? req.file.filename : req.body.cloudinaryPublicId,
+      cloudinaryUrl: hasFileUpload ? '[uploaded-via-backend]' : req.body.cloudinaryUrl,
+      cloudinaryPublicId: hasFileUpload ? '[uploaded-via-backend]' : req.body.cloudinaryPublicId,
       uploadedBy: req.user._id,
       uploadedByRole: 'student',
       fileHash,
     });
 
+    const cloudinaryUrl = req.body.cloudinaryUrl;
+    const cloudinaryPublicId = req.body.cloudinaryPublicId;
+
+    if (!cloudinaryUrl || !cloudinaryPublicId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Upload failed. Missing storage reference for uploaded file.',
+      });
+    }
+
     const material = await Material.create({
       title,
       courseId,
-      cloudinaryUrl: hasFileUpload ? req.file.path : req.body.cloudinaryUrl,
-      cloudinaryPublicId: hasFileUpload ? req.file.filename : req.body.cloudinaryPublicId,
+      cloudinaryUrl,
+      cloudinaryPublicId,
       fileType: detectedType,
       uploadedBy: req.user._id,
       uploadedByRole: 'student',
