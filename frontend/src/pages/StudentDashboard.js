@@ -80,6 +80,8 @@ const StudentDashboard = () => {
   const pollDelayRef = useRef(3000);
   const lastPollStateRef = useRef({ hasSummary: null, questionsCount: 0 });
   const completionBeepedRef = useRef(false);
+  const autoNavigateRef = useRef(false);
+  const uploadTargetRef = useRef({ courseId: null, materialId: null });
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -234,6 +236,11 @@ const StudentDashboard = () => {
 
   const createCourse = async () => {
     const normalizedCode = normalizeCourseCode(newCourse.courseCode);
+    const parsedCreditUnits = Number(newCourse.creditUnits);
+    const normalizedCreditUnits =
+      Number.isFinite(parsedCreditUnits) && parsedCreditUnits >= 1 && parsedCreditUnits <= 6
+        ? parsedCreditUnits
+        : 3;
     if (!normalizedCode) {
       setUploadError('Course code must be 3 letters and 3 numbers (e.g., BIO 101)');
       return;
@@ -247,7 +254,7 @@ const StudentDashboard = () => {
       normalizedCode,
       courseName: newCourse.courseName,
       departmentId: uploadForm.departmentId,
-      creditUnits: newCourse.creditUnits,
+      creditUnits: normalizedCreditUnits,
     });
     if (existingCourse) {
       setDuplicateInfo({
@@ -263,7 +270,8 @@ const StudentDashboard = () => {
 
     setPendingCourse({
       ...newCourse,
-      courseCode: normalizedCode
+      courseCode: normalizedCode,
+      creditUnits: normalizedCreditUnits,
     });
     setUploadForm({ ...uploadForm, courseId: 'new' });
     setUploadError(null);
@@ -314,31 +322,42 @@ const StudentDashboard = () => {
     } = payload || {};
 
     const hasAllQuestions = questionsCount >= expectedQuestions;
-    const progressBase = hasSummary ? 40 : 20;
-    const questionProgress = hasSummary
-      ? Math.min(questionsCount / expectedQuestions, 1)
-      : 0;
-    const progress = hasSummary
-      ? Math.round(progressBase + questionProgress * 60)
-      : 35;
+    const hasMinimumQuestions = questionsCount >= 10;
 
     let shouldContinue = true;
+    const navigateToUploadedCourse = () => {
+      const targetCourseId = completedCourseId || uploadTargetRef.current.courseId;
+      const targetMaterialId = completedMaterialId || uploadTargetRef.current.materialId;
+      if (autoNavigateRef.current || !targetCourseId) return;
+      autoNavigateRef.current = true;
+      const targetPath = targetMaterialId
+        ? `/course/${targetCourseId}?materialId=${encodeURIComponent(targetMaterialId)}`
+        : `/course/${targetCourseId}`;
+      setTimeout(() => navigate(targetPath), 500);
+    };
 
     if (status === 'processing') {
-      if (hasSummary && questionsCount >= 10 && !hasAllQuestions) {
+      if (hasSummary && hasMinimumQuestions) {
         setProcessingStatus({
-          stage: 'partial-ready',
-          progress: progress,
-          message: `Summary ready. ${questionsCount}/${expectedQuestions} questions available. Generating the rest in background...`
+          stage: 'completed',
+          progress: 100,
+          message: hasAllQuestions
+            ? 'Processing complete! Summary and questions are ready.'
+            : `Upload complete! Summary is ready. ${questionsCount}/${expectedQuestions} questions available while the rest continue in background.`
         });
         fetchUploadStats();
         fetchStats();
+        navigateToUploadedCourse();
+        if (!completionBeepedRef.current) {
+          completionBeepedRef.current = true;
+          playCompletionBeep();
+        }
         shouldContinue = false;
-      } else if (hasSummary && !hasAllQuestions) {
+      } else if (hasSummary) {
         setProcessingStatus({
           stage: 'generating-questions',
-          progress,
-          message: `Generating practice questions... ${questionsCount}/${expectedQuestions} ready`
+          progress: Math.min(95, 35 + Math.round((Math.min(questionsCount, 10) / 10) * 55)),
+          message: `Summary ready. Generating first 10 questions... ${questionsCount}/10`
         });
       } else if (!hasSummary) {
         setProcessingStatus({
@@ -347,14 +366,19 @@ const StudentDashboard = () => {
           message: 'Generating summary...'
         });
       }
-    } else if (status === 'completed' && hasSummary && hasAllQuestions) {
+    } else if (status === 'completed' && hasSummary) {
       setProcessingStatus({
         stage: 'completed',
         progress: 100,
-        message: 'Processing complete! Summary and questions are ready.'
+        message: hasAllQuestions
+          ? 'Processing complete! Summary and questions are ready.'
+          : `Upload complete! Summary is ready. ${questionsCount}/${expectedQuestions} questions available.`
       });
       fetchUploadStats();
       fetchStats();
+      if (hasMinimumQuestions || hasAllQuestions) {
+        navigateToUploadedCourse();
+      }
       if (!completionBeepedRef.current) {
         completionBeepedRef.current = true;
         playCompletionBeep();
@@ -583,6 +607,7 @@ const StudentDashboard = () => {
     }
 
     setUploading(true);
+    autoNavigateRef.current = false;
     setUploadError(null);
     setUploadSuccess(null);
 
@@ -665,6 +690,7 @@ const StudentDashboard = () => {
       const materialId = response.data.data._id;
       setCompletedCourseId(resolvedCourseId);
       setCompletedMaterialId(materialId);
+      uploadTargetRef.current = { courseId: resolvedCourseId, materialId };
 
       // Update progress - file uploaded, now processing
       setProcessingStatus({
@@ -750,10 +776,12 @@ const StudentDashboard = () => {
     setNewCourse({ courseCode: '', courseName: '', creditUnits: 3 });
     setCompletedCourseId(null);
     setCompletedMaterialId(null);
+    uploadTargetRef.current = { courseId: null, materialId: null };
     setCreatedCourseId(null);
     setPendingCourse(null);
     setDuplicateInfo(null);
     completionBeepedRef.current = false;
+    autoNavigateRef.current = false;
   };
 
   const closeUploadModal = () => {
@@ -762,8 +790,8 @@ const StudentDashboard = () => {
   };
 
   const handleCompletionClose = () => {
-    const courseId = completedCourseId;
-    const materialId = completedMaterialId;
+    const courseId = completedCourseId || uploadTargetRef.current.courseId;
+    const materialId = completedMaterialId || uploadTargetRef.current.materialId;
     if (courseId) {
       if (materialId) {
         navigate(`/course/${courseId}?materialId=${encodeURIComponent(materialId)}`);
@@ -1263,11 +1291,19 @@ const StudentDashboard = () => {
                         <input
                           type="number"
                           value={newCourse.creditUnits}
-                          onChange={(e) => setNewCourse({ ...newCourse, creditUnits: parseInt(e.target.value) || 3 })}
+                          onChange={(e) => {
+                            const nextValue = e.target.value;
+                            if (nextValue === '') {
+                              setNewCourse({ ...newCourse, creditUnits: '' });
+                              return;
+                            }
+                            setNewCourse({ ...newCourse, creditUnits: nextValue });
+                          }}
                           placeholder="Credit units"
                           className="form-input"
                           min="1"
                           max="6"
+                          step="1"
                         />
                         <div className="form-actions">
                           <button
