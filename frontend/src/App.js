@@ -177,6 +177,10 @@ const NotificationPermissionDialog = () => {
 
     try {
       const result = await setupPushNotifications();
+      if (result?.supported === false) {
+        setMessage('This device or browser does not support push notifications.');
+        return;
+      }
       if (result?.subscribed) {
         setVisible(false);
         return;
@@ -186,10 +190,14 @@ const NotificationPermissionDialog = () => {
         setIsDenied(true);
         setMessage('Notifications are blocked. Enable them in your browser or device site settings.');
       } else {
-        setMessage('Please allow notifications in the permission prompt to receive important updates.');
+        setMessage('Browser prompt did not complete. Please click Enable again and tap Allow in the browser prompt.');
       }
     } catch (error) {
-      setMessage(error?.message || 'Unable to enable notifications right now. Please try again.');
+      if (typeof window !== 'undefined' && window.isSecureContext === false) {
+        setMessage('Notifications require HTTPS (or localhost). Open this app on a secure URL.');
+      } else {
+        setMessage(error?.message || 'Unable to enable notifications right now. Please try again.');
+      }
     } finally {
       setRequesting(false);
     }
