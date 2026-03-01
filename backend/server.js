@@ -109,6 +109,7 @@ app.use('/api/projects', require('./routes/project'));
 app.use('/api/reviews', require('./routes/review'));
 app.use('/api/share', require('./routes/share'));
 app.use('/api/analytics', require('./routes/analytics'));
+app.use('/api/push', require('./routes/push'));
 
 // Root route
 app.get('/', (req, res) => {

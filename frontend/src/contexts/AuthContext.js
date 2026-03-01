@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import api from '../utils/api';
+import { setupPushNotifications, removePushSubscription } from '../utils/pushManager';
 
 const AuthContext = createContext();
 
@@ -61,6 +62,14 @@ export const AuthProvider = ({ children }) => {
     loadUser();
   }, []);
 
+  useEffect(() => {
+    if (loading || !user) return;
+
+    setupPushNotifications().catch((error) => {
+      console.error('Push setup error:', error);
+    });
+  }, [loading, user]);
+
   const login = async (email, password) => {
     const response = await api.post('/auth/login', { email, password });
     const { token, ...userData } = response.data.data;
@@ -79,7 +88,12 @@ export const AuthProvider = ({ children }) => {
     return response.data;
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await removePushSubscription();
+    } catch (error) {
+      console.error('Push unsubscribe error:', error);
+    }
     localStorage.removeItem('token');
     cacheUser(null);
     setUser(null);

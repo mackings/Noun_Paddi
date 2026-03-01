@@ -12,8 +12,9 @@ import {
   FiUsers,
   FiTrendingUp,
   FiClock,
-  FiTrash2,
-  FiRefreshCw
+  FiRefreshCw,
+  FiBell,
+  FiSend,
 } from 'react-icons/fi';
 import './AdminDashboard.css';
 
@@ -22,6 +23,13 @@ const AdminDashboard = () => {
   const [apiUsage, setApiUsage] = useState(null);
   const [featureStats, setFeatureStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [sendingBroadcast, setSendingBroadcast] = useState(false);
+  const [broadcastResult, setBroadcastResult] = useState(null);
+  const [broadcastForm, setBroadcastForm] = useState({
+    title: '',
+    message: '',
+    url: '/explore',
+  });
 
   useEffect(() => {
     fetchStats();
@@ -57,6 +65,33 @@ const AdminDashboard = () => {
       setFeatureStats(response.data.data);
     } catch (error) {
       console.error('Error fetching feature stats:', error);
+    }
+  };
+
+  const onBroadcastInputChange = (event) => {
+    const { name, value } = event.target;
+    setBroadcastForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const sendBroadcast = async (event) => {
+    event.preventDefault();
+    setSendingBroadcast(true);
+    setBroadcastResult(null);
+
+    try {
+      const response = await api.post('/admin/notifications', broadcastForm);
+      setBroadcastResult({
+        type: 'success',
+        text: `Sent to ${response?.data?.data?.sent || 0} subscription(s). Failed: ${response?.data?.data?.failed || 0}.`,
+      });
+      setBroadcastForm((prev) => ({ ...prev, title: '', message: '' }));
+    } catch (error) {
+      setBroadcastResult({
+        type: 'error',
+        text: error?.response?.data?.message || 'Broadcast failed. Please try again.',
+      });
+    } finally {
+      setSendingBroadcast(false);
     }
   };
 
@@ -240,6 +275,66 @@ const AdminDashboard = () => {
             </div>
           </div>
         )}
+
+        <div className="broadcast-section">
+          <h2>
+            <FiBell /> Push Broadcast
+          </h2>
+          <p className="broadcast-subtitle">
+            Send a notification to all subscribed users, including when the browser tab is closed.
+          </p>
+
+          <form className="broadcast-form" onSubmit={sendBroadcast}>
+            <div className="broadcast-field">
+              <label htmlFor="broadcast-title">Title</label>
+              <input
+                id="broadcast-title"
+                name="title"
+                type="text"
+                value={broadcastForm.title}
+                onChange={onBroadcastInputChange}
+                placeholder="Important Update"
+                required
+                maxLength={120}
+              />
+            </div>
+
+            <div className="broadcast-field">
+              <label htmlFor="broadcast-message">Message</label>
+              <textarea
+                id="broadcast-message"
+                name="message"
+                value={broadcastForm.message}
+                onChange={onBroadcastInputChange}
+                placeholder="Write the message users should receive."
+                required
+                maxLength={300}
+                rows={4}
+              />
+            </div>
+
+            <div className="broadcast-field">
+              <label htmlFor="broadcast-url">Open URL</label>
+              <input
+                id="broadcast-url"
+                name="url"
+                type="text"
+                value={broadcastForm.url}
+                onChange={onBroadcastInputChange}
+                placeholder="/explore"
+              />
+            </div>
+
+            <button type="submit" className="btn btn-primary broadcast-btn" disabled={sendingBroadcast}>
+              <FiSend />
+              {sendingBroadcast ? 'Sending...' : 'Send Broadcast'}
+            </button>
+
+            {broadcastResult && (
+              <p className={`broadcast-result ${broadcastResult.type}`}>{broadcastResult.text}</p>
+            )}
+          </form>
+        </div>
 
         {/* Recent Activity & Top Courses */}
         <div className="dashboard-content-grid">

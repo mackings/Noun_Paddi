@@ -4,6 +4,7 @@ const Department = require('../models/Department');
 const Course = require('../models/Course');
 const User = require('../models/User');
 const { sendAdminInviteEmail } = require('../utils/emailService');
+const { sendBroadcastNotification } = require('../utils/pushService');
 
 const sanitizeText = (value) => String(value || '')
   .replace(/<[^>]*>/g, '')
@@ -137,6 +138,37 @@ exports.inviteAdmin = async (req, res) => {
     res.status(500).json({
       success: false,
       message: error.message,
+    });
+  }
+};
+
+// @desc    Send push notification broadcast (admin)
+// @route   POST /api/admin/notifications
+// @access  Private/Admin
+exports.sendPushNotification = async (req, res) => {
+  try {
+    const title = sanitizeText(req.body.title);
+    const message = sanitizeText(req.body.message);
+    const url = sanitizeText(req.body.url) || '/';
+
+    if (!title || !message) {
+      return res.status(400).json({
+        success: false,
+        message: 'Title and message are required.',
+      });
+    }
+
+    const result = await sendBroadcastNotification({ title, message, url });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Broadcast completed.',
+      data: result,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Unable to send broadcast notification.',
     });
   }
 };
