@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, Link } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
-import { FiBriefcase, FiCheckCircle, FiGrid, FiShield, FiUserPlus } from 'react-icons/fi';
+import { FiBriefcase, FiCheckCircle, FiGrid, FiShield, FiUserPlus, FiBell, FiX, FiSend, FiBookOpen, FiTrendingUp } from 'react-icons/fi';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { setupPushNotifications } from './utils/pushManager';
@@ -202,10 +202,38 @@ const NotificationPermissionDialog = () => {
   return (
     <div className="np-notification-prompt-overlay" role="dialog" aria-modal="true">
       <div className="np-notification-prompt-card">
+        <button
+          type="button"
+          className="np-notification-close"
+          aria-label="Close notification prompt"
+          onClick={() => setVisible(false)}
+          disabled={requesting}
+        >
+          <FiX />
+        </button>
+        <div className="np-notification-icon-shell">
+          <div className="np-notification-icon">
+            <FiBell />
+          </div>
+        </div>
         <h3>Enable Notifications</h3>
         <p>
-          Turn on notifications to get class updates, admin broadcasts, and important reminders even when this tab is closed.
+          Stay ahead in your studies by turning on notifications.
         </p>
+        <div className="np-notification-benefits">
+          <div className="np-benefit-item">
+            <FiTrendingUp />
+            <span>Latest news updates</span>
+          </div>
+          <div className="np-benefit-item">
+            <FiBookOpen />
+            <span>Past Questions and exam practices</span>
+          </div>
+          <div className="np-benefit-item">
+            <FiSend />
+            <span>Other important updates from admins</span>
+          </div>
+        </div>
         {isDenied && (
           <p className="np-notification-hint">
             Notifications are currently blocked. Open browser settings and allow notifications for this site.

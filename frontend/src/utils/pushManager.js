@@ -19,7 +19,7 @@ const urlBase64ToUint8Array = (base64String) => {
   return outputArray;
 };
 
-export const setupPushNotifications = async () => {
+export const setupPushNotifications = async ({ requestPermission = true } = {}) => {
   if (!isPushSupported()) {
     return { supported: false };
   }
@@ -29,7 +29,7 @@ export const setupPushNotifications = async () => {
   }
 
   let permission = Notification.permission;
-  if (permission !== 'granted') {
+  if (permission !== 'granted' && requestPermission) {
     permission = await Notification.requestPermission();
   }
 
