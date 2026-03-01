@@ -11,6 +11,21 @@ const sanitizeText = (value) => String(value || '')
   .replace(/\s+/g, ' ')
   .trim();
 
+const sanitizeImageUrl = (value) => {
+  const cleaned = sanitizeText(value);
+  if (!cleaned) return '';
+
+  try {
+    const parsed = new URL(cleaned);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      return '';
+    }
+    return parsed.toString();
+  } catch {
+    return '';
+  }
+};
+
 const buildArchiveFilter = (includeArchived) => {
   if (includeArchived) {
     return {};
@@ -150,6 +165,7 @@ exports.sendPushNotification = async (req, res) => {
     const title = sanitizeText(req.body.title);
     const message = sanitizeText(req.body.message);
     const url = sanitizeText(req.body.url) || '/';
+    const imageUrl = sanitizeImageUrl(req.body.imageUrl);
 
     if (!title || !message) {
       return res.status(400).json({
@@ -158,7 +174,7 @@ exports.sendPushNotification = async (req, res) => {
       });
     }
 
-    const result = await sendBroadcastNotification({ title, message, url });
+    const result = await sendBroadcastNotification({ title, message, url, imageUrl });
 
     return res.status(200).json({
       success: true,

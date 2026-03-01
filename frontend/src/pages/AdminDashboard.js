@@ -29,6 +29,7 @@ const AdminDashboard = () => {
     title: '',
     message: '',
     url: '/explore',
+    imageUrl: '',
   });
 
   useEffect(() => {
@@ -84,7 +85,7 @@ const AdminDashboard = () => {
         type: 'success',
         text: `Sent to ${response?.data?.data?.sent || 0} subscription(s). Failed: ${response?.data?.data?.failed || 0}.`,
       });
-      setBroadcastForm((prev) => ({ ...prev, title: '', message: '' }));
+      setBroadcastForm((prev) => ({ ...prev, title: '', message: '', imageUrl: '' }));
     } catch (error) {
       setBroadcastResult({
         type: 'error',
@@ -322,6 +323,18 @@ const AdminDashboard = () => {
                 value={broadcastForm.url}
                 onChange={onBroadcastInputChange}
                 placeholder="/explore"
+              />
+            </div>
+
+            <div className="broadcast-field">
+              <label htmlFor="broadcast-image-url">Image URL (optional)</label>
+              <input
+                id="broadcast-image-url"
+                name="imageUrl"
+                type="url"
+                value={broadcastForm.imageUrl}
+                onChange={onBroadcastInputChange}
+                placeholder="https://example.com/notification-image.jpg"
               />
             </div>
 

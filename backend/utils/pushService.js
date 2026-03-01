@@ -66,7 +66,7 @@ const removeUserSubscription = async ({ endpoint, userId }) => {
   return result.deletedCount || 0;
 };
 
-const sendBroadcastNotification = async ({ title, message, url = '/' }) => {
+const sendBroadcastNotification = async ({ title, message, url = '/', imageUrl = '' }) => {
   ensurePushConfigured();
 
   const subscriptions = await PushSubscription.find({});
@@ -78,6 +78,7 @@ const sendBroadcastNotification = async ({ title, message, url = '/' }) => {
     title,
     body: message,
     url,
+    imageUrl,
   });
 
   let sent = 0;

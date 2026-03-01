@@ -29,6 +29,7 @@ self.addEventListener('push', (event) => {
     body: payload.body,
     icon: '/logo192.png',
     badge: '/logo192.png',
+    image: payload.imageUrl || undefined,
     data: {
       url: payload.url || '/',
     },
