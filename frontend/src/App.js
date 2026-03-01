@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, Link } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import { FiBriefcase, FiCheckCircle, FiGrid, FiShield, FiUserPlus } from 'react-icons/fi';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { setupPushNotifications } from './utils/pushManager';
 import Navbar from './components/Navbar';
 import Signup from './pages/Signup';
 import Login from './pages/Login';
@@ -150,6 +151,80 @@ const Home = () => {
   return <Navigate to="/login" />;
 };
 
+const NotificationPermissionDialog = () => {
+  const { user, loading } = useAuth();
+  const [visible, setVisible] = useState(false);
+  const [requesting, setRequesting] = useState(false);
+  const [message, setMessage] = useState('');
+  const [isDenied, setIsDenied] = useState(false);
+
+  useEffect(() => {
+    if (loading || !user || typeof window === 'undefined' || !('Notification' in window)) {
+      setVisible(false);
+      return;
+    }
+
+    const permission = Notification.permission;
+    const shouldPrompt = permission !== 'granted';
+    setVisible(shouldPrompt);
+    setIsDenied(permission === 'denied');
+    setMessage('');
+  }, [loading, user]);
+
+  const handleEnable = async () => {
+    setRequesting(true);
+    setMessage('');
+
+    try {
+      const result = await setupPushNotifications();
+      if (result?.subscribed) {
+        setVisible(false);
+        return;
+      }
+
+      if (result?.reason === 'denied') {
+        setIsDenied(true);
+        setMessage('Notifications are blocked. Enable them in your browser or device site settings.');
+      } else {
+        setMessage('Please allow notifications in the permission prompt to receive important updates.');
+      }
+    } catch (error) {
+      setMessage(error?.message || 'Unable to enable notifications right now. Please try again.');
+    } finally {
+      setRequesting(false);
+    }
+  };
+
+  if (!visible) {
+    return null;
+  }
+
+  return (
+    <div className="np-notification-prompt-overlay" role="dialog" aria-modal="true">
+      <div className="np-notification-prompt-card">
+        <h3>Enable Notifications</h3>
+        <p>
+          Turn on notifications to get class updates, admin broadcasts, and important reminders even when this tab is closed.
+        </p>
+        {isDenied && (
+          <p className="np-notification-hint">
+            Notifications are currently blocked. Open browser settings and allow notifications for this site.
+          </p>
+        )}
+        {message && <p className="np-notification-error">{message}</p>}
+        <div className="np-notification-actions">
+          <button type="button" className="btn btn-secondary" onClick={() => setVisible(false)} disabled={requesting}>
+            Not Now
+          </button>
+          <button type="button" className="btn btn-primary" onClick={handleEnable} disabled={requesting}>
+            {requesting ? 'Enabling...' : 'Enable Notifications'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const AppLayout = () => {
   const location = useLocation();
   const hideFooterRoutes = ['/login', '/signup', '/forgot-password', '/reset-password'];
@@ -160,6 +235,7 @@ const AppLayout = () => {
       <AuthProvider>
         <div className="App">
           <Navbar />
+          <NotificationPermissionDialog />
           <Routes>
                 <Route path="/" element={<Home />} />
                 <Route path="/signup" element={<Signup />} />
