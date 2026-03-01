@@ -66,4 +66,21 @@ const projectUpload = multer({
   }
 });
 
-module.exports = { cloudinary, upload, profileImageUpload, projectUpload };
+// Storage for push notification images
+const notificationImageStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'nounpaddi-notification-images',
+    allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
+    transformation: [{ width: 1200, height: 1200, crop: 'limit' }],
+  },
+});
+
+const notificationImageUpload = multer({
+  storage: notificationImageStorage,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit for notification images
+  }
+});
+
+module.exports = { cloudinary, upload, profileImageUpload, projectUpload, notificationImageUpload };

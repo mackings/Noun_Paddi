@@ -655,6 +655,29 @@
   color: var(--danger-color);
 }
 
+.broadcast-image-help {
+  display: inline-block;
+  margin-top: 8px;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.broadcast-image-preview-wrap {
+  margin-top: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 8px;
+  background: var(--bg-secondary);
+}
+
+.broadcast-image-preview {
+  width: 100%;
+  max-height: 220px;
+  object-fit: cover;
+  border-radius: 8px;
+  display: block;
+}
+
 /* Responsive Design */
 @media (max-width: 1024px) {
   .stats-grid {

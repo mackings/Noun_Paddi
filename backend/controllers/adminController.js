@@ -188,3 +188,30 @@ exports.sendPushNotification = async (req, res) => {
     });
   }
 };
+
+// @desc    Upload notification image (admin)
+// @route   POST /api/admin/notifications/upload-image
+// @access  Private/Admin
+exports.uploadNotificationImage = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please upload an image file.',
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        imageUrl: req.file.path,
+        publicId: req.file.filename,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Unable to upload notification image.',
+    });
+  }
+};

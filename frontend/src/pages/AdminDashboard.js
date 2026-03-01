@@ -24,12 +24,15 @@ const AdminDashboard = () => {
   const [featureStats, setFeatureStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [sendingBroadcast, setSendingBroadcast] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [broadcastResult, setBroadcastResult] = useState(null);
+  const [selectedImageFile, setSelectedImageFile] = useState(null);
+  const [uploadedImageUrl, setUploadedImageUrl] = useState('');
+  const [imagePreviewUrl, setImagePreviewUrl] = useState('');
   const [broadcastForm, setBroadcastForm] = useState({
     title: '',
     message: '',
     url: '/explore',
-    imageUrl: '',
   });
 
   useEffect(() => {
@@ -38,6 +41,14 @@ const AdminDashboard = () => {
     fetchFeatureStats();
     trackFeatureVisit('admin_dashboard');
   }, []);
+
+  useEffect(() => {
+    return () => {
+      if (imagePreviewUrl) {
+        URL.revokeObjectURL(imagePreviewUrl);
+      }
+    };
+  }, [imagePreviewUrl]);
 
   const fetchStats = async () => {
     try {
@@ -74,18 +85,62 @@ const AdminDashboard = () => {
     setBroadcastForm((prev) => ({ ...prev, [name]: value }));
   };
 
+  const onImageFileChange = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (imagePreviewUrl) {
+      URL.revokeObjectURL(imagePreviewUrl);
+    }
+
+    setSelectedImageFile(file);
+    setUploadedImageUrl('');
+    setImagePreviewUrl(URL.createObjectURL(file));
+  };
+
+  const uploadNotificationImage = async () => {
+    if (!selectedImageFile) {
+      return uploadedImageUrl;
+    }
+
+    const formData = new FormData();
+    formData.append('image', selectedImageFile);
+    setUploadingImage(true);
+
+    try {
+      const response = await api.post('/admin/notifications/upload-image', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      const nextImageUrl = response?.data?.data?.imageUrl || '';
+      setUploadedImageUrl(nextImageUrl);
+      return nextImageUrl;
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   const sendBroadcast = async (event) => {
     event.preventDefault();
     setSendingBroadcast(true);
     setBroadcastResult(null);
 
     try {
-      const response = await api.post('/admin/notifications', broadcastForm);
+      const imageUrl = await uploadNotificationImage();
+      const response = await api.post('/admin/notifications', {
+        ...broadcastForm,
+        imageUrl,
+      });
       setBroadcastResult({
         type: 'success',
         text: `Sent to ${response?.data?.data?.sent || 0} subscription(s). Failed: ${response?.data?.data?.failed || 0}.`,
       });
-      setBroadcastForm((prev) => ({ ...prev, title: '', message: '', imageUrl: '' }));
+      setBroadcastForm((prev) => ({ ...prev, title: '', message: '' }));
+      setSelectedImageFile(null);
+      setUploadedImageUrl('');
+      if (imagePreviewUrl) {
+        URL.revokeObjectURL(imagePreviewUrl);
+      }
+      setImagePreviewUrl('');
     } catch (error) {
       setBroadcastResult({
         type: 'error',
@@ -327,20 +382,27 @@ const AdminDashboard = () => {
             </div>
 
             <div className="broadcast-field">
-              <label htmlFor="broadcast-image-url">Image URL (optional)</label>
+              <label htmlFor="broadcast-image-file">Upload Image (optional)</label>
               <input
-                id="broadcast-image-url"
-                name="imageUrl"
-                type="url"
-                value={broadcastForm.imageUrl}
-                onChange={onBroadcastInputChange}
-                placeholder="https://example.com/notification-image.jpg"
+                id="broadcast-image-file"
+                name="image"
+                type="file"
+                accept="image/*"
+                onChange={onImageFileChange}
               />
+              <small className="broadcast-image-help">
+                JPG, PNG, or WEBP. Max size: 5MB.
+              </small>
+              {imagePreviewUrl && (
+                <div className="broadcast-image-preview-wrap">
+                  <img className="broadcast-image-preview" src={imagePreviewUrl} alt="Notification preview" />
+                </div>
+              )}
             </div>
 
-            <button type="submit" className="btn btn-primary broadcast-btn" disabled={sendingBroadcast}>
+            <button type="submit" className="btn btn-primary broadcast-btn" disabled={sendingBroadcast || uploadingImage}>
               <FiSend />
-              {sendingBroadcast ? 'Sending...' : 'Send Broadcast'}
+              {sendingBroadcast || uploadingImage ? 'Sending...' : 'Send Broadcast'}
             </button>
 
             {broadcastResult && (
