@@ -36,6 +36,14 @@ const cacheUser = (nextUser) => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => loadCachedUser());
   const [loading, setLoading] = useState(true);
+  
+  const ensurePushPermissionForUser = async () => {
+    try {
+      await setupPushNotifications({ requestPermission: true });
+    } catch (error) {
+      console.error('Push setup error:', error);
+    }
+  };
 
   useEffect(() => {
     const loadUser = async () => {
@@ -45,6 +53,7 @@ export const AuthProvider = ({ children }) => {
           const response = await api.get('/auth/me');
           setUser(response.data.data);
           cacheUser(response.data.data);
+          await ensurePushPermissionForUser();
         } catch (error) {
           const status = error?.response?.status;
           if (status === 401 || status === 403) {
@@ -62,20 +71,13 @@ export const AuthProvider = ({ children }) => {
     loadUser();
   }, []);
 
-  useEffect(() => {
-    if (loading || !user) return;
-
-    setupPushNotifications({ requestPermission: true }).catch((error) => {
-      console.error('Push setup error:', error);
-    });
-  }, [loading, user]);
-
   const login = async (email, password) => {
     const response = await api.post('/auth/login', { email, password });
     const { token, ...userData } = response.data.data;
     localStorage.setItem('token', token);
     setUser(userData);
     cacheUser(userData);
+    await ensurePushPermissionForUser();
     return response.data;
   };
 
@@ -85,6 +87,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('token', token);
     setUser(user);
     cacheUser(user);
+    await ensurePushPermissionForUser();
     return response.data;
   };
 
