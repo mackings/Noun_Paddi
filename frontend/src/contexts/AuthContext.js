@@ -65,7 +65,7 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     if (loading || !user) return;
 
-    setupPushNotifications({ requestPermission: false }).catch((error) => {
+    setupPushNotifications({ requestPermission: true }).catch((error) => {
       console.error('Push setup error:', error);
     });
   }, [loading, user]);
