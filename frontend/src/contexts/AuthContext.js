@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import api from '../utils/api';
 import { setupPushNotifications, removePushSubscription } from '../utils/pushManager';
 
@@ -36,14 +36,30 @@ const cacheUser = (nextUser) => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => loadCachedUser());
   const [loading, setLoading] = useState(true);
+  const [notificationPermission, setNotificationPermission] = useState(() => {
+    if (typeof window === 'undefined' || !('Notification' in window)) return 'unsupported';
+    return Notification.permission;
+  });
   
-  const ensurePushPermissionForUser = async () => {
-    try {
-      await setupPushNotifications({ requestPermission: true });
-    } catch (error) {
-      console.error('Push setup error:', error);
+  const refreshNotificationPermission = useCallback(() => {
+    if (typeof window === 'undefined' || !('Notification' in window)) {
+      setNotificationPermission('unsupported');
+      return;
     }
-  };
+    setNotificationPermission(Notification.permission);
+  }, []);
+
+  const ensurePushPermissionForUser = useCallback(async ({ requestPermission = false } = {}) => {
+    try {
+      const result = await setupPushNotifications({ requestPermission });
+      refreshNotificationPermission();
+      return result;
+    } catch (error) {
+      refreshNotificationPermission();
+      console.error('Push setup error:', error);
+      return null;
+    }
+  }, [refreshNotificationPermission]);
 
   useEffect(() => {
     const loadUser = async () => {
@@ -53,7 +69,7 @@ export const AuthProvider = ({ children }) => {
           const response = await api.get('/auth/me');
           setUser(response.data.data);
           cacheUser(response.data.data);
-          await ensurePushPermissionForUser();
+          await ensurePushPermissionForUser({ requestPermission: false });
         } catch (error) {
           const status = error?.response?.status;
           if (status === 401 || status === 403) {
@@ -66,10 +82,11 @@ export const AuthProvider = ({ children }) => {
         setUser(null);
         cacheUser(null);
       }
+      refreshNotificationPermission();
       setLoading(false);
     };
     loadUser();
-  }, []);
+  }, [ensurePushPermissionForUser, refreshNotificationPermission]);
 
   const login = async (email, password) => {
     const response = await api.post('/auth/login', { email, password });
@@ -77,7 +94,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('token', token);
     setUser(userData);
     cacheUser(userData);
-    await ensurePushPermissionForUser();
+    await ensurePushPermissionForUser({ requestPermission: true });
     return response.data;
   };
 
@@ -87,8 +104,12 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('token', token);
     setUser(user);
     cacheUser(user);
-    await ensurePushPermissionForUser();
+    await ensurePushPermissionForUser({ requestPermission: true });
     return response.data;
+  };
+
+  const enableNotifications = async () => {
+    return ensurePushPermissionForUser({ requestPermission: true });
   };
 
   const logout = async () => {
@@ -100,11 +121,14 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('token');
     cacheUser(null);
     setUser(null);
+    refreshNotificationPermission();
   };
 
   const value = {
     user,
     loading,
+    notificationPermission,
+    enableNotifications,
     login,
     signup,
     logout,

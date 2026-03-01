@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, Link } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
-import { FiBriefcase, FiCheckCircle, FiGrid, FiShield, FiUserPlus } from 'react-icons/fi';
+import { FiBriefcase, FiCheckCircle, FiGrid, FiShield, FiUserPlus, FiBell } from 'react-icons/fi';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import Navbar from './components/Navbar';
@@ -150,6 +150,27 @@ const Home = () => {
   return <Navigate to="/login" />;
 };
 
+const NotificationPermissionBar = () => {
+  const { user, loading, notificationPermission, enableNotifications } = useAuth();
+
+  if (loading || !user) return null;
+  if (notificationPermission === 'granted' || notificationPermission === 'unsupported') return null;
+
+  return (
+    <div className="notification-permission-bar">
+      <div className="notification-permission-content">
+        <span className="notification-permission-icon"><FiBell /></span>
+        <p>
+          Turn on notifications for latest news updates, past questions/exam practices, and important updates.
+        </p>
+      </div>
+      <button type="button" className="btn btn-primary" onClick={enableNotifications}>
+        Enable Notifications
+      </button>
+    </div>
+  );
+};
+
 const AppLayout = () => {
   const location = useLocation();
   const hideFooterRoutes = ['/login', '/signup', '/forgot-password', '/reset-password'];
@@ -160,6 +181,7 @@ const AppLayout = () => {
       <AuthProvider>
         <div className="App">
           <Navbar />
+          <NotificationPermissionBar />
           <Routes>
                 <Route path="/" element={<Home />} />
                 <Route path="/signup" element={<Signup />} />
