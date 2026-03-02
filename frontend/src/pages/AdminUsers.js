@@ -100,7 +100,7 @@ const AdminUsers = () => {
           </button>
         </div>
 
-        <div className="admin-invite-card">
+        <div className="admin-invite-card" id="invite">
           <div>
             <p className="admin-users-kicker">Invite admin</p>
             <h2>Add a new admin</h2>

@@ -7,6 +7,7 @@ const {
   inviteAdmin,
   sendPushNotification,
   uploadNotificationImage,
+  processScheduledBroadcasts,
 } = require('../controllers/adminController');
 const { protect, authorize } = require('../middleware/auth');
 const { notificationImageUpload } = require('../config/cloudinary');
@@ -17,5 +18,7 @@ router.get('/courses', protect, authorize('admin'), getCoursesAdmin);
 router.post('/invite', protect, authorize('admin'), inviteAdmin);
 router.post('/notifications', protect, authorize('admin'), sendPushNotification);
 router.post('/notifications/upload-image', protect, authorize('admin'), notificationImageUpload.single('image'), uploadNotificationImage);
+router.post('/notifications/process-scheduled', protect, authorize('admin'), processScheduledBroadcasts);
+router.get('/notifications/process-scheduled/cron', processScheduledBroadcasts);
 
 module.exports = router;

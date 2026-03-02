@@ -2,6 +2,7 @@ const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
 const connectDB = require('./config/db');
+const { startBroadcastScheduler } = require('./utils/broadcastScheduler');
 
 // Load env vars
 dotenv.config();
@@ -123,9 +124,12 @@ const PORT = process.env.PORT || 5001;
 
 // Only start server if not in Vercel serverless environment
 if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+  startBroadcastScheduler();
   app.listen(PORT, () => {
     console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
   });
+} else {
+  console.warn('[broadcast-scheduler] Not started in Vercel serverless production runtime.');
 }
 
 // Export for Vercel serverless functions

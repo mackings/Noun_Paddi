@@ -1,0 +1,231 @@
+.admin-shell {
+  width: min(1380px, calc(100% - 32px));
+  margin: 20px auto 32px;
+  display: grid;
+  grid-template-columns: 290px minmax(0, 1fr);
+  gap: 20px;
+  position: relative;
+}
+
+.admin-sidebar {
+  position: sticky;
+  top: 88px;
+  align-self: start;
+  background:
+    radial-gradient(circle at 15% 15%, rgba(59, 130, 246, 0.18), transparent 38%),
+    radial-gradient(circle at 90% 0%, rgba(16, 185, 129, 0.14), transparent 40%),
+    linear-gradient(175deg, var(--card-bg) 0%, var(--bg-secondary) 100%);
+  border: 1px solid var(--border-color);
+  border-radius: 24px;
+  box-shadow: var(--shadow-xl);
+  padding: 20px 16px;
+}
+
+.admin-sidebar-head h2 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.admin-sidebar-kicker {
+  margin: 0 0 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--primary-color);
+}
+
+.admin-sidebar-nav {
+  margin-top: 18px;
+  display: grid;
+  gap: 7px;
+  max-height: min(62vh, 560px);
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.admin-nav-item {
+  border: 1px solid transparent;
+  border-radius: 12px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  padding: 11px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  transition: all 0.22s ease;
+  backdrop-filter: blur(6px);
+}
+
+.admin-nav-item:hover {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+.admin-nav-item.active {
+  background: var(--gradient-primary);
+  color: #fff;
+  box-shadow: var(--shadow-md);
+}
+
+.admin-sidebar-foot {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-color);
+}
+
+.admin-user-chip {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.admin-user-avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  background: var(--gradient-primary);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+
+.admin-user-chip strong {
+  display: block;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.admin-user-chip p {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.admin-sidebar-tip {
+  margin: 14px 0 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.admin-main-content {
+  min-width: 0;
+  position: relative;
+}
+
+.admin-main-content .container {
+  max-width: none;
+  padding: 0;
+}
+
+/* Make page cards feel consistent in admin shell */
+.admin-main-content .admin-dashboard-container,
+.admin-main-content .admin-materials-container,
+.admin-main-content .admin-users-container,
+.admin-main-content .admin-container {
+  min-height: auto;
+  padding: 0;
+  background: transparent;
+}
+
+.admin-main-content .dashboard-header,
+.admin-main-content .materials-hero,
+.admin-main-content .admin-users-hero,
+.admin-main-content .admin-header {
+  background:
+    radial-gradient(circle at 8% 12%, rgba(59, 130, 246, 0.12), transparent 34%),
+    radial-gradient(circle at 90% 0%, rgba(16, 185, 129, 0.1), transparent 34%),
+    var(--card-bg);
+  border-radius: 22px;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-lg);
+}
+
+.admin-main-content .stat-card,
+.admin-main-content .api-stat-card,
+.admin-main-content .dashboard-card,
+.admin-main-content .admin-form-card,
+.admin-main-content .admin-list-card,
+.admin-main-content .upload-card-modern,
+.admin-main-content .admin-invite-card,
+.admin-main-content .user-card,
+.admin-main-content .admin-user-profile,
+.admin-main-content .material-card,
+.admin-main-content .broadcast-section,
+.admin-main-content .api-usage-section {
+  border-radius: 18px;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-md);
+}
+
+.admin-main-content .material-card,
+.admin-main-content .admin-form-card,
+.admin-main-content .admin-list-card,
+.admin-main-content .admin-user-profile,
+.admin-main-content .upload-card-modern {
+  background: linear-gradient(180deg, var(--card-bg), var(--bg-secondary));
+}
+
+.admin-main-content .stats-grid .stat-card:hover,
+.admin-main-content .material-card:hover,
+.admin-main-content .user-card:hover {
+  transform: translateY(-4px);
+}
+
+.admin-main-content .admin-tabs {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 18px;
+  padding: 10px;
+}
+
+.admin-main-content .admin-tab {
+  border-radius: 12px;
+}
+
+.admin-main-content .materials-toolbar,
+.admin-main-content .admin-users-toolbar {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 14px;
+}
+
+@media (max-width: 1024px) {
+  .admin-shell {
+    width: min(1380px, calc(100% - 24px));
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .admin-sidebar {
+    position: static;
+    padding: 14px;
+  }
+
+  .admin-sidebar-head h2,
+  .admin-sidebar-kicker,
+  .admin-sidebar-foot {
+    display: none;
+  }
+
+  .admin-sidebar-nav {
+    margin-top: 0;
+    display: flex;
+    overflow-x: auto;
+    gap: 8px;
+    padding-bottom: 2px;
+  }
+
+  .admin-nav-item {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+}

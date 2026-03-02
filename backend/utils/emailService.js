@@ -1,13 +1,21 @@
 const nodemailer = require('nodemailer');
 
-// Create transporter with Gmail SMTP
+const smtpHost = process.env.SMTP_HOST || 'in-v3.mailjet.com';
+const smtpPort = Number(process.env.SMTP_PORT || 587);
+const smtpUser = process.env.MAILJET_API_KEY || process.env.SMTP_USER || '';
+const smtpPass = process.env.MAILJET_API_SECRET || process.env.SMTP_PASS || '';
+const fromEmail = process.env.MAILJET_FROM_EMAIL || process.env.SMTP_FROM_EMAIL || smtpUser;
+const fromName = 'NounPaddi';
+const fromAddress = `"${fromName}" <${fromEmail}>`;
+
+// Create transporter (Mailjet SMTP by default, SMTP fallback supported)
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtp.gmail.com',
-  port: process.env.SMTP_PORT || 587,
+  host: smtpHost,
+  port: smtpPort,
   secure: false, // true for 465, false for other ports
   auth: {
-    user: process.env.SMTP_USER || 'macsonline500@gmail.com',
-    pass: process.env.SMTP_PASS || 'fkyhjgxluajskpez',
+    user: smtpUser,
+    pass: smtpPass,
   },
 });
 
@@ -27,7 +35,7 @@ exports.sendPasswordResetEmail = async (email, resetToken, userName) => {
   const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
 
   const mailOptions = {
-    from: `"${process.env.SMTP_FROM || 'NounPaddi'}" <${process.env.SMTP_USER}>`,
+    from: fromAddress,
     to: email,
     subject: 'Password Reset Request - NounPaddi',
     html: `
@@ -157,7 +165,7 @@ exports.sendPasswordResetEmail = async (email, resetToken, userName) => {
  */
 exports.sendWelcomeEmail = async (email, userName) => {
   const mailOptions = {
-    from: `"${process.env.SMTP_FROM || 'NounPaddi'}" <${process.env.SMTP_USER}>`,
+    from: fromAddress,
     to: email,
     subject: 'Welcome to NounPaddi!',
     html: `
@@ -250,7 +258,7 @@ exports.sendAdminInviteEmail = async ({ email, userName, tempPassword }) => {
   const loginUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/login`;
 
   const mailOptions = {
-    from: `"${process.env.SMTP_FROM || 'NounPaddi'}" <${process.env.SMTP_USER}>`,
+    from: fromAddress,
     to: email,
     subject: 'Admin Access Invite - NounPaddi',
     html: `
@@ -368,7 +376,7 @@ exports.sendITApplicationEmail = async (application) => {
   const currentYear = new Date().getFullYear();
 
   const mailOptions = {
-    from: `"${process.env.SMTP_FROM || 'NounPaddi'}" <${process.env.SMTP_USER}>`,
+    from: fromAddress,
     to: application.email,
     subject: 'IT Placement Application Received - NounPaddi',
     html: `
@@ -456,7 +464,7 @@ exports.sendITPlacementEmail = async (application) => {
   const currentYear = new Date().getFullYear();
 
   const mailOptions = {
-    from: `"${process.env.SMTP_FROM || 'NounPaddi'}" <${process.env.SMTP_USER}>`,
+    from: fromAddress,
     to: application.email,
     subject: 'Congratulations! IT Placement Confirmed - NounPaddi',
     html: `
@@ -547,7 +555,7 @@ exports.sendConsultationRequest = async (payload) => {
   } = payload;
 
   const mailOptions = {
-    from: `"${process.env.SMTP_FROM || 'NounPaddi'}" <${process.env.SMTP_USER}>`,
+    from: fromAddress,
     to: 'macsonline500@gmail.com',
     subject: `New Project Consultation Request - ${fullName}`,
     html: `
@@ -601,7 +609,7 @@ exports.sendUserReviewEmail = async (payload) => {
   } = payload;
 
   const mailOptions = {
-    from: `"${process.env.SMTP_FROM || 'NounPaddi'}" <${process.env.SMTP_USER}>`,
+    from: fromAddress,
     to: 'macsonline500@gmail.com',
     subject: `New User Review (${sentiment}) - ${featureUsed}`,
     html: `
@@ -639,6 +647,60 @@ exports.sendUserReviewEmail = async (payload) => {
   } catch (error) {
     console.error('Error sending review email:', error);
     throw new Error('Failed to send review email');
+  }
+};
+
+/**
+ * Send a generic broadcast email
+ */
+exports.sendBroadcastEmail = async ({
+  to,
+  title,
+  message,
+  url = '',
+  imageUrl = '',
+}) => {
+  const safeTitle = String(title || 'NounPaddi Update').trim();
+  const safeMessage = String(message || '').trim();
+  const safeUrl = String(url || '').trim();
+  const safeImageUrl = String(imageUrl || '').trim();
+  const actionUrl = safeUrl.startsWith('http')
+    ? safeUrl
+    : `${process.env.FRONTEND_URL || 'http://localhost:3000'}${safeUrl.startsWith('/') ? safeUrl : `/${safeUrl}`}`;
+
+  const mailOptions = {
+    from: fromAddress,
+    to,
+    subject: safeTitle,
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <body style="font-family: Arial, sans-serif; background:#f8fafc; margin:0; padding:0;">
+        <div style="max-width:620px; margin:24px auto; background:#fff; border:1px solid #e2e8f0; border-radius:14px; overflow:hidden;">
+          <div style="padding:24px; background:linear-gradient(135deg, #2563eb 0%, #4f46e5 100%); color:#fff;">
+            <h2 style="margin:0; font-size:24px;">${safeTitle}</h2>
+          </div>
+          <div style="padding:24px;">
+            <p style="margin:0 0 16px; font-size:15px; color:#334155; line-height:1.7;">${safeMessage}</p>
+            ${safeImageUrl ? `<img src="${safeImageUrl}" alt="Broadcast" style="display:block; width:100%; max-height:300px; object-fit:cover; border-radius:10px; margin:8px 0 18px;" />` : ''}
+            ${safeUrl ? `<a href="${actionUrl}" style="display:inline-block; background:#2563eb; color:#fff; text-decoration:none; border-radius:9px; padding:10px 18px; font-weight:700;">Open Update</a>` : ''}
+          </div>
+          <div style="padding:14px 24px; background:#f8fafc; color:#64748b; font-size:12px; border-top:1px solid #e2e8f0;">
+            You received this email because you have an account on NounPaddi.
+          </div>
+        </div>
+      </body>
+      </html>
+    `,
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`[broadcast-email] sent to=${to} messageId=${info.messageId}`);
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error(`[broadcast-email] failed to=${to}:`, error.message);
+    return { success: false, error: error.message };
   }
 };
 

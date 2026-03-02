@@ -11,7 +11,9 @@ import Explore from './pages/Explore';
 import AllCourses from './pages/AllCourses';
 import Practice from './pages/Practice';
 import AdminUpload from './pages/AdminUpload';
-import AdminDashboard from './pages/AdminDashboard';
+import AdminOverview from './pages/AdminOverview';
+import AdminBroadcast from './pages/AdminBroadcast';
+import AdminApiUsage from './pages/AdminApiUsage';
 import AdminMaterials from './pages/AdminMaterials';
 import AdminUsers from './pages/AdminUsers';
 import StudentDashboard from './pages/StudentDashboard';
@@ -27,6 +29,7 @@ import ConsultationTerms from './pages/ConsultationTerms';
 import ProjectConsultation from './pages/ProjectConsultation';
 import ShareRedirect from './pages/ShareRedirect';
 import Footer from './components/Footer';
+import AdminLayout from './components/AdminLayout';
 import './App.css';
 
 const FIRST_VISIT_KEY = 'np_first_visit_seen_v1';
@@ -133,7 +136,7 @@ const Home = () => {
   }
 
   if (user) {
-    return <Navigate to={user.role === 'admin' ? '/admin/dashboard' : '/explore'} />;
+    return <Navigate to={user.role === 'admin' ? '/admin/overview' : '/explore'} />;
   }
 
   let hasSeenFirstVisit = false;
@@ -174,7 +177,9 @@ const NotificationPermissionBar = () => {
 const AppLayout = () => {
   const location = useLocation();
   const hideFooterRoutes = ['/login', '/signup', '/forgot-password', '/reset-password'];
-  const shouldHideFooter = hideFooterRoutes.includes(location.pathname) || location.pathname.startsWith('/share');
+  const shouldHideFooter = hideFooterRoutes.includes(location.pathname)
+    || location.pathname.startsWith('/share')
+    || location.pathname.startsWith('/admin');
 
   return (
     <ThemeProvider>
@@ -290,18 +295,43 @@ const AppLayout = () => {
 
                 {/* Admin Routes */}
                 <Route
-                  path="/admin/dashboard"
+                  path="/admin/overview"
                   element={
                     <ProtectedRoute adminOnly>
-                      <AdminDashboard />
+                      <AdminLayout>
+                        <AdminOverview />
+                      </AdminLayout>
                     </ProtectedRoute>
                   }
                 />
                 <Route
+                  path="/admin/broadcast"
+                  element={
+                    <ProtectedRoute adminOnly>
+                      <AdminLayout>
+                        <AdminBroadcast />
+                      </AdminLayout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/api-usage"
+                  element={
+                    <ProtectedRoute adminOnly>
+                      <AdminLayout>
+                        <AdminApiUsage />
+                      </AdminLayout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route path="/admin/dashboard" element={<Navigate to="/admin/overview" replace />} />
+                <Route
                   path="/admin/upload"
                   element={
                     <ProtectedRoute adminOnly>
-                      <AdminUpload />
+                      <AdminLayout>
+                        <AdminUpload />
+                      </AdminLayout>
                     </ProtectedRoute>
                   }
                 />
@@ -309,7 +339,9 @@ const AppLayout = () => {
                   path="/admin/materials"
                   element={
                     <ProtectedRoute adminOnly>
-                      <AdminMaterials />
+                      <AdminLayout>
+                        <AdminMaterials />
+                      </AdminLayout>
                     </ProtectedRoute>
                   }
                 />
@@ -317,7 +349,9 @@ const AppLayout = () => {
                   path="/admin/users"
                   element={
                     <ProtectedRoute adminOnly>
-                      <AdminUsers />
+                      <AdminLayout>
+                        <AdminUsers />
+                      </AdminLayout>
                     </ProtectedRoute>
                   }
                 />

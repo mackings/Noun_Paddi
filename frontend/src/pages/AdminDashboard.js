@@ -332,7 +332,7 @@ const AdminDashboard = () => {
           </div>
         )}
 
-        <div className="broadcast-section">
+        <div className="broadcast-section" id="broadcast">
           <h2>
             <FiBell /> Push Broadcast
           </h2>

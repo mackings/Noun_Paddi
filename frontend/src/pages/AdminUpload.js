@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import api from '../utils/api';
 import { trackFeatureVisit } from '../utils/featureTracking';
 import {
@@ -15,8 +16,13 @@ import {
 } from 'react-icons/fi';
 import './Admin.css';
 
+const ALLOWED_TABS = ['faculties', 'departments', 'courses', 'materials'];
+
 const AdminUpload = () => {
-  const [activeTab, setActiveTab] = useState('faculties');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedTab = searchParams.get('tab');
+  const initialTab = ALLOWED_TABS.includes(requestedTab) ? requestedTab : 'faculties';
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [faculties, setFaculties] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [courses, setCourses] = useState([]);
@@ -59,6 +65,13 @@ const AdminUpload = () => {
     fetchCourses();
     trackFeatureVisit('admin_upload');
   }, []);
+
+  useEffect(() => {
+    const tabFromUrl = searchParams.get('tab');
+    if (ALLOWED_TABS.includes(tabFromUrl) && tabFromUrl !== activeTab) {
+      setActiveTab(tabFromUrl);
+    }
+  }, [searchParams, activeTab]);
 
   const fetchFaculties = async () => {
     try {
@@ -280,6 +293,11 @@ const AdminUpload = () => {
     { id: 'materials', label: 'Upload Materials', icon: FiUpload },
   ];
 
+  const handleTabChange = (tabId) => {
+    setActiveTab(tabId);
+    setSearchParams({ tab: tabId });
+  };
+
   return (
     <div className="admin-container">
       <div className="container">
@@ -299,7 +317,7 @@ const AdminUpload = () => {
             <button
               key={tab.id}
               className={`admin-tab ${activeTab === tab.id ? 'active' : ''}`}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => handleTabChange(tab.id)}
             >
               <tab.icon size={20} />
               <span>{tab.label}</span>

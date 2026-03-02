@@ -6,6 +6,12 @@
       "use": "@vercel/node"
     }
   ],
+  "crons": [
+    {
+      "path": "/api/admin/notifications/process-scheduled/cron",
+      "schedule": "0 0 * * *"
+    }
+  ],
   "routes": [
     {
       "src": "/api/(.*)",

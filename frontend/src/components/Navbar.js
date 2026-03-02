@@ -80,10 +80,7 @@ const Navbar = () => {
                 )}
                 {user.role === 'admin' && (
                   <>
-                    <Link to="/admin/dashboard" className="nav-link">Dashboard</Link>
-                    <Link to="/admin/materials" className="nav-link">Materials</Link>
-                    <Link to="/admin/upload" className="nav-link">Upload</Link>
-                    <Link to="/admin/users" className="nav-link">Users</Link>
+                    <Link to="/admin/overview" className="nav-link">Admin Workspace</Link>
                   </>
                 )}
                 <button
@@ -163,17 +160,8 @@ const Navbar = () => {
                 )}
                 {user.role === 'admin' && (
                   <>
-                    <Link to="/admin/dashboard" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>
-                      Dashboard
-                    </Link>
-                    <Link to="/admin/materials" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>
-                      Materials
-                    </Link>
-                    <Link to="/admin/upload" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>
-                      Upload
-                    </Link>
-                    <Link to="/admin/users" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>
-                      Users
+                    <Link to="/admin/overview" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>
+                      Admin Workspace
                     </Link>
                   </>
                 )}
