@@ -2,10 +2,10 @@ const nodemailer = require('nodemailer');
 
 const smtpHost = process.env.SMTP_HOST || 'in-v3.mailjet.com';
 const smtpPort = Number(process.env.SMTP_PORT || 587);
-const smtpUser = process.env.MAILJET_API_KEY || process.env.SMTP_USER || '';
-const smtpPass = process.env.MAILJET_API_SECRET || process.env.SMTP_PASS || '';
-const fromEmail = process.env.MAILJET_FROM_EMAIL || process.env.SMTP_FROM_EMAIL || smtpUser;
-const fromName = 'NounPaddi';
+const smtpUser = process.env.SMTP_USER || process.env.MAILJET_API_KEY || '';
+const smtpPass = process.env.SMTP_PASS || process.env.MAILJET_API_SECRET || '';
+const fromEmail = process.env.SMTP_FROM_EMAIL || process.env.MAILJET_FROM_EMAIL || smtpUser;
+const fromName = process.env.SMTP_FROM_NAME || process.env.SMTP_FROM || process.env.MAILJET_FROM_NAME || 'NounPaddi';
 const fromAddress = `"${fromName}" <${fromEmail}>`;
 
 // Create transporter (Mailjet SMTP by default, SMTP fallback supported)
@@ -653,6 +653,26 @@ exports.sendUserReviewEmail = async (payload) => {
 /**
  * Send a generic broadcast email
  */
+const escapeHtml = (value) => String(value || '')
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#39;');
+
+const sanitizeUrl = (value) => {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+
+  try {
+    const parsed = new URL(raw.startsWith('http') ? raw : `${process.env.FRONTEND_URL || 'http://localhost:3000'}${raw.startsWith('/') ? raw : `/${raw}`}`);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return '';
+    return parsed.toString();
+  } catch {
+    return '';
+  }
+};
+
 exports.sendBroadcastEmail = async ({
   to,
   title,
@@ -660,35 +680,113 @@ exports.sendBroadcastEmail = async ({
   url = '',
   imageUrl = '',
 }) => {
-  const safeTitle = String(title || 'NounPaddi Update').trim();
-  const safeMessage = String(message || '').trim();
-  const safeUrl = String(url || '').trim();
-  const safeImageUrl = String(imageUrl || '').trim();
-  const actionUrl = safeUrl.startsWith('http')
-    ? safeUrl
-    : `${process.env.FRONTEND_URL || 'http://localhost:3000'}${safeUrl.startsWith('/') ? safeUrl : `/${safeUrl}`}`;
+  const safeTitle = escapeHtml(String(title || 'NounPaddi Update').trim());
+  const safeMessageRaw = String(message || '').trim();
+  const safeMessage = escapeHtml(safeMessageRaw).replace(/\n/g, '<br />');
+  const actionUrl = sanitizeUrl(url);
+  const homeUrl = sanitizeUrl(process.env.FRONTEND_URL || 'http://localhost:3000');
+  const safeImageUrl = sanitizeUrl(imageUrl);
+  const year = new Date().getFullYear();
+  const ctaLabel = actionUrl ? 'View Update' : '';
+  const plainText = [
+    `NounPaddi Update: ${String(title || 'NounPaddi Update').trim()}`,
+    '',
+    safeMessageRaw,
+    actionUrl ? '' : '',
+    actionUrl ? `Open update: ${actionUrl}` : '',
+    '',
+    'You are receiving this email because you have an account on NounPaddi.',
+  ].filter(Boolean).join('\n');
 
   const mailOptions = {
     from: fromAddress,
     to,
-    subject: safeTitle,
+    subject: `NounPaddi: ${String(title || 'Update').trim()}`,
+    text: plainText,
     html: `
       <!DOCTYPE html>
-      <html>
-      <body style="font-family: Arial, sans-serif; background:#f8fafc; margin:0; padding:0;">
-        <div style="max-width:620px; margin:24px auto; background:#fff; border:1px solid #e2e8f0; border-radius:14px; overflow:hidden;">
-          <div style="padding:24px; background:linear-gradient(135deg, #2563eb 0%, #4f46e5 100%); color:#fff;">
-            <h2 style="margin:0; font-size:24px;">${safeTitle}</h2>
-          </div>
-          <div style="padding:24px;">
-            <p style="margin:0 0 16px; font-size:15px; color:#334155; line-height:1.7;">${safeMessage}</p>
-            ${safeImageUrl ? `<img src="${safeImageUrl}" alt="Broadcast" style="display:block; width:100%; max-height:300px; object-fit:cover; border-radius:10px; margin:8px 0 18px;" />` : ''}
-            ${safeUrl ? `<a href="${actionUrl}" style="display:inline-block; background:#2563eb; color:#fff; text-decoration:none; border-radius:9px; padding:10px 18px; font-weight:700;">Open Update</a>` : ''}
-          </div>
-          <div style="padding:14px 24px; background:#f8fafc; color:#64748b; font-size:12px; border-top:1px solid #e2e8f0;">
-            You received this email because you have an account on NounPaddi.
-          </div>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="x-apple-disable-message-reformatting" />
+        <title>${safeTitle}</title>
+      </head>
+      <body style="margin:0; padding:0; background:#eef2ff; font-family:Arial, Helvetica, sans-serif; color:#0f172a;">
+        <div style="display:none; max-height:0; overflow:hidden; opacity:0; color:transparent;">
+          New learning update from NounPaddi.
         </div>
+        <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background:#eef2ff; padding:24px 12px;">
+          <tr>
+            <td align="center">
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="640" style="width:100%; max-width:640px; background:#ffffff; border:1px solid #dbe4f0; border-radius:18px; overflow:hidden; box-shadow:0 12px 28px rgba(15, 23, 42, 0.08);">
+                <tr>
+                  <td style="padding:0; background:linear-gradient(135deg, #4338ca 0%, #2563eb 65%, #06b6d4 100%);">
+                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                      <tr>
+                        <td style="padding:18px 24px 8px; color:#c7d2fe; font-weight:700; font-size:12px; letter-spacing:0.08em; text-transform:uppercase;">
+                          EdTech Broadcast
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding:0 24px 24px; color:#ffffff;">
+                          <h1 style="margin:0 0 8px; font-size:28px; line-height:1.3; font-weight:800;">${safeTitle}</h1>
+                          <p style="margin:0; color:#dbeafe; font-size:14px; line-height:1.6;">
+                            Built for smarter study, exam prep, and academic progress on NounPaddi.
+                          </p>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding:24px 24px 8px;">
+                    <p style="margin:0; font-size:16px; line-height:1.75; color:#334155;">${safeMessage}</p>
+                  </td>
+                </tr>
+                ${safeImageUrl ? `
+                <tr>
+                  <td style="padding:12px 24px 8px;">
+                    <img src="${safeImageUrl}" alt="NounPaddi update image" style="display:block; width:100%; border:0; border-radius:12px; max-height:320px; object-fit:cover;" />
+                  </td>
+                </tr>
+                ` : ''}
+                ${actionUrl ? `
+                <tr>
+                  <td style="padding:18px 24px 24px;">
+                    <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                      <tr>
+                        <td style="padding:0 12px 10px 0;">
+                          <a href="${actionUrl}" style="display:inline-block; padding:12px 20px; background:#2563eb; color:#ffffff; text-decoration:none; font-weight:700; font-size:14px; border-radius:10px;">
+                            ${ctaLabel}
+                          </a>
+                        </td>
+                        ${homeUrl ? `
+                        <td style="padding:0 0 10px;">
+                          <a href="${homeUrl}" style="display:inline-block; padding:12px 20px; background:#e2e8f0; color:#0f172a; text-decoration:none; font-weight:700; font-size:14px; border-radius:10px;">
+                            Open Dashboard
+                          </a>
+                        </td>
+                        ` : ''}
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                ` : ''}
+                <tr>
+                  <td style="padding:14px 24px; border-top:1px solid #e2e8f0; background:#f8fafc;">
+                    <p style="margin:0; font-size:12px; line-height:1.6; color:#64748b;">
+                      You received this email because you have an account on NounPaddi.
+                    </p>
+                    <p style="margin:6px 0 0; font-size:12px; color:#94a3b8;">
+                      © ${year} NounPaddi. All rights reserved.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
       </body>
       </html>
     `,

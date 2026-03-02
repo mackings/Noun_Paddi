@@ -24,7 +24,7 @@ const Navbar = () => {
   };
 
   const toggleProjectsMenu = () => {
-    setProjectsMenuOpen((prev) => !prev);
+    setProjectsMenuOpen(true);
   };
 
   return (
@@ -49,6 +49,7 @@ const Navbar = () => {
                     <Link to="/reminders" className="nav-link"><FiBell size={16} /> Reminders</Link>
                     <div
                       className={`nav-dropdown ${projectsMenuOpen ? 'open' : ''}`}
+                      onMouseEnter={() => setProjectsMenuOpen(true)}
                       onMouseLeave={() => setProjectsMenuOpen(false)}
                     >
                       <button
