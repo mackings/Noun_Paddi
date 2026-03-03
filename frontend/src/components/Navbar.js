@@ -119,10 +119,23 @@ const Navbar = () => {
             )}
           </div>
 
-          {/* Mobile Menu Toggle */}
-          <button className="mobile-menu-toggle" onClick={toggleMobileMenu}>
-            {mobileMenuOpen ? <FiX size={24} /> : <FiMenu size={24} />}
-          </button>
+          <div className="mobile-controls">
+            {user && (
+              <Link
+                to="/profile"
+                className="mobile-profile-icon"
+                onClick={() => setMobileMenuOpen(false)}
+                aria-label="Profile"
+                title={user.name}
+              >
+                <FiUser size={20} />
+              </Link>
+            )}
+            {/* Mobile Menu Toggle */}
+            <button className="mobile-menu-toggle" onClick={toggleMobileMenu}>
+              {mobileMenuOpen ? <FiX size={24} /> : <FiMenu size={24} />}
+            </button>
+          </div>
         </div>
 
         {/* Mobile Menu */}
