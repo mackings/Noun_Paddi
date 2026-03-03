@@ -899,7 +899,7 @@ const StudentDashboard = () => {
             <div className="section-title-group">
               <FiTrendingUp size={24} className="section-icon" />
               <div>
-                <h2>Learning Progress</h2>
+                <h2>Analytics</h2>
                 <p>Track your study journey and achievements</p>
               </div>
             </div>
@@ -1137,39 +1137,9 @@ const StudentDashboard = () => {
           </div>
         )}
 
-        {/* Quick Actions */}
-        <div className="quick-actions-section">
-          <h2>Quick Actions</h2>
-          <div className="quick-actions-grid">
-            <Link to="/explore" className="quick-action-card">
-              <FiBook size={32} />
-              <h3>Explore Courses</h3>
-              <p>Browse available courses and study materials</p>
-            </Link>
-
-            <Link to="/practice" className="quick-action-card">
-              <FiGrid size={32} />
-              <h3>Practice Questions</h3>
-              <p>Test your knowledge with practice questions</p>
-            </Link>
-
-            <button
-              onClick={() => {
-                setShowUploadModal(true);
-                setUploadStep(1);
-              }}
-              className="quick-action-card upload-card"
-            >
-              <FiUpload size={32} />
-              <h3>Upload Material</h3>
-              <p>Share course materials and earn points</p>
-            </button>
-          </div>
-        </div>
-
         {/* Upload Modal - Multi-Step */}
         {showUploadModal && (
-          <div className="modal-overlay">
+          <div className="modal-overlay" onClick={closeUploadModal}>
             <div className="modal-content upload-wizard" onClick={(e) => e.stopPropagation()}>
               <div className="modal-header">
                 <h2>{uploadStep === 5 ? 'Processing Material' : `Upload Material - Step ${uploadStep}/4`}</h2>
@@ -1204,6 +1174,7 @@ const StudentDashboard = () => {
                       {faculties.map((faculty) => (
                         <button
                           key={faculty._id}
+                          type="button"
                           className={`selection-card ${uploadForm.facultyId === faculty._id ? 'selected' : ''}`}
                           onClick={() => handleFacultySelect(faculty._id)}
                         >
@@ -1232,6 +1203,7 @@ const StudentDashboard = () => {
                       {departments.map((dept) => (
                         <button
                           key={dept._id}
+                          type="button"
                           className={`selection-card ${uploadForm.departmentId === dept._id ? 'selected' : ''}`}
                           onClick={() => handleDepartmentSelect(dept._id)}
                         >
@@ -1249,7 +1221,7 @@ const StudentDashboard = () => {
                       </div>
                     )}
 
-                    <button onClick={() => setUploadStep(1)} className="btn btn-secondary btn-back">
+                    <button type="button" onClick={() => setUploadStep(1)} className="btn btn-secondary btn-back">
                       <FiArrowLeft size={16} /> Back to Faculty
                     </button>
                   </div>
@@ -1263,6 +1235,7 @@ const StudentDashboard = () => {
 
                     <div className="selection-grid create-only">
                       <button
+                        type="button"
                         className={`selection-card create-new ${uploadForm.courseId === 'new' ? 'selected' : ''}`}
                         onClick={() => handleCourseSelect('new')}
                       >
@@ -1335,7 +1308,7 @@ const StudentDashboard = () => {
                       </div>
                     )}
 
-                    <button onClick={() => setUploadStep(2)} className="btn btn-secondary btn-back">
+                    <button type="button" onClick={() => setUploadStep(2)} className="btn btn-secondary btn-back">
                       <FiArrowLeft size={16} /> Back to Department
                     </button>
                   </div>
@@ -1542,7 +1515,7 @@ const StudentDashboard = () => {
               </div>
 
               {duplicateInfo && (
-                <div className="duplicate-dialog-overlay">
+                <div className="duplicate-dialog-overlay" onClick={() => setDuplicateInfo(null)}>
                   <div className="duplicate-dialog" onClick={(e) => e.stopPropagation()}>
                     <h3>
                       {duplicateInfo.kind === 'course'

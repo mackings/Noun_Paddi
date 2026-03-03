@@ -34,6 +34,10 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: '',
   },
+  studyCenter: {
+    type: String,
+    default: '',
+  },
   matricNumber: {
     type: String,
     sparse: true,

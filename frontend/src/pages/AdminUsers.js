@@ -90,7 +90,7 @@ const AdminUsers = () => {
             <FiSearch />
             <input
               type="text"
-              placeholder="Search by name, email, faculty, or matric number"
+              placeholder="Search by name, email, faculty, department, study center, or matric number"
               value={searchTerm}
               onChange={handleSearchInput}
             />
@@ -175,6 +175,7 @@ const AdminUsers = () => {
                     </span>
                     <div className="user-meta">
                       <span>{user.role}</span>
+                      <span>Study Center: {user.studyCenter || 'N/A'}</span>
                       {user.matricNumber && <span>{user.matricNumber}</span>}
                     </div>
                   </div>
@@ -206,6 +207,7 @@ const AdminUsers = () => {
                       <ul>
                         <li><FiBookOpen /> Faculty: {selectedProfile.faculty || 'N/A'}</li>
                         <li><FiMapPin /> Department: {selectedProfile.department || 'N/A'}</li>
+                        <li><FiMapPin /> Study Center: {selectedProfile.studyCenter || 'N/A'}</li>
                         <li><FiUser /> Matric Number: {selectedProfile.matricNumber || 'N/A'}</li>
                       </ul>
                     </div>

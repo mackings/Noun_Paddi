@@ -2,8 +2,48 @@ import React, { useState } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import SEO from '../components/SEO';
-import { FiUser, FiMail, FiLock, FiBook, FiHash, FiFileText, FiEye, FiEyeOff } from 'react-icons/fi';
+import { FiUser, FiMail, FiLock, FiBook, FiHash, FiFileText, FiMapPin, FiEye, FiEyeOff } from 'react-icons/fi';
 import './Auth.css';
+
+const NIGERIA_STATES = [
+  'Abia',
+  'Adamawa',
+  'Akwa Ibom',
+  'Anambra',
+  'Bauchi',
+  'Bayelsa',
+  'Benue',
+  'Borno',
+  'Cross River',
+  'Delta',
+  'Ebonyi',
+  'Edo',
+  'Ekiti',
+  'Enugu',
+  'Gombe',
+  'Imo',
+  'Jigawa',
+  'Kaduna',
+  'Kano',
+  'Katsina',
+  'Kebbi',
+  'Kogi',
+  'Kwara',
+  'Lagos',
+  'Nasarawa',
+  'Niger',
+  'Ogun',
+  'Ondo',
+  'Osun',
+  'Oyo',
+  'Plateau',
+  'Rivers',
+  'Sokoto',
+  'Taraba',
+  'Yobe',
+  'Zamfara',
+  'Federal Capital Territory (FCT)',
+];
 
 const Signup = () => {
   const [formData, setFormData] = useState({
@@ -13,6 +53,7 @@ const Signup = () => {
     role: 'student',
     faculty: '',
     department: '',
+    studyCenter: '',
     matricNumber: '',
   });
   const [error, setError] = useState('');
@@ -65,7 +106,7 @@ const Signup = () => {
         url="/signup"
         keywords="sign up, register, create account, NOUN student registration, join NounPaddi, free account"
       />
-      <div className="auth-card">
+      <div className="auth-card signup-card">
         <div className="auth-logo">
           <FiBook />
         </div>
@@ -124,18 +165,40 @@ const Signup = () => {
                 </div>
               </div>
 
-              <div className="form-group">
-                <label className="form-label">Department</label>
-                <div className="input-group">
-                  <FiFileText className="input-icon" size={20} />
-                  <input
-                    type="text"
-                    name="department"
-                    className="form-control"
-                    value={formData.department}
-                    onChange={handleChange}
-                    placeholder="e.g., Computer Science"
-                  />
+              <div className="signup-row">
+                <div className="form-group">
+                  <label className="form-label">Department</label>
+                  <div className="input-group">
+                    <FiFileText className="input-icon" size={20} />
+                    <input
+                      type="text"
+                      name="department"
+                      className="form-control"
+                      value={formData.department}
+                      onChange={handleChange}
+                      placeholder="e.g., Computer Science"
+                    />
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Study Center</label>
+                  <div className="input-group">
+                    <FiMapPin className="input-icon" size={20} />
+                    <select
+                      name="studyCenter"
+                      className="form-control"
+                      value={formData.studyCenter}
+                      onChange={handleChange}
+                      required
+                    >
+                      <option value="">Select your study center</option>
+                      {NIGERIA_STATES.map((state) => (
+                        <option key={state} value={state}>
+                          {state}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </div>
             </>

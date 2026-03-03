@@ -364,6 +364,42 @@
   font-weight: 600;
 }
 
+.study-center-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.5);
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.study-center-dialog {
+  width: 100%;
+  max-width: 520px;
+  background: white;
+  border-radius: 18px;
+  padding: 24px;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.2);
+}
+
+.study-center-dialog h3 {
+  margin: 0 0 10px;
+  color: #1f2937;
+}
+
+.study-center-dialog p {
+  margin: 0 0 18px;
+  color: #4b5563;
+  line-height: 1.6;
+}
+
+.study-center-dialog-btn {
+  margin-top: 0;
+  max-width: 100%;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .profile-content {
@@ -392,6 +428,10 @@
 
   .save-button {
     max-width: 100%;
+  }
+
+  .study-center-dialog {
+    padding: 20px;
   }
 }
 

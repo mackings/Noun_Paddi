@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { FiMenu, FiX, FiLogOut, FiUser, FiSun, FiMoon, FiBook, FiBell, FiFolder, FiChevronDown } from 'react-icons/fi';
+import { FiMenu, FiX, FiLogOut, FiUser, FiSun, FiMoon, FiBook, FiBell, FiFolder, FiChevronDown, FiAlertTriangle } from 'react-icons/fi';
 import './Navbar.css';
 
 const Navbar = () => {
@@ -84,6 +84,9 @@ const Navbar = () => {
                     <Link to="/admin/overview" className="nav-link">Admin Workspace</Link>
                   </>
                 )}
+                <Link to="/disclaimer" className="nav-icon-link" aria-label="Disclaimer" title="Disclaimer">
+                  <FiAlertTriangle size={18} />
+                </Link>
                 <button
                   onClick={toggleTheme}
                   className="theme-toggle"
@@ -100,6 +103,9 @@ const Navbar = () => {
               </>
             ) : (
               <>
+                <Link to="/disclaimer" className="nav-icon-link" aria-label="Disclaimer" title="Disclaimer">
+                  <FiAlertTriangle size={18} />
+                </Link>
                 <button
                   onClick={toggleTheme}
                   className="theme-toggle"
@@ -166,6 +172,14 @@ const Navbar = () => {
                     </Link>
                   </>
                 )}
+                <Link
+                  to="/disclaimer"
+                  className="theme-toggle-mobile"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <FiAlertTriangle size={18} />
+                  <span>Disclaimer</span>
+                </Link>
                 <button
                   onClick={toggleTheme}
                   className="theme-toggle-mobile"
@@ -184,6 +198,14 @@ const Navbar = () => {
                 </Link>
                 <Link to="/signup" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>
                   Sign Up
+                </Link>
+                <Link
+                  to="/disclaimer"
+                  className="theme-toggle-mobile"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  <FiAlertTriangle size={18} />
+                  <span>Disclaimer</span>
                 </Link>
                 <button
                   onClick={toggleTheme}

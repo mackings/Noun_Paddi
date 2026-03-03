@@ -60,6 +60,11 @@
   transition: all 0.3s ease;
 }
 
+.signup-card {
+  max-width: 760px;
+  width: min(100%, 760px);
+}
+
 .auth-card:hover {
   box-shadow: var(--shadow-xl);
   transform: translateY(-4px);
@@ -449,6 +454,12 @@
   line-height: 1.4;
 }
 
+.signup-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
 .submit-button {
   width: 100%;
   padding: 16px;
@@ -531,6 +542,10 @@
     padding: 32px 24px;
   }
 
+  .signup-card {
+    max-width: 100%;
+  }
+
   .auth-logo {
     width: 64px;
     height: 64px;
@@ -564,6 +579,11 @@
 
   .password-toggle {
     right: 12px;
+  }
+
+  .signup-row {
+    grid-template-columns: 1fr;
+    gap: 0;
   }
 }
 

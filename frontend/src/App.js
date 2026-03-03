@@ -28,6 +28,7 @@ import Projects from './pages/Projects';
 import ConsultationTerms from './pages/ConsultationTerms';
 import ProjectConsultation from './pages/ProjectConsultation';
 import ShareRedirect from './pages/ShareRedirect';
+import Disclaimer from './pages/Disclaimer';
 import Footer from './components/Footer';
 import AdminLayout from './components/AdminLayout';
 import './App.css';
@@ -194,6 +195,7 @@ const AppLayout = () => {
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/share/:token" element={<ShareRedirect />} />
+                <Route path="/disclaimer" element={<Disclaimer />} />
 
                 {/* Student Routes */}
                 <Route

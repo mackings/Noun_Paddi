@@ -15,7 +15,7 @@ const generateToken = (id) => {
 // @access  Public
 exports.signup = async (req, res) => {
   try {
-    const { name, email, password, role, faculty, department, matricNumber } = req.body;
+    const { name, email, password, role, faculty, department, studyCenter, matricNumber } = req.body;
 
     // Check if user exists
     const userExists = await User.findOne({ email });
@@ -34,6 +34,7 @@ exports.signup = async (req, res) => {
       role: role || 'student',
       faculty,
       department,
+      studyCenter,
       matricNumber,
     });
 
@@ -44,6 +45,7 @@ exports.signup = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        studyCenter: user.studyCenter,
         token: generateToken(user._id),
       },
     });

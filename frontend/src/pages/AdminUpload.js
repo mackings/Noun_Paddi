@@ -12,7 +12,8 @@ import {
   FiGrid,
   FiLayers,
   FiBookOpen,
-  FiSettings
+  FiSettings,
+  FiSearch
 } from 'react-icons/fi';
 import './Admin.css';
 
@@ -33,6 +34,7 @@ const AdminUpload = () => {
   const [showArchivedFaculties, setShowArchivedFaculties] = useState(false);
   const [showArchivedDepartments, setShowArchivedDepartments] = useState(false);
   const [showArchivedCourses, setShowArchivedCourses] = useState(false);
+  const [facultySearch, setFacultySearch] = useState('');
 
   // Faculty form
   const [facultyForm, setFacultyForm] = useState({ name: '', code: '' });
@@ -298,6 +300,16 @@ const AdminUpload = () => {
     setSearchParams({ tab: tabId });
   };
 
+  const normalizedFacultySearch = facultySearch.trim().toLowerCase();
+  const visibleFaculties = faculties
+    .filter((faculty) => showArchivedFaculties || !faculty.isArchived)
+    .filter((faculty) => {
+      if (!normalizedFacultySearch) return true;
+      const name = String(faculty.name || '').toLowerCase();
+      const code = String(faculty.code || '').toLowerCase();
+      return name.includes(normalizedFacultySearch) || code.includes(normalizedFacultySearch);
+    });
+
   return (
     <div className="admin-container">
       <div className="container">
@@ -380,11 +392,24 @@ const AdminUpload = () => {
                 </form>
               </div>
 
-              <div className="admin-list-card">
-                <h2>
-                  <FiBriefcase /> Existing Faculties
-                </h2>
-                <div className="admin-filter-row">
+              <div className="admin-list-card faculty-list-card">
+                <div className="admin-list-header-modern">
+                  <h2>
+                    <FiBriefcase /> Existing Faculties
+                  </h2>
+                  <span className="faculty-count-badge">{visibleFaculties.length} shown</span>
+                </div>
+                <div className="faculty-toolbar">
+                  <div className="faculty-search-wrap">
+                    <FiSearch size={16} />
+                    <input
+                      type="text"
+                      placeholder="Search faculties by name or code..."
+                      value={facultySearch}
+                      onChange={(e) => setFacultySearch(e.target.value)}
+                      className="faculty-search-input"
+                    />
+                  </div>
                   <label className="admin-toggle">
                     <input
                       type="checkbox"
@@ -399,19 +424,24 @@ const AdminUpload = () => {
                     <FiBriefcase size={32} />
                     <p>No faculties yet. Create one to get started!</p>
                   </div>
+                ) : visibleFaculties.length === 0 ? (
+                  <div className="empty-state-small">
+                    <FiSearch size={32} />
+                    <p>No faculties matched your search.</p>
+                  </div>
                 ) : (
                   <div className="item-list">
-                    {faculties
-                      .filter((faculty) => showArchivedFaculties || !faculty.isArchived)
-                      .map((faculty) => (
-                      <div key={faculty._id} className="item-card">
+                    {visibleFaculties.map((faculty) => (
+                      <div key={faculty._id} className="item-card faculty-item-card">
                         <div className="item-icon">
                           <FiBriefcase />
                         </div>
                         <div className="item-info">
-                          <h3>{faculty.name}</h3>
-                          <p>{faculty.code}</p>
-                          {faculty.isArchived && <span className="item-meta archived">Archived</span>}
+                          <div className="faculty-title-row">
+                            <h3>{faculty.name}</h3>
+                            {faculty.isArchived && <span className="item-meta archived">Archived</span>}
+                          </div>
+                          <p className="faculty-code-pill">{faculty.code}</p>
                         </div>
                         <div className="item-actions">
                           <button

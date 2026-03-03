@@ -24,6 +24,7 @@ exports.getProfile = async (req, res) => {
         role: user.role,
         faculty: user.faculty,
         department: user.department,
+        studyCenter: user.studyCenter,
         matricNumber: user.matricNumber,
         profileImage: user.profileImage,
         bio: user.bio,
@@ -53,12 +54,13 @@ exports.updateProfile = async (req, res) => {
     }
 
     // Update fields
-    const { name, bio, faculty, department, matricNumber } = req.body;
+    const { name, bio, faculty, department, studyCenter, matricNumber } = req.body;
 
     if (name) user.name = name;
     if (bio !== undefined) user.bio = bio;
     if (faculty !== undefined) user.faculty = faculty;
     if (department !== undefined) user.department = department;
+    if (studyCenter !== undefined) user.studyCenter = studyCenter;
     if (matricNumber !== undefined) user.matricNumber = matricNumber;
 
     // Handle profile image upload if provided
@@ -93,6 +95,7 @@ exports.updateProfile = async (req, res) => {
         role: user.role,
         faculty: user.faculty,
         department: user.department,
+        studyCenter: user.studyCenter,
         matricNumber: user.matricNumber,
         profileImage: user.profileImage,
         bio: user.bio,
@@ -227,13 +230,14 @@ exports.getUsers = async (req, res) => {
           { email: { $regex: safeSearch, $options: 'i' } },
           { faculty: { $regex: safeSearch, $options: 'i' } },
           { department: { $regex: safeSearch, $options: 'i' } },
+          { studyCenter: { $regex: safeSearch, $options: 'i' } },
           { matricNumber: { $regex: safeSearch, $options: 'i' } },
         ];
       }
     }
 
     const users = await User.find(query)
-      .select('name email role faculty department matricNumber profileImage createdAt')
+      .select('name email role faculty department studyCenter matricNumber profileImage createdAt')
       .sort({ createdAt: -1 });
 
     res.status(200).json({
@@ -254,7 +258,7 @@ exports.getUsers = async (req, res) => {
 exports.getUserById = async (req, res) => {
   try {
     const user = await User.findById(req.params.id)
-      .select('name email role faculty department matricNumber profileImage bio createdAt');
+      .select('name email role faculty department studyCenter matricNumber profileImage bio createdAt');
 
     if (!user) {
       return res.status(404).json({

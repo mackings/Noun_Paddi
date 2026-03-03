@@ -1,0 +1,127 @@
+.disclaimer-page {
+  min-height: calc(100vh - 70px);
+  padding: 32px 0 48px;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+}
+
+[data-theme="dark"] .disclaimer-page {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+}
+
+.disclaimer-hero {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 22px;
+  box-shadow: var(--shadow-lg);
+  padding: 32px;
+  margin-bottom: 28px;
+}
+
+.disclaimer-icon-wrap {
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.12);
+  margin-bottom: 16px;
+}
+
+.disclaimer-kicker {
+  margin: 0 0 8px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--primary-color);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.disclaimer-hero h1 {
+  margin: 0 0 16px;
+  font-size: 34px;
+  line-height: 1.2;
+  color: var(--text-primary);
+  font-family: 'Montserrat', sans-serif;
+}
+
+.disclaimer-hero p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+.disclaimer-section {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 18px;
+  box-shadow: var(--shadow-md);
+  padding: 28px;
+  margin-bottom: 22px;
+}
+
+.disclaimer-section h2 {
+  margin: 0 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 22px;
+  color: var(--text-primary);
+  font-family: 'Montserrat', sans-serif;
+}
+
+.disclaimer-section p {
+  margin: 0 0 12px;
+  color: var(--text-secondary);
+  line-height: 1.7;
+  font-size: 15px;
+}
+
+.disclaimer-section p:last-child {
+  margin-bottom: 0;
+}
+
+.disclaimer-section ul {
+  margin: 0 0 12px;
+  padding-left: 22px;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+.disclaimer-section li {
+  margin-bottom: 8px;
+}
+
+@media (max-width: 768px) {
+  .disclaimer-page {
+    padding: 22px 0 36px;
+  }
+
+  .disclaimer-hero,
+  .disclaimer-section {
+    padding: 22px 18px;
+    border-radius: 16px;
+  }
+
+  .disclaimer-hero h1 {
+    font-size: 28px;
+  }
+
+  .disclaimer-section h2 {
+    font-size: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .disclaimer-hero h1 {
+    font-size: 24px;
+  }
+
+  .disclaimer-hero p,
+  .disclaimer-section p,
+  .disclaimer-section ul {
+    font-size: 14px;
+  }
+}

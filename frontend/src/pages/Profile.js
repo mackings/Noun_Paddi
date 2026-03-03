@@ -4,6 +4,47 @@ import { FiCamera, FiUser, FiMail, FiBook, FiMapPin, FiLock, FiSave, FiLogOut, F
 import api from '../utils/api';
 import './Profile.css';
 
+const NIGERIA_STATES = [
+  'Abia',
+  'Adamawa',
+  'Akwa Ibom',
+  'Anambra',
+  'Bauchi',
+  'Bayelsa',
+  'Benue',
+  'Borno',
+  'Cross River',
+  'Delta',
+  'Ebonyi',
+  'Edo',
+  'Ekiti',
+  'Enugu',
+  'Gombe',
+  'Imo',
+  'Jigawa',
+  'Kaduna',
+  'Kano',
+  'Katsina',
+  'Kebbi',
+  'Kogi',
+  'Kwara',
+  'Lagos',
+  'Nasarawa',
+  'Niger',
+  'Ogun',
+  'Ondo',
+  'Osun',
+  'Oyo',
+  'Plateau',
+  'Rivers',
+  'Sokoto',
+  'Taraba',
+  'Yobe',
+  'Zamfara',
+  'Federal Capital Territory (FCT)',
+];
+const OTHER_STUDY_CENTER_OPTION = '__other__';
+
 const Profile = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -12,6 +53,10 @@ const Profile = () => {
   const [message, setMessage] = useState({ type: '', text: '' });
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
   const [reviewMessage, setReviewMessage] = useState({ type: '', text: '' });
+  const [showStudyCenterDialog, setShowStudyCenterDialog] = useState(false);
+  const [studyCenterSelection, setStudyCenterSelection] = useState('');
+  const [customStudyCenter, setCustomStudyCenter] = useState('');
+  const [studyCenterSaving, setStudyCenterSaving] = useState(false);
 
   const [profile, setProfile] = useState({
     name: '',
@@ -19,6 +64,7 @@ const Profile = () => {
     bio: '',
     faculty: '',
     department: '',
+    studyCenter: '',
     matricNumber: '',
     profileImage: '',
   });
@@ -39,6 +85,18 @@ const Profile = () => {
     details: '',
   });
 
+  const syncCachedUser = (updates) => {
+    try {
+      const cached = localStorage.getItem('user');
+      if (!cached) return;
+      const parsed = JSON.parse(cached);
+      const next = { ...parsed, ...updates };
+      localStorage.setItem('user', JSON.stringify(next));
+    } catch (error) {
+      // Ignore cache sync failures
+    }
+  };
+
   useEffect(() => {
     fetchProfile();
   }, []);
@@ -46,7 +104,14 @@ const Profile = () => {
   const fetchProfile = async () => {
     try {
       const response = await api.get('/users/profile');
-      setProfile(response.data.data);
+      const nextProfile = response.data.data || {};
+      setProfile(nextProfile);
+      const hasStudyCenter = String(nextProfile.studyCenter || '').trim().length > 0;
+      setShowStudyCenterDialog(!hasStudyCenter);
+      if (!hasStudyCenter) {
+        setStudyCenterSelection('');
+        setCustomStudyCenter('');
+      }
       setLoading(false);
     } catch (error) {
       console.error('Error fetching profile:', error);
@@ -93,6 +158,7 @@ const Profile = () => {
       formData.append('bio', profile.bio);
       formData.append('faculty', profile.faculty);
       formData.append('department', profile.department);
+      formData.append('studyCenter', profile.studyCenter);
       formData.append('matricNumber', profile.matricNumber);
 
       if (selectedImage) {
@@ -106,6 +172,10 @@ const Profile = () => {
       });
 
       setProfile(response.data.data);
+      if (String(response.data?.data?.studyCenter || '').trim()) {
+        setShowStudyCenterDialog(false);
+        syncCachedUser({ studyCenter: response.data.data.studyCenter });
+      }
       setImagePreview(null);
       setSelectedImage(null);
       setMessage({ type: 'success', text: 'Profile updated successfully!' });
@@ -198,6 +268,34 @@ const Profile = () => {
     }
   };
 
+  const handleStudyCenterDialogSave = async () => {
+    const resolvedStudyCenter =
+      studyCenterSelection === OTHER_STUDY_CENTER_OPTION
+        ? customStudyCenter.trim()
+        : studyCenterSelection.trim();
+
+    if (!resolvedStudyCenter) {
+      setMessage({ type: 'error', text: 'Please choose or enter your study center.' });
+      return;
+    }
+
+    try {
+      setStudyCenterSaving(true);
+      await api.put('/users/profile', { studyCenter: resolvedStudyCenter });
+      setProfile((prev) => ({ ...prev, studyCenter: resolvedStudyCenter }));
+      setShowStudyCenterDialog(false);
+      syncCachedUser({ studyCenter: resolvedStudyCenter });
+      setMessage({ type: 'success', text: 'Study center updated successfully.' });
+    } catch (error) {
+      setMessage({
+        type: 'error',
+        text: error.response?.data?.message || 'Failed to update study center.',
+      });
+    } finally {
+      setStudyCenterSaving(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="profile-container">
@@ -224,6 +322,61 @@ const Profile = () => {
         {message.text && (
           <div className={`message-banner ${message.type}`}>
             {message.text}
+          </div>
+        )}
+
+        {showStudyCenterDialog && (
+          <div className="study-center-dialog-overlay">
+            <div className="study-center-dialog" role="dialog" aria-modal="true">
+              <h3>Update Your Study Center</h3>
+              <p>
+                Your profile is missing a study center. Please update it so your account information is complete.
+              </p>
+              <div className="form-group">
+                <label htmlFor="studyCenterDialogSelect">
+                  <FiMapPin size={16} />
+                  Choose Study Center
+                </label>
+                <select
+                  id="studyCenterDialogSelect"
+                  value={studyCenterSelection}
+                  onChange={(e) => setStudyCenterSelection(e.target.value)}
+                >
+                  <option value="">Select your study center</option>
+                  {NIGERIA_STATES.map((state) => (
+                    <option key={state} value={state}>
+                      {state}
+                    </option>
+                  ))}
+                  <option value={OTHER_STUDY_CENTER_OPTION}>Other (write manually)</option>
+                </select>
+              </div>
+
+              {studyCenterSelection === OTHER_STUDY_CENTER_OPTION && (
+                <div className="form-group">
+                  <label htmlFor="customStudyCenterInput">
+                    <FiMapPin size={16} />
+                    Enter Study Center
+                  </label>
+                  <input
+                    id="customStudyCenterInput"
+                    type="text"
+                    value={customStudyCenter}
+                    onChange={(e) => setCustomStudyCenter(e.target.value)}
+                    placeholder="Type your study center"
+                  />
+                </div>
+              )}
+
+              <button
+                type="button"
+                className="save-button study-center-dialog-btn"
+                onClick={handleStudyCenterDialogSave}
+                disabled={studyCenterSaving}
+              >
+                {studyCenterSaving ? 'Saving...' : 'Save Study Center'}
+              </button>
+            </div>
           </div>
         )}
 
@@ -357,18 +510,41 @@ const Profile = () => {
                   </div>
                 </div>
 
-                <div className="form-group">
-                  <label htmlFor="matricNumber">
-                    <FiBook size={16} />
-                    Matric Number
-                  </label>
-                  <input
-                    type="text"
-                    id="matricNumber"
-                    name="matricNumber"
-                    value={profile.matricNumber}
-                    onChange={handleProfileChange}
-                  />
+                <div className="form-row">
+                  <div className="form-group">
+                    <label htmlFor="studyCenter">
+                      <FiMapPin size={16} />
+                      Study Center
+                    </label>
+                    <select
+                      id="studyCenter"
+                      name="studyCenter"
+                      value={profile.studyCenter || ''}
+                      onChange={handleProfileChange}
+                      required
+                    >
+                      <option value="">Select your study center</option>
+                      {NIGERIA_STATES.map((state) => (
+                        <option key={state} value={state}>
+                          {state}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="matricNumber">
+                      <FiBook size={16} />
+                      Matric Number
+                    </label>
+                    <input
+                      type="text"
+                      id="matricNumber"
+                      name="matricNumber"
+                      value={profile.matricNumber}
+                      onChange={handleProfileChange}
+                    />
+                  </div>
                 </div>
 
                 <button type="submit" className="save-button" disabled={saving}>
