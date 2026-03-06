@@ -4,6 +4,10 @@ const {
   normalizeEmail,
   isValidEmailWithAllowlist,
   isValidName,
+  isValidProfileText,
+  isValidStudyCenter,
+  normalizeMatricNumber,
+  isValidMatricNumber,
   validateStrongPassword,
 } = require('../utils/securityValidation');
 
@@ -41,12 +45,91 @@ exports.validateSignupInput = (req, res, next) => {
     return fail(res, passwordCheck.message);
   }
 
+  const safeFaculty = sanitizeText(faculty);
+  const safeDepartment = sanitizeText(department);
+  const safeStudyCenter = sanitizeText(studyCenter);
+  const safeMatricNumber = normalizeMatricNumber(matricNumber);
+
+  if (!isValidProfileText(safeFaculty)) {
+    return fail(res, 'Select or enter a valid faculty');
+  }
+  if (!isValidProfileText(safeDepartment)) {
+    return fail(res, 'Select or enter a valid department');
+  }
+  if (!isValidStudyCenter(safeStudyCenter)) {
+    return fail(res, 'Select a valid study center');
+  }
+  if (!isValidMatricNumber(safeMatricNumber)) {
+    return fail(res, 'Enter a valid matric number');
+  }
+
   req.body.name = safeName;
   req.body.email = safeEmail;
-  req.body.faculty = sanitizeText(faculty);
-  req.body.department = sanitizeText(department);
-  req.body.studyCenter = sanitizeText(studyCenter);
-  req.body.matricNumber = sanitizeText(matricNumber);
+  req.body.faculty = safeFaculty;
+  req.body.department = safeDepartment;
+  req.body.studyCenter = safeStudyCenter;
+  req.body.matricNumber = safeMatricNumber;
+  return next();
+};
+
+exports.validateProfileUpdateInput = (req, res, next) => {
+  const { name, bio, faculty, department, studyCenter, matricNumber } = req.body || {};
+
+  if (
+    hasDangerousPattern(name) ||
+    hasDangerousPattern(bio) ||
+    hasDangerousPattern(faculty) ||
+    hasDangerousPattern(department) ||
+    hasDangerousPattern(studyCenter) ||
+    hasDangerousPattern(matricNumber)
+  ) {
+    return fail(res, 'Invalid characters detected in profile fields');
+  }
+
+  if (name !== undefined) {
+    const safeName = sanitizeText(name);
+    if (!isValidName(safeName)) {
+      return fail(res, 'Enter a valid full name (letters, spaces, apostrophe, hyphen only)');
+    }
+    req.body.name = safeName;
+  }
+
+  if (bio !== undefined) {
+    req.body.bio = sanitizeText(bio).slice(0, 500);
+  }
+
+  if (faculty !== undefined) {
+    const safeFaculty = sanitizeText(faculty);
+    if (!isValidProfileText(safeFaculty)) {
+      return fail(res, 'Select or enter a valid faculty');
+    }
+    req.body.faculty = safeFaculty;
+  }
+
+  if (department !== undefined) {
+    const safeDepartment = sanitizeText(department);
+    if (!isValidProfileText(safeDepartment)) {
+      return fail(res, 'Select or enter a valid department');
+    }
+    req.body.department = safeDepartment;
+  }
+
+  if (studyCenter !== undefined) {
+    const safeStudyCenter = sanitizeText(studyCenter);
+    if (!isValidStudyCenter(safeStudyCenter)) {
+      return fail(res, 'Select a valid study center');
+    }
+    req.body.studyCenter = safeStudyCenter;
+  }
+
+  if (matricNumber !== undefined) {
+    const safeMatricNumber = normalizeMatricNumber(matricNumber);
+    if (!isValidMatricNumber(safeMatricNumber)) {
+      return fail(res, 'Enter a valid matric number');
+    }
+    req.body.matricNumber = safeMatricNumber;
+  }
+
   return next();
 };
 

@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import api from '../utils/api';
 import SEO from '../components/SEO';
 import { FiUser, FiMail, FiLock, FiBook, FiHash, FiFileText, FiMapPin, FiEye, FiEyeOff } from 'react-icons/fi';
 import './Auth.css';
@@ -79,6 +80,21 @@ const isValidName = (name) => {
   return /^[a-zA-Z][a-zA-Z\s'.-]{1,79}$/.test(normalized);
 };
 
+const isValidProfileText = (value) => {
+  const normalized = normalizeText(value);
+  if (normalized.length < 3 || normalized.length > 80) return false;
+  return /^[a-zA-Z][a-zA-Z\s'&().,-]{2,79}$/.test(normalized);
+};
+
+const normalizeMatricNumber = (value) => normalizeText(value).toUpperCase();
+
+const isValidMatricNumber = (value) => {
+  const normalized = normalizeMatricNumber(value);
+  if (normalized.length < 6 || normalized.length > 24) return false;
+  if (!/[A-Z]/.test(normalized) || !/[0-9]/.test(normalized)) return false;
+  return /^[A-Z0-9/-]+$/.test(normalized);
+};
+
 const validateStrongPassword = (password) => {
   const raw = String(password || '');
   if (raw.length < 8) return 'Password must be at least 8 characters long';
@@ -103,9 +119,43 @@ const Signup = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [faculties, setFaculties] = useState([]);
+  const [departments, setDepartments] = useState([]);
   const { signup } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+    const fetchFaculties = async () => {
+      try {
+        const response = await api.get('/faculties');
+        setFaculties(Array.isArray(response.data?.data) ? response.data.data : []);
+      } catch (err) {
+        console.error('Error fetching faculties:', err);
+      }
+    };
+
+    fetchFaculties();
+  }, []);
+
+  useEffect(() => {
+    const fetchDepartments = async () => {
+      if (!formData.faculty) {
+        setDepartments([]);
+        return;
+      }
+
+      try {
+        const response = await api.get(`/faculties/${formData.faculty}/departments`);
+        setDepartments(Array.isArray(response.data?.data) ? response.data.data : []);
+      } catch (err) {
+        console.error('Error fetching departments:', err);
+        setDepartments([]);
+      }
+    };
+
+    fetchDepartments();
+  }, [formData.faculty]);
 
   const getSafeRedirect = () => {
     const params = new URLSearchParams(location.search);
@@ -116,9 +166,11 @@ const Signup = () => {
   };
 
   const handleChange = (e) => {
+    const { name, value } = e.target;
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value,
+      [name]: value,
+      ...(name === 'faculty' ? { department: '' } : {}),
     });
   };
 
@@ -128,6 +180,10 @@ const Signup = () => {
 
     const safeName = normalizeText(formData.name);
     const safeEmail = normalizeText(formData.email).toLowerCase();
+    const selectedFaculty = faculties.find((faculty) => faculty._id === formData.faculty);
+    const selectedDepartment = departments.find((department) => department._id === formData.department);
+    const facultyLabel = normalizeText(selectedFaculty?.name || '');
+    const departmentLabel = normalizeText(selectedDepartment?.name || '');
 
     if (hasDangerousPattern(formData.name) || hasDangerousPattern(formData.email)) {
       setError('Invalid characters detected in signup fields');
@@ -144,6 +200,27 @@ const Signup = () => {
       return;
     }
 
+    if (!isValidProfileText(facultyLabel)) {
+      setError('Select a valid faculty');
+      return;
+    }
+
+    if (!isValidProfileText(departmentLabel)) {
+      setError('Select a valid department');
+      return;
+    }
+
+    if (!NIGERIA_STATES.includes(formData.studyCenter)) {
+      setError('Select a valid study center');
+      return;
+    }
+
+    const safeMatricNumber = normalizeMatricNumber(formData.matricNumber);
+    if (!isValidMatricNumber(safeMatricNumber)) {
+      setError('Enter a valid matric number');
+      return;
+    }
+
     const passwordMessage = validateStrongPassword(formData.password);
     if (passwordMessage) {
       setError(passwordMessage);
@@ -157,6 +234,9 @@ const Signup = () => {
         ...formData,
         name: safeName,
         email: safeEmail,
+        faculty: facultyLabel,
+        department: departmentLabel,
+        matricNumber: safeMatricNumber,
       });
       const redirect = getSafeRedirect();
       if (redirect) {
@@ -225,6 +305,27 @@ const Signup = () => {
           {formData.role === 'student' && (
             <>
               <div className="form-group">
+                <label className="form-label">Faculty</label>
+                <div className="input-group">
+                  <FiBook className="input-icon" size={20} />
+                  <select
+                    name="faculty"
+                    className="form-control"
+                    value={formData.faculty}
+                    onChange={handleChange}
+                    required
+                  >
+                    <option value="">Select your faculty</option>
+                    {faculties.map((faculty) => (
+                      <option key={faculty._id} value={faculty._id}>
+                        {faculty.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-group">
                 <label className="form-label">Matric Number</label>
                 <div className="input-group">
                   <FiHash className="input-icon" size={20} />
@@ -234,7 +335,10 @@ const Signup = () => {
                     className="form-control"
                     value={formData.matricNumber}
                     onChange={handleChange}
-                    placeholder="e.g., NOU/123456"
+                    placeholder="e.g., NOUN/CSC/23/123456"
+                    minLength={6}
+                    maxLength={24}
+                    required
                   />
                 </div>
               </div>
@@ -244,14 +348,21 @@ const Signup = () => {
                   <label className="form-label">Department</label>
                   <div className="input-group">
                     <FiFileText className="input-icon" size={20} />
-                    <input
-                      type="text"
+                    <select
                       name="department"
                       className="form-control"
                       value={formData.department}
                       onChange={handleChange}
-                      placeholder="e.g., Computer Science"
-                    />
+                      required
+                      disabled={!formData.faculty}
+                    >
+                      <option value="">{formData.faculty ? 'Select your department' : 'Select faculty first'}</option>
+                      {departments.map((department) => (
+                        <option key={department._id} value={department._id}>
+                          {department.name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
                 <div className="form-group">

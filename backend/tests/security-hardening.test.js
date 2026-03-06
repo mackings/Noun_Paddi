@@ -6,6 +6,10 @@ const {
   normalizeEmail,
   isValidEmailWithAllowlist,
   isValidName,
+  isValidProfileText,
+  isValidStudyCenter,
+  normalizeMatricNumber,
+  isValidMatricNumber,
   validateStrongPassword,
 } = require('../utils/securityValidation');
 const { validateSignupInput } = require('../middleware/requestValidation');
@@ -37,16 +41,25 @@ test('password policy requires complexity', () => {
   assert.equal(validateStrongPassword('Password1!').valid, true);
 });
 
-test('signup middleware normalizes body and blocks malicious input', () => {
+test('profile validators reject placeholder text and weak matric numbers', () => {
+  assert.equal(isValidProfileText('Computer Science'), true);
+  assert.equal(isValidProfileText('N/A'), false);
+  assert.equal(isValidStudyCenter('Bauchi'), true);
+  assert.equal(isValidStudyCenter('Mars'), false);
+  assert.equal(isValidMatricNumber(normalizeMatricNumber('NOUN/CSC/23/123456')), true);
+  assert.equal(isValidMatricNumber(normalizeMatricNumber('ABC70')), false);
+});
+
+test('signup middleware normalizes body and accepts complete profile data', () => {
   const req = {
     body: {
       name: '  Jane   Doe ',
       email: 'JANE@EXAMPLE.COM ',
       password: 'Password1!',
-      faculty: '',
-      department: '',
-      studyCenter: '',
-      matricNumber: '',
+      faculty: 'Faculty of Science',
+      department: 'Computer Science',
+      studyCenter: 'Bauchi',
+      matricNumber: 'noun/csc/23/123456',
     },
   };
 
@@ -72,4 +85,40 @@ test('signup middleware normalizes body and blocks malicious input', () => {
   assert.equal(calledNext, true);
   assert.equal(req.body.name, 'Jane Doe');
   assert.equal(req.body.email, normalizeEmail('JANE@EXAMPLE.COM '));
+  assert.equal(req.body.matricNumber, 'NOUN/CSC/23/123456');
+});
+
+test('signup middleware blocks incomplete or placeholder profile data', () => {
+  const req = {
+    body: {
+      name: 'Jane Doe',
+      email: 'jane@example.com',
+      password: 'Password1!',
+      faculty: '',
+      department: 'Ctc',
+      studyCenter: 'Bauchi',
+      matricNumber: 'ABC70',
+    },
+  };
+
+  let statusCode = 200;
+  const res = {
+    status(code) {
+      statusCode = code;
+      return this;
+    },
+    json(payload) {
+      this.payload = payload;
+      return this;
+    },
+  };
+
+  let calledNext = false;
+  const next = () => {
+    calledNext = true;
+  };
+
+  validateSignupInput(req, res, next);
+  assert.equal(statusCode, 400);
+  assert.equal(calledNext, false);
 });

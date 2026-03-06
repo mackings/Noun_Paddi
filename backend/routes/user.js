@@ -10,9 +10,10 @@ const {
 } = require('../controllers/userController');
 const { protect, authorize } = require('../middleware/auth');
 const { profileImageUpload } = require('../config/cloudinary');
+const { validateProfileUpdateInput } = require('../middleware/requestValidation');
 
 router.get('/profile', protect, getProfile);
-router.put('/profile', protect, profileImageUpload.single('profileImage'), updateProfile);
+router.put('/profile', protect, profileImageUpload.single('profileImage'), validateProfileUpdateInput, updateProfile);
 router.put('/update-password', protect, updatePassword);
 router.delete('/profile-image', protect, deleteProfileImage);
 router.get('/', protect, authorize('admin'), getUsers);

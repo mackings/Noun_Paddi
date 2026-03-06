@@ -37,6 +37,8 @@ const getHostname = (value) => {
 const configuredOrigins = [
   process.env.FRONTEND_URL,
   ...(process.env.CORS_ORIGINS || '').split(','),
+  'https://nounpaddi.vercel.app',
+  'https://www.nounpaddi.vercel.app',
   'https://paddi.com.ng',
   'https://www.paddi.com.ng',
 ].filter(Boolean).map(normalizeOrigin);
@@ -48,6 +50,10 @@ const allowedHostnames = new Set(
     .filter(Boolean)
 );
 const allowVercelPreviews = String(process.env.ALLOW_VERCEL_PREVIEWS || '').toLowerCase() === 'true';
+const trustedVercelHostPatterns = [
+  /^nounpaddi(?:-[a-z0-9-]+)?\.vercel\.app$/i,
+  /^noun-paddi(?:-[a-z0-9-]+)?\.vercel\.app$/i,
+];
 
 // Enable CORS - Allow all Vercel deployments and localhost
 const corsOptions = {
@@ -65,6 +71,11 @@ const corsOptions = {
 
     // Allow Vercel preview deployments only when explicitly enabled.
     if (allowVercelPreviews && (hostname === 'vercel.app' || hostname.endsWith('.vercel.app'))) {
+      return callback(null, true);
+    }
+
+    // Allow this project's Vercel production/preview frontends even if env vars are missing.
+    if (trustedVercelHostPatterns.some((pattern) => pattern.test(hostname))) {
       return callback(null, true);
     }
 

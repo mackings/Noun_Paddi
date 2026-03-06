@@ -2,6 +2,58 @@ const ALLOWED_EMAIL_TLDS = new Set([
   'com', 'org', 'net', 'edu', 'gov', 'ng', 'co', 'io', 'info', 'me', 'app',
 ]);
 
+const NIGERIA_STUDY_CENTERS = new Set([
+  'Abia',
+  'Adamawa',
+  'Akwa Ibom',
+  'Anambra',
+  'Bauchi',
+  'Bayelsa',
+  'Benue',
+  'Borno',
+  'Cross River',
+  'Delta',
+  'Ebonyi',
+  'Edo',
+  'Ekiti',
+  'Enugu',
+  'Gombe',
+  'Imo',
+  'Jigawa',
+  'Kaduna',
+  'Kano',
+  'Katsina',
+  'Kebbi',
+  'Kogi',
+  'Kwara',
+  'Lagos',
+  'Nasarawa',
+  'Niger',
+  'Ogun',
+  'Ondo',
+  'Osun',
+  'Oyo',
+  'Plateau',
+  'Rivers',
+  'Sokoto',
+  'Taraba',
+  'Yobe',
+  'Zamfara',
+  'Federal Capital Territory (FCT)',
+]);
+
+const DISALLOWED_PLACEHOLDERS = new Set([
+  'n/a',
+  'na',
+  'none',
+  'nil',
+  'null',
+  'undefined',
+  'tbd',
+  'test',
+  'unknown',
+]);
+
 const sanitizeText = (value) => String(value || '')
   .replace(/<[^>]*>/g, '')
   .replace(/[\u0000-\u001F\u007F]/g, ' ')
@@ -28,6 +80,25 @@ const isValidName = (name) => {
   return /^[a-zA-Z][a-zA-Z\s'.-]{1,79}$/.test(normalized);
 };
 
+const isValidProfileText = (value, { min = 3, max = 80 } = {}) => {
+  const normalized = sanitizeText(value);
+  if (normalized.length < min || normalized.length > max) return false;
+  if (DISALLOWED_PLACEHOLDERS.has(normalized.toLowerCase())) return false;
+  return /^[a-zA-Z][a-zA-Z\s'&().,-]{2,79}$/.test(normalized);
+};
+
+const isValidStudyCenter = (value) => NIGERIA_STUDY_CENTERS.has(sanitizeText(value));
+
+const normalizeMatricNumber = (value) => sanitizeText(value).toUpperCase();
+
+const isValidMatricNumber = (value) => {
+  const normalized = normalizeMatricNumber(value);
+  if (normalized.length < 6 || normalized.length > 24) return false;
+  if (DISALLOWED_PLACEHOLDERS.has(normalized.toLowerCase())) return false;
+  if (!/[A-Z]/.test(normalized) || !/[0-9]/.test(normalized)) return false;
+  return /^[A-Z0-9/-]+$/.test(normalized);
+};
+
 const validateStrongPassword = (password) => {
   const raw = String(password || '');
   if (raw.length < 8) {
@@ -50,10 +121,15 @@ const validateStrongPassword = (password) => {
 
 module.exports = {
   ALLOWED_EMAIL_TLDS,
+  NIGERIA_STUDY_CENTERS,
   sanitizeText,
   hasDangerousPattern,
   normalizeEmail,
   isValidEmailWithAllowlist,
   isValidName,
+  isValidProfileText,
+  isValidStudyCenter,
+  normalizeMatricNumber,
+  isValidMatricNumber,
   validateStrongPassword,
 };
