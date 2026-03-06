@@ -41,6 +41,7 @@ const formatBytes = (bytes) => {
 
 const StudentDashboard = () => {
   const [stats, setStats] = useState(null);
+  const [gamificationData, setGamificationData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [uploadStep, setUploadStep] = useState(1); // 1: Faculty, 2: Department, 3: Course, 4: Material, 5: Processing
@@ -87,6 +88,7 @@ const StudentDashboard = () => {
 
   useEffect(() => {
     fetchStats();
+    fetchGamificationDashboard();
     fetchFaculties();
     fetchUploadStats();
     trackFeatureVisit('dashboard');
@@ -162,6 +164,16 @@ const StudentDashboard = () => {
     } catch (error) {
       console.error('Error fetching stats:', error);
       setLoading(false);
+    }
+  };
+
+  const fetchGamificationDashboard = async () => {
+    try {
+      const response = await api.get('/gamification/dashboard');
+      setGamificationData(response.data.data);
+    } catch (error) {
+      console.error('Error fetching gamification dashboard:', error);
+      setGamificationData(null);
     }
   };
 
@@ -347,6 +359,7 @@ const StudentDashboard = () => {
         });
         fetchUploadStats();
         fetchStats();
+        fetchGamificationDashboard();
         navigateToUploadedCourse();
         if (!completionBeepedRef.current) {
           completionBeepedRef.current = true;
@@ -376,6 +389,7 @@ const StudentDashboard = () => {
       });
       fetchUploadStats();
       fetchStats();
+      fetchGamificationDashboard();
       if (hasMinimumQuestions || hasAllQuestions) {
         navigateToUploadedCourse();
       }
@@ -801,6 +815,27 @@ const StudentDashboard = () => {
     }
   };
 
+  const describeActivity = (activity) => {
+    if (!activity) return 'Activity';
+    if (activity.type === 'practice_attempt') {
+      const scoreText = activity.score?.max
+        ? `${activity.score?.value || 0}/${activity.score.max}`
+        : `${activity.score?.percentage?.toFixed ? activity.score.percentage.toFixed(1) : 0}%`;
+      return `Practice attempt (${scoreText})`;
+    }
+    if (activity.type === 'summary_completion') {
+      return 'Summary completed';
+    }
+    return 'Activity';
+  };
+
+  const rankLabel = (rank) => {
+    if (rank === 1) return '🥇';
+    if (rank === 2) return '🥈';
+    if (rank === 3) return '🥉';
+    return `#${rank}`;
+  };
+
   if (loading) {
     return (
       <div className="student-dashboard-container">
@@ -893,86 +928,112 @@ const StudentDashboard = () => {
           </div>
         </div>
 
-        {/* Learning Progress */}
-        <div className="modern-section learning-progress-section">
-          <div className="section-header">
-            <div className="section-title-group">
-              <FiTrendingUp size={24} className="section-icon" />
-              <div>
-                <h2>Analytics</h2>
-                <p>Track your study journey and achievements</p>
+        {gamificationData && (
+          <div className="modern-section gamification-section">
+            <div className="section-header">
+              <div className="section-title-group">
+                <FiAward size={24} className="section-icon" />
+                <div>
+                  <h2>Gamification</h2>
+                  <p>Your points, activity, and leaderboard position</p>
+                </div>
               </div>
+            </div>
+
+            <div className="gamification-totals-grid">
+              <div className="gamification-total-card">
+                <h3>{gamificationData?.totals?.totalPoints || 0}</h3>
+                <p>Total Points</p>
+              </div>
+              <div className="gamification-total-card">
+                <h3>{gamificationData?.totals?.practicePoints || 0}</h3>
+                <p>Practice Points</p>
+              </div>
+              <div className="gamification-total-card">
+                <h3>{gamificationData?.totals?.readingPoints || 0}</h3>
+                <p>Reading Points</p>
+              </div>
+              <div className="gamification-total-card">
+                <h3>{gamificationData?.totals?.summariesCompleted || 0}</h3>
+                <p>Summaries Completed</p>
+              </div>
+            </div>
+
+            <div className="gamification-content-grid">
+              <div className="gamification-card overall-toppers-card">
+                <div className="overall-toppers-header">
+                  <h3>Overall Toppers</h3>
+                  <p>Top students by total gamification points</p>
+                </div>
+                <div className="overall-toppers-table">
+                  <div className="overall-toppers-row overall-toppers-head">
+                    <span>Rank</span>
+                    <span>Student</span>
+                    <span>Points</span>
+                    <span>Activities</span>
+                  </div>
+                  {(gamificationData?.leaderboards?.overall || []).slice(0, 10).map((entry) => (
+                    <div key={`${entry.studentId}-overall`} className={`overall-toppers-row ${entry.isMe ? 'is-me' : ''}`}>
+                      <span>{rankLabel(entry.rank)}</span>
+                      <span>{entry.studentName}</span>
+                      <strong>{entry.totalPoints}</strong>
+                      <span>{entry.attempts || 0}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="gamification-side-stack">
+                <div className="gamification-card">
+                  <h3>Practice Leaders</h3>
+                  <div className="gamification-leaderboard-list">
+                    {(gamificationData?.leaderboards?.practice || []).slice(0, 5).map((entry) => (
+                      <div key={`${entry.studentId}-practice`} className={`leaderboard-mini-row ${entry.isMe ? 'is-me' : ''}`}>
+                        <span>{rankLabel(entry.rank)} {entry.studentName}</span>
+                        <strong>{entry.totalPoints} pts</strong>
+                      </div>
+                    ))}
+                  </div>
+
+                  <h3>Top Readers</h3>
+                  <div className="gamification-leaderboard-list">
+                    {(gamificationData?.leaderboards?.readers || []).slice(0, 5).map((entry) => (
+                      <div key={`${entry.studentId}-readers`} className={`leaderboard-mini-row ${entry.isMe ? 'is-me' : ''}`}>
+                        <span>{rankLabel(entry.rank)} {entry.studentName}</span>
+                        <strong>{entry.totalPoints} pts</strong>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="gamification-card">
+              <h3>Recent Activity</h3>
+              {gamificationData?.recentActivities?.length > 0 ? (
+                <div className="gamification-activity-list">
+                  {gamificationData.recentActivities.slice(0, 8).map((activity) => (
+                    <div key={activity._id} className="gamification-activity-item">
+                      <div>
+                        <strong>{describeActivity(activity)}</strong>
+                        <p>
+                          {activity.course
+                            ? `${activity.course.courseCode} - ${activity.course.courseName}`
+                            : 'General activity'}
+                        </p>
+                      </div>
+                      <div className="gamification-points-chip">
+                        +{activity.points || 0}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="gamification-empty-text">No activity yet. Start practicing or complete a summary.</p>
+              )}
             </div>
           </div>
-
-          <div className="progress-cards-grid">
-            <div className="modern-progress-card card-summaries">
-              <div className="progress-card-header">
-                <div className="progress-icon-wrapper">
-                  <FiBook size={20} />
-                </div>
-                <div className="progress-stats">
-                  <span className="progress-percentage">{stats?.overview?.materialWithSummaries || 0}%</span>
-                  <span className="progress-label">Completion</span>
-                </div>
-              </div>
-              <h3>Materials with Summaries</h3>
-              <div className="modern-progress-bar">
-                <div
-                  className="modern-progress-fill fill-blue"
-                  style={{ width: `${stats?.overview?.materialWithSummaries || 0}%` }}
-                >
-                  <span className="progress-shimmer"></span>
-                </div>
-              </div>
-              <div className="progress-footer">
-                <span>{stats?.overview?.totalSummaries || 0} of {stats?.overview?.totalMaterials || 0} materials</span>
-              </div>
-            </div>
-
-            <div className="modern-progress-card card-questions">
-              <div className="progress-card-header">
-                <div className="progress-icon-wrapper">
-                  <FiGrid size={20} />
-                </div>
-                <div className="progress-stats">
-                  <span className="progress-percentage">{stats?.overview?.totalQuestions || 0}</span>
-                  <span className="progress-label">Questions</span>
-                </div>
-              </div>
-              <h3>Practice Questions Available</h3>
-              <div className="modern-progress-bar">
-                <div className="modern-progress-fill fill-green" style={{ width: '100%' }}>
-                  <span className="progress-shimmer"></span>
-                </div>
-              </div>
-              <div className="progress-footer">
-                <span>Avg {stats?.overview?.avgQuestionsPerCourse || 0} per course</span>
-              </div>
-            </div>
-
-            <div className="modern-progress-card card-courses">
-              <div className="progress-card-header">
-                <div className="progress-icon-wrapper">
-                  <FiBook size={20} />
-                </div>
-                <div className="progress-stats">
-                  <span className="progress-percentage">{stats?.overview?.totalCourses || 0}</span>
-                  <span className="progress-label">Courses</span>
-                </div>
-              </div>
-              <h3>Available Courses</h3>
-              <div className="modern-progress-bar">
-                <div className="modern-progress-fill fill-purple" style={{ width: '100%' }}>
-                  <span className="progress-shimmer"></span>
-                </div>
-              </div>
-              <div className="progress-footer">
-                <span>Ready to explore</span>
-              </div>
-            </div>
-          </div>
-        </div>
+        )}
 
         {/* Recent Materials */}
         <div className="modern-section recent-materials-section">

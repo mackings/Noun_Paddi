@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
 import api from '../utils/api';
 import { formatDate } from '../utils/dateHelper';
@@ -16,6 +16,16 @@ import {
 } from 'react-icons/fi';
 import './CourseDetail.css';
 
+const READING_ACTIVITY_TIMEOUT_MS = 15000;
+const READING_TICK_MS = 1000;
+
+const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+
+const estimateRequiredActiveSeconds = (wordCount) => {
+  const expectedSeconds = wordCount > 0 ? Math.round((wordCount / 220) * 60) : 45;
+  return clamp(Math.round(expectedSeconds * 0.45), 45, 240);
+};
+
 const CourseDetail = () => {
   const { courseId } = useParams();
   const location = useLocation();
@@ -25,6 +35,10 @@ const CourseDetail = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('summaries');
   const [shareState, setShareState] = useState({ loading: false, message: '', type: '' });
+  const [readingStatus, setReadingStatus] = useState('');
+  const summaryContentRef = useRef(null);
+  const sectionRefs = useRef([]);
+  const readingSessionRef = useRef(null);
 
   useEffect(() => {
     fetchCourseDetails();
@@ -64,6 +78,179 @@ const CourseDetail = () => {
       window.removeEventListener('beforeprint', handleBeforePrint);
     };
   }, []);
+
+  const summarySections = useMemo(() => {
+    if (!selectedMaterial?.hasSummary || !selectedMaterial?.summary) {
+      return [];
+    }
+    return splitSummaryIntoSections(selectedMaterial.summary);
+  }, [selectedMaterial?.hasSummary, selectedMaterial?.summary]);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const material = selectedMaterial;
+    const container = summaryContentRef.current;
+    const canTrack = Boolean(
+      token &&
+      activeTab === 'summaries' &&
+      material?._id &&
+      material?.hasSummary &&
+      container &&
+      summarySections.length > 0
+    );
+
+    if (!canTrack) {
+      setReadingStatus('');
+      return;
+    }
+
+    sectionRefs.current = sectionRefs.current.slice(0, summarySections.length);
+    const wordCount = String(material.summary || '').trim().split(/\s+/).filter(Boolean).length;
+    const requiredActiveSeconds = estimateRequiredActiveSeconds(wordCount);
+
+    const session = {
+      sessionId: `${material._id}:${Date.now()}:${Math.random().toString(36).slice(2, 10)}`,
+      materialId: material._id,
+      startedAt: Date.now(),
+      activeMs: 0,
+      lastInteractionAt: Date.now(),
+      interactionCount: 0,
+      maxScrollDepth: 0,
+      seenSections: new Set(),
+      submitted: false,
+      wordCount,
+      requiredActiveSeconds,
+    };
+    readingSessionRef.current = session;
+    setReadingStatus(`Reading progress is being tracked. Minimum active reading time: ${requiredActiveSeconds}s.`);
+
+    const markInteraction = () => {
+      if (!readingSessionRef.current) return;
+      const now = Date.now();
+      readingSessionRef.current.lastInteractionAt = now;
+      readingSessionRef.current.interactionCount += 1;
+    };
+
+    const updateScrollDepth = () => {
+      if (!readingSessionRef.current || !container) return;
+      const scrollableHeight = Math.max(container.scrollHeight - container.clientHeight, 0);
+      const viewportDepth = container.scrollHeight > 0
+        ? (container.scrollTop + container.clientHeight) / container.scrollHeight
+        : 0;
+      const depthByScroll = scrollableHeight > 0 ? container.scrollTop / scrollableHeight : 1;
+      const depth = Math.max(depthByScroll, viewportDepth);
+      readingSessionRef.current.maxScrollDepth = Math.max(
+        readingSessionRef.current.maxScrollDepth,
+        clamp(depth, 0, 1)
+      );
+    };
+
+    const maybeSubmitCompletion = async () => {
+      const current = readingSessionRef.current;
+      if (!current || current.submitted) return;
+
+      const totalSections = summarySections.length;
+      const sectionCoverage = totalSections > 0 ? current.seenSections.size / totalSections : 0;
+      const activeSeconds = Math.floor(current.activeMs / 1000);
+
+      const complete =
+        sectionCoverage >= 0.9 &&
+        current.maxScrollDepth >= 0.95 &&
+        activeSeconds >= current.requiredActiveSeconds &&
+        current.interactionCount >= 8;
+
+      if (!complete) return;
+
+      current.submitted = true;
+      try {
+        const response = await api.post('/gamification/reading/complete', {
+          courseId,
+          materialId: current.materialId,
+          metrics: {
+            sessionId: current.sessionId,
+            wordCount: current.wordCount,
+            activeSeconds,
+            scrollDepth: Number(current.maxScrollDepth.toFixed(4)),
+            sectionCoverage: Number(sectionCoverage.toFixed(4)),
+            interactionCount: current.interactionCount,
+          },
+        });
+
+        const result = response?.data?.data;
+        if (result?.alreadyAwarded) {
+          setReadingStatus('Summary already counted for points.');
+        } else if ((result?.pointsAwarded || 0) > 0) {
+          setReadingStatus(`Summary completed. +${result.pointsAwarded} points added.`);
+        } else {
+          setReadingStatus('Summary completion saved.');
+        }
+      } catch (error) {
+        current.submitted = false;
+        console.error('Failed to submit reading completion:', error);
+      }
+    };
+
+    const handleScroll = () => {
+      markInteraction();
+      updateScrollDepth();
+      maybeSubmitCompletion();
+    };
+
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    container.addEventListener('wheel', markInteraction, { passive: true });
+    container.addEventListener('touchmove', markInteraction, { passive: true });
+    container.addEventListener('mousemove', markInteraction);
+    container.addEventListener('keydown', markInteraction);
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (!readingSessionRef.current) return;
+          if (entry.isIntersecting && entry.intersectionRatio >= 0.65) {
+            const index = Number(entry.target.getAttribute('data-section-index'));
+            if (Number.isFinite(index)) {
+              readingSessionRef.current.seenSections.add(index);
+            }
+          }
+        });
+        maybeSubmitCompletion();
+      },
+      {
+        root: container,
+        threshold: [0.65],
+      }
+    );
+
+    sectionRefs.current.forEach((node) => {
+      if (node) observer.observe(node);
+    });
+
+    const ticker = window.setInterval(() => {
+      const current = readingSessionRef.current;
+      if (!current) return;
+      const now = Date.now();
+      if (
+        document.visibilityState === 'visible' &&
+        now - current.lastInteractionAt <= READING_ACTIVITY_TIMEOUT_MS
+      ) {
+        current.activeMs += READING_TICK_MS;
+      }
+      maybeSubmitCompletion();
+    }, READING_TICK_MS);
+
+    updateScrollDepth();
+
+    return () => {
+      container.removeEventListener('scroll', handleScroll);
+      container.removeEventListener('wheel', markInteraction);
+      container.removeEventListener('touchmove', markInteraction);
+      container.removeEventListener('mousemove', markInteraction);
+      container.removeEventListener('keydown', markInteraction);
+      observer.disconnect();
+      window.clearInterval(ticker);
+      readingSessionRef.current = null;
+    };
+  }, [activeTab, courseId, selectedMaterial, summarySections]);
 
   const blockCopy = (event) => {
     event.preventDefault();
@@ -292,6 +479,11 @@ const CourseDetail = () => {
                           {shareState.message}
                         </div>
                       )}
+                      {readingStatus && (
+                        <div className="alert alert-success">
+                          {readingStatus}
+                        </div>
+                      )}
 
                       <div className="summary-meta">
                         <span>
@@ -307,6 +499,7 @@ const CourseDetail = () => {
                       {selectedMaterial.hasSummary ? (
                         <div
                           className="summary-content"
+                          ref={summaryContentRef}
                           onCopy={blockCopy}
                           onCut={blockCopy}
                           onPaste={blockCopy}
@@ -314,8 +507,15 @@ const CourseDetail = () => {
                           onKeyDown={blockCopyShortcuts}
                           tabIndex={0}
                         >
-                          {splitSummaryIntoSections(selectedMaterial.summary).map((section, index) => (
-                            <div key={index} className="summary-section">
+                          {summarySections.map((section, index) => (
+                            <div
+                              key={index}
+                              className="summary-section"
+                              data-section-index={index}
+                              ref={(node) => {
+                                sectionRefs.current[index] = node;
+                              }}
+                            >
                               {section.title && <h3 className="section-title">{formatLine(section.title)}</h3>}
                               <div className="section-content">
                                 {section.content.split('\n').map((line, lineIndex) => {

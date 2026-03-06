@@ -45,8 +45,8 @@ const Navbar = () => {
                     <Link to="/dashboard" className="nav-link">Dashboard</Link>
                     <Link to="/explore" className="nav-link">Courses</Link>
                     <Link to="/practice" className="nav-link">Practice Exam</Link>
-                    <Link to="/it-placement" className="nav-link">IT Placement</Link>
-                    <Link to="/reminders" className="nav-link"><FiBell size={16} /> Reminders</Link>
+                    <Link to="/it-placement" className="nav-link">Siwes</Link>
+                    <Link to="/reminders" className="nav-link"><FiBell size={16} /> Alarms</Link>
                     <div
                       className={`nav-dropdown ${projectsMenuOpen ? 'open' : ''}`}
                       onMouseEnter={() => setProjectsMenuOpen(true)}
@@ -160,10 +160,10 @@ const Navbar = () => {
                       Practice Exam
                     </Link>
                     <Link to="/it-placement" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>
-                      IT Placement
+                      Siwes
                     </Link>
                     <Link to="/reminders" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>
-                      <FiBell size={16} /> Reminders
+                      <FiBell size={16} /> Alarms
                     </Link>
                     <div className="mobile-submenu">
                       <div className="mobile-nav-link mobile-submenu-title">

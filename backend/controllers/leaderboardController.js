@@ -1,4 +1,6 @@
 const ExamResult = require('../models/ExamResult');
+const mongoose = require('mongoose');
+const { recordPracticeAttemptActivity } = require('../services/gamificationService');
 
 // @desc    Submit exam result
 // @route   POST /api/leaderboard/submit
@@ -19,6 +21,19 @@ exports.submitExamResult = async (req, res) => {
       timeTaken,
       answers,
     });
+
+    try {
+      await recordPracticeAttemptActivity({
+        studentId: req.user._id,
+        courseId,
+        score,
+        totalQuestions,
+        percentage,
+        timeTaken,
+      });
+    } catch (activityError) {
+      console.error('Practice activity tracking failed:', activityError);
+    }
 
     res.status(201).json({
       success: true,
@@ -198,5 +213,3 @@ exports.getMyRank = async (req, res) => {
     });
   }
 };
-
-const mongoose = require('mongoose');

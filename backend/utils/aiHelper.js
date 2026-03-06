@@ -116,6 +116,56 @@ function trimTextForSummary(text, ratio = 0.85) {
   return `${text.slice(0, headLength)}\n\n[...content omitted for brevity...]\n\n${text.slice(text.length - tailLength)}`;
 }
 
+function trimTextForQuestions(text, maxLength = 80000) {
+  const cleaned = String(text || '').trim();
+  if (cleaned.length <= maxLength) return cleaned;
+
+  const headLength = Math.floor(maxLength * 0.4);
+  const middleLength = Math.floor(maxLength * 0.2);
+  const tailLength = maxLength - headLength - middleLength;
+  const middleStart = Math.max(0, Math.floor((cleaned.length - middleLength) / 2));
+
+  return `${cleaned.slice(0, headLength)}\n\n[...middle excerpt...]\n\n${cleaned.slice(middleStart, middleStart + middleLength)}\n\n[...end excerpt...]\n\n${cleaned.slice(cleaned.length - tailLength)}`;
+}
+
+function normalizeQuestionKey(text) {
+  return String(text || '')
+    .toLowerCase()
+    .replace(/q\d+[:.)-]*/g, ' ')
+    .replace(/[^\w\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function dedupeQuestions(questions = [], excludeTexts = []) {
+  const seen = new Set(excludeTexts.map(normalizeQuestionKey).filter(Boolean));
+  const unique = [];
+
+  for (const question of questions) {
+    const key = normalizeQuestionKey(question?.questionText);
+    if (!key) continue;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    unique.push(question);
+  }
+
+  return unique;
+}
+
+function normalizeTrueFalseStatement(questionText) {
+  let text = String(questionText || '').trim().replace(/\s+/g, ' ');
+  if (!text) return text;
+  text = text.replace(/^Q\d+[:.)-]?\s*/i, '').trim();
+  text = text.replace(/\?+$/g, '').trim();
+  text = text.replace(/\s*\(?.?true\s*or\s*false.?\)?$/i, '').trim();
+
+  if (!/[.!]$/.test(text)) {
+    text = `${text}.`;
+  }
+
+  return `${text} True or False?`;
+}
+
 async function withGeminiClient(fn) {
   const clients = getGeminiClients();
   if (!clients.length) {
@@ -453,11 +503,8 @@ async function generateQuestions(text, pdfUrl = null, materialId = null, userId 
       .replace(/\s+/g, ' ')
       .trim();
 
-    // Use reasonable amount of text for question generation
-    const maxLength = 50000;
-    const truncatedText = cleanedText.length > maxLength
-      ? cleanedText.substring(0, maxLength)
-      : cleanedText;
+    // Use beginning + middle + end so questions cover the whole material.
+    const truncatedText = trimTextForQuestions(cleanedText, 80000);
 
     console.log('Text length for question generation:', truncatedText.length);
 
@@ -506,8 +553,12 @@ async function generateQuestions(text, pdfUrl = null, materialId = null, userId 
 3. Generate ${counts.ms} multi-select questions (4 options with 2 correct answers marked)
 4. Questions should test understanding of key concepts from different parts of the material
 5. Include a brief explanation for each correct answer
-6. Vary difficulty levels (easy, medium, hard) - mix them throughout
-7. Cover a wide range of topics from the material
+6. Difficulty MUST be mostly challenging:
+   - 20% medium
+   - 35% hard
+   - 45% extremely hard
+7. Cover a wide range of topics from the entire material (start, middle, and end)
+8. Do not ask shallow definition-only questions unless they are difficult application questions
 
 **Answer Randomization Strategy:**
 - When creating multiple-choice questions, deliberately vary which option is correct
@@ -527,16 +578,20 @@ C) [Option C]
 D) [Option D]
 Correct Answer: [Letter] (Remember to vary - use A, B, C, and D equally!)
 Explanation: [Brief explanation]
-Difficulty: [easy/medium/hard]
+Difficulty: [medium/hard/extremely-hard]
 
 For True/False:
-Q[number]: [Question text]
+Q[number]: [Statement text, not a question]
 Type: true-false
 A) True
 B) False
 Correct Answer: [Letter] (Balance between A for True and B for False!)
 Explanation: [Brief explanation]
-Difficulty: [easy/medium/hard]
+Difficulty: [medium/hard/extremely-hard]
+
+True/False style rule:
+- Write each true/false as a direct statement, not as "Is/Are/Can...?"
+- Example: "Tinubu is the president of Nigeria. True or False?"
 
 For Multi-Select (multiple correct answers):
 Q[number]: [Question text]
@@ -547,7 +602,7 @@ C) [Option C]
 D) [Option D]
 Correct Answers: [Letters separated by comma, e.g., A, C]
 Explanation: [Brief explanation]
-Difficulty: [easy/medium/hard]
+Difficulty: [medium/hard/extremely-hard]
 
 ---
 
@@ -651,7 +706,10 @@ async function generateQuestionsFromPDF(pdfUrl, materialId = null, userId = null
 3. Generate ${counts.ms} multi-select questions (4 options with 2 correct answers marked)
 4. Questions should test understanding of key concepts from across the entire document
 5. Include a brief explanation for each correct answer
-6. Vary difficulty levels (easy, medium, hard) - distribute them evenly
+6. Difficulty MUST be mostly challenging:
+   - 20% medium
+   - 35% hard
+   - 45% extremely hard
 7. Cover different sections and topics from the material
 8. Ensure questions span from the beginning, middle, and end of the document
 
@@ -673,16 +731,20 @@ C) [Option C]
 D) [Option D]
 Correct Answer: [Letter] (Remember to vary - use A, B, C, and D equally!)
 Explanation: [Brief explanation]
-Difficulty: [easy/medium/hard]
+Difficulty: [medium/hard/extremely-hard]
 
 For True/False:
-Q[number]: [Question text]
+Q[number]: [Statement text, not a question]
 Type: true-false
 A) True
 B) False
 Correct Answer: [Letter] (Balance between A for True and B for False!)
 Explanation: [Brief explanation]
-Difficulty: [easy/medium/hard]
+Difficulty: [medium/hard/extremely-hard]
+
+True/False style rule:
+- Write each true/false as a direct statement, not as "Is/Are/Can...?"
+- Example: "Tinubu is the president of Nigeria. True or False?"
 
 For Multi-Select (multiple correct answers):
 Q[number]: [Question text]
@@ -693,7 +755,7 @@ C) [Option C]
 D) [Option D]
 Correct Answers: [Letters separated by comma, e.g., A, C]
 Explanation: [Brief explanation]
-Difficulty: [easy/medium/hard]
+Difficulty: [medium/hard/extremely-hard]
 
 ---
 
@@ -861,15 +923,28 @@ function formatQuestionsToMCQ(generatedQuestions, originalText) {
         const difficultyLine = lines.find(line => line.includes('Difficulty:'));
         let difficulty = 'medium';
         if (difficultyLine) {
-          if (difficultyLine.includes('easy')) difficulty = 'easy';
-          else if (difficultyLine.includes('hard')) difficulty = 'hard';
+          const normalizedDifficulty = difficultyLine.toLowerCase();
+          if (normalizedDifficulty.includes('extremely-hard') || normalizedDifficulty.includes('extremely hard')) {
+            difficulty = 'extremely-hard';
+          } else if (normalizedDifficulty.includes('hard')) {
+            difficulty = 'hard';
+          } else if (normalizedDifficulty.includes('medium')) {
+            difficulty = 'medium';
+          } else if (normalizedDifficulty.includes('easy')) {
+            difficulty = 'medium';
+          }
         }
+
+        const normalizedQuestionText =
+          questionType === 'true-false'
+            ? normalizeTrueFalseStatement(questionLine)
+            : questionLine;
 
         // Validate options based on question type
         const requiredOptions = questionType === 'true-false' ? 2 : 4;
         if (options.length >= requiredOptions) {
           questions.push({
-            questionText: questionLine,
+            questionText: normalizedQuestionText,
             questionType: questionType,
             options: options.slice(0, requiredOptions),
             correctAnswer: correctAnswer,
@@ -906,7 +981,7 @@ function formatQuestionsToMCQ(generatedQuestions, originalText) {
     }
   }
 
-  return questions;
+  return dedupeQuestions(questions);
 }
 
 // ============================================
@@ -931,8 +1006,7 @@ async function generateQuestionsWithClient(clientIndex, text, totalQuestions, ex
   const clientCount = getClientCount();
 
   const cleanedText = text.replace(/\s+/g, ' ').trim();
-  const maxLength = 50000;
-  const truncatedText = cleanedText.length > maxLength ? cleanedText.substring(0, maxLength) : cleanedText;
+  const truncatedText = trimTextForQuestions(cleanedText, 80000);
 
   const getMixCounts = (total) => {
     if (total <= 5) {
@@ -960,6 +1034,7 @@ async function generateQuestionsWithClient(clientIndex, text, totalQuestions, ex
 - ${counts.mcq} multiple-choice (4 options)
 - ${counts.tf} True/False
 - ${counts.ms} multi-select (2 correct answers)
+- Questions must cover the whole material (beginning, middle, and end), not just one section.
 
 Return ONLY questions. Start directly with "Q1:".
 
@@ -972,14 +1047,22 @@ C) [Option C]
 D) [Option D]
 Correct Answer: [Letter] or Correct Answers: [Letters]
 Explanation: [Brief explanation]
-Difficulty: [easy/medium/hard]
+Difficulty: [medium/hard/extremely-hard]
+
+For true-false specifically, Q[number] must be a statement style sentence (example: "Tinubu is the president of Nigeria. True or False?"), not an interrogative question.
 
 ---
 Educational Content:
 ${truncatedText}
 ${excludeText}
 
-Generate ${counts.total} questions with RANDOMIZED answers:`;
+Difficulty distribution rule:
+- 20% medium
+- 35% hard
+- 45% extremely hard
+Avoid easy questions.
+
+Generate ${counts.total} questions with RANDOMIZED answers and high difficulty:`;
 
   // Try each key until one works
   let lastError;
@@ -1135,6 +1218,8 @@ async function generateSummaryAndQuestionsParallel(pdfUrl, materialId = null, us
     console.log(`Top-up complete. Total initial questions: ${questions.length}`);
   }
 
+  questions = dedupeQuestions(questions).slice(0, 10);
+
   const totalTime = Date.now() - startTime;
   console.log(`Total time: ${totalTime}ms (${(totalTime / 1000).toFixed(1)}s)`);
 
@@ -1171,7 +1256,7 @@ async function generateQuestionsFromFile(tempFilePath, materialId = null, userId
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
     return await model.generateContent([
       { fileData: { mimeType: uploadResult.file.mimeType, fileUri: uploadResult.file.uri } },
-      { text: `Generate ${totalQuestions} practice questions. Mix: 60% multiple-choice, 20% true/false, 20% multi-select. Format each as: Q[n]: [question] Type: [type] A) B) C) D) Correct Answer: [letter] Explanation: [brief] Difficulty: [easy/medium/hard]` }
+      { text: `Generate ${totalQuestions} challenging practice questions from the WHOLE material (beginning, middle, end). Mix: 60% multiple-choice, 20% true/false, 20% multi-select. Difficulty mix must be 20% medium, 35% hard, 45% extremely-hard. Avoid easy questions. For true-false, write statement style prompts (example: "Tinubu is the president of Nigeria. True or False?"), not interrogative questions. Format each as: Q[n]: [question] Type: [type] A) B) C) D) Correct Answer: [letter] or Correct Answers: [letters] Explanation: [brief] Difficulty: [medium/hard/extremely-hard]` }
     ]);
   });
 
@@ -1251,7 +1336,7 @@ async function generateQuestionsParallel(pdfUrl, materialId, userId, targetCount
   const totalTime = Date.now() - startTime;
   console.log(`Generated ${allQuestions.length} questions in ${(totalTime / 1000).toFixed(1)}s`);
 
-  return allQuestions;
+  return dedupeQuestions(allQuestions, excludeTexts).slice(0, targetCount);
 }
 
 module.exports = {

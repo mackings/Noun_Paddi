@@ -65,6 +65,7 @@
   text-decoration: none;
   font-weight: 600;
   font-size: 15px;
+  white-space: nowrap;
   transition: all 0.3s ease;
   position: relative;
   padding: 8px 12px;
@@ -327,6 +328,7 @@
     color: var(--text-secondary);
     text-decoration: none;
     padding: 14px 16px;
+    white-space: nowrap;
     border-radius: 12px;
     transition: all 0.3s ease;
     font-weight: 600;
