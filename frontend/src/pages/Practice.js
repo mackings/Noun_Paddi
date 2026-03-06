@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import SEO from '../components/SEO';
 import { convertHalfToTrueFalse } from '../utils/questionTransformer';
@@ -45,13 +45,13 @@ const Practice = () => {
   }, []);
 
   // Leaderboard states
-  const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [leaderboard, setLeaderboard] = useState([]);
   const [myRank, setMyRank] = useState(null);
   const questionPollRef = useRef(null);
   const questionPollDelayRef = useRef(3000);
   const location = useLocation();
   const autoSelectRef = useRef(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchCourses();
@@ -420,6 +420,23 @@ const Practice = () => {
     }
   };
 
+  const goToDashboardLeaderboard = () => {
+    navigate('/dashboard');
+  };
+
+  const goToSelectedCourse = () => {
+    if (!selectedCourse) return;
+    navigate(`/course/${selectedCourse}`);
+  };
+
+  const goToQuestion = (index) => {
+    const isPlaceholder = !isPopMode && index >= questions.length;
+    if (isPlaceholder || index < 0 || index >= totalExamQuestions) return;
+    setCurrentQuestionIndex(index);
+    setSelectedAnswer(null);
+    setShowResult(false);
+  };
+
   const examQuestions = examMode === 'pop' ? popQuestions : questions;
 
   if (loading) {
@@ -610,14 +627,12 @@ const Practice = () => {
               <button onClick={resetExam} className="btn btn-primary">
                 Take Another Exam
               </button>
-              {examMode === 'e-exam' && (
-                <button
-                  onClick={() => setShowLeaderboard(!showLeaderboard)}
-                  className="btn btn-secondary"
-                >
-                  {showLeaderboard ? 'Hide' : 'View'} Full Leaderboard
-                </button>
-              )}
+              <button onClick={goToDashboardLeaderboard} className="btn btn-secondary">
+                View Leaderboard
+              </button>
+              <button onClick={goToSelectedCourse} className="btn btn-secondary">
+                Back to Course
+              </button>
               {examMode === 'pop' && !popGradeResult && (
                 <button
                   onClick={async () => {
@@ -958,12 +973,7 @@ const Practice = () => {
                   <button
                     key={index}
                     className={`question-nav-item ${isActive ? 'active' : ''} ${isAnswered ? 'answered' : ''} ${isPlaceholder ? 'placeholder' : ''}`}
-                    onClick={() => {
-                      if (isPlaceholder) return;
-                      setCurrentQuestionIndex(index);
-                      setSelectedAnswer(null);
-                      setShowResult(false);
-                    }}
+                    onClick={() => goToQuestion(index)}
                     disabled={isPlaceholder}
                   >
                     {index + 1}
@@ -973,6 +983,34 @@ const Practice = () => {
             </div>
           </div>
           <div className="question-card">
+            <div className="question-toolbar">
+              <div className="current-question-indicator">
+                <span className="current-question-label">Current Question</span>
+                <strong className="current-question-value">
+                  {isPopMode && currentQuestion?.number ? `Question ${currentQuestion.number}` : `Question ${currentQuestionIndex + 1}`}
+                </strong>
+              </div>
+              <label className="jump-question-control">
+                <span>Jump to question</span>
+                <select
+                  value={currentQuestionIndex}
+                  onChange={(event) => goToQuestion(Number(event.target.value))}
+                >
+                  {Array.from({ length: totalExamQuestions }).map((_, index) => {
+                    const isPlaceholder = !isPopMode && index >= questions.length;
+                    const isAnswered = isPopMode
+                      ? popHasAnswerForQuestion(examQuestions[index])
+                      : !!answers[index];
+                    const status = isPlaceholder ? 'Generating' : isAnswered ? 'Answered' : 'Pending';
+                    return (
+                      <option key={index} value={index} disabled={isPlaceholder}>
+                        {`Question ${index + 1} - ${status}`}
+                      </option>
+                    );
+                  })}
+                </select>
+              </label>
+            </div>
             <div className="question-header">
               {isPopMode && popInstructions && (
                 <div className="pop-instructions">

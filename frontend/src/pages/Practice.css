@@ -1,6 +1,7 @@
 .practice-container {
   min-height: calc(100vh - 80px);
   padding: 40px 0;
+  overflow-x: hidden;
 }
 
 .practice-header {
@@ -127,6 +128,7 @@
   grid-template-columns: 220px minmax(0, 1fr);
   gap: 24px;
   align-items: start;
+  min-width: 0;
 }
 
 .question-nav {
@@ -184,10 +186,63 @@
   padding: 32px;
   max-width: 800px;
   margin: 0 auto;
+  min-width: 0;
+  width: 100%;
+  overflow-x: hidden;
 }
 
 .question-header {
   margin-bottom: 32px;
+}
+
+.question-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.current-question-indicator {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.current-question-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.current-question-value {
+  font-size: 20px;
+  line-height: 1.2;
+  color: var(--text-primary);
+}
+
+.jump-question-control {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 220px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.jump-question-control select {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  background: var(--dark-bg);
+  color: var(--text-primary);
+  padding: 12px 14px;
+  font-size: 14px;
 }
 
 .question-placeholder {
@@ -222,6 +277,8 @@
   font-size: 24px;
   margin-bottom: 12px;
   line-height: 1.5;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .question-sync-status {
@@ -331,6 +388,9 @@
 
 .pop-part-text {
   line-height: 1.6;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .pop-part-marks {
@@ -428,6 +488,8 @@
   color: var(--text-primary);
   font-size: 16px;
   min-height: 60px;
+  min-width: 0;
+  width: 100%;
 }
 
 .option-button:hover:not(:disabled) {
@@ -468,6 +530,9 @@
 
 .option-text {
   flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .option-icon {
@@ -491,6 +556,8 @@
   align-items: center;
   gap: 12px;
   font-weight: 500;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .result-feedback.correct {
@@ -1059,6 +1126,15 @@
     max-width: 100%;
   }
 
+  .question-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .jump-question-control {
+    min-width: 0;
+  }
+
   .question-text {
     font-size: 20px;
   }
@@ -1243,6 +1319,10 @@
 
   .question-card {
     padding: 16px;
+  }
+
+  .current-question-value {
+    font-size: 18px;
   }
 
   .question-text {
