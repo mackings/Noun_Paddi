@@ -1,5 +1,8 @@
 const User = require('../models/User');
 const { cloudinary } = require('../config/cloudinary');
+const { validateStrongPassword } = require('../utils/securityValidation');
+const { auditLog } = require('../utils/securityAudit');
+const escapeRegex = (value) => String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 // @desc    Get user profile
 // @route   GET /api/users/profile
@@ -124,10 +127,18 @@ exports.updatePassword = async (req, res) => {
       });
     }
 
-    if (newPassword.length < 6) {
+    const passwordCheck = validateStrongPassword(newPassword);
+    if (!passwordCheck.valid) {
+      await auditLog({
+        eventType: 'auth.update_password',
+        req,
+        userId: req.user?.id,
+        success: false,
+        message: passwordCheck.message,
+      });
       return res.status(400).json({
         success: false,
-        message: 'New password must be at least 6 characters long',
+        message: passwordCheck.message,
       });
     }
 
@@ -144,6 +155,13 @@ exports.updatePassword = async (req, res) => {
     const isMatch = await user.comparePassword(currentPassword);
 
     if (!isMatch) {
+      await auditLog({
+        eventType: 'auth.update_password',
+        req,
+        userId: user._id,
+        success: false,
+        message: 'Current password incorrect',
+      });
       return res.status(401).json({
         success: false,
         message: 'Current password is incorrect',
@@ -153,6 +171,13 @@ exports.updatePassword = async (req, res) => {
     // Update password
     user.password = newPassword;
     await user.save();
+    await auditLog({
+      eventType: 'auth.update_password',
+      req,
+      userId: user._id,
+      success: true,
+      message: 'Password updated',
+    });
 
     res.status(200).json({
       success: true,
@@ -225,13 +250,14 @@ exports.getUsers = async (req, res) => {
     if (search) {
       const safeSearch = String(search).trim();
       if (safeSearch) {
+        const escapedSearch = escapeRegex(safeSearch);
         query.$or = [
-          { name: { $regex: safeSearch, $options: 'i' } },
-          { email: { $regex: safeSearch, $options: 'i' } },
-          { faculty: { $regex: safeSearch, $options: 'i' } },
-          { department: { $regex: safeSearch, $options: 'i' } },
-          { studyCenter: { $regex: safeSearch, $options: 'i' } },
-          { matricNumber: { $regex: safeSearch, $options: 'i' } },
+          { name: { $regex: escapedSearch, $options: 'i' } },
+          { email: { $regex: escapedSearch, $options: 'i' } },
+          { faculty: { $regex: escapedSearch, $options: 'i' } },
+          { department: { $regex: escapedSearch, $options: 'i' } },
+          { studyCenter: { $regex: escapedSearch, $options: 'i' } },
+          { matricNumber: { $regex: escapedSearch, $options: 'i' } },
         ];
       }
     }

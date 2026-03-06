@@ -2,36 +2,8 @@ const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const { sendPasswordResetEmail } = require('../utils/emailService');
-
-const ALLOWED_EMAIL_TLDS = new Set([
-  'com', 'org', 'net', 'edu', 'gov', 'ng', 'co', 'io', 'info', 'me', 'app',
-]);
-
-const sanitizeText = (value) => String(value || '')
-  .replace(/<[^>]*>/g, '')
-  .replace(/[\u0000-\u001F\u007F]/g, ' ')
-  .replace(/\s+/g, ' ')
-  .trim();
-
-const hasDangerousPattern = (value) =>
-  /<[^>]+>|javascript:|on\w+\s*=|script/gi.test(String(value || ''));
-
-const normalizeEmail = (value) => sanitizeText(value).toLowerCase();
-
-const isValidSignupEmail = (email) => {
-  const normalized = normalizeEmail(email);
-  const basicRegex = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,24}$/i;
-  if (!basicRegex.test(normalized)) return false;
-  const parts = normalized.split('.');
-  const tld = parts[parts.length - 1];
-  return ALLOWED_EMAIL_TLDS.has(tld);
-};
-
-const isValidName = (name) => {
-  const normalized = sanitizeText(name);
-  if (normalized.length < 2 || normalized.length > 80) return false;
-  return /^[a-zA-Z][a-zA-Z\s'.-]{1,79}$/.test(normalized);
-};
+const { normalizeEmail } = require('../utils/securityValidation');
+const { auditLog } = require('../utils/securityAudit');
 
 // Generate JWT Token
 const generateToken = (id) => {
@@ -40,58 +12,46 @@ const generateToken = (id) => {
   });
 };
 
+const getCookieOptions = () => {
+  const isProduction = process.env.NODE_ENV === 'production';
+  return {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'lax',
+    maxAge: 30 * 24 * 60 * 60 * 1000,
+    path: '/',
+  };
+};
+
+const setAuthCookie = (res, token) => {
+  res.cookie('np_token', token, getCookieOptions());
+};
+
+const clearAuthCookie = (res) => {
+  res.clearCookie('np_token', {
+    ...getCookieOptions(),
+    maxAge: 0,
+  });
+};
+
 // @desc    Register user
 // @route   POST /api/auth/signup
 // @access  Public
 exports.signup = async (req, res) => {
   try {
-    const { name, email, password, role, faculty, department, studyCenter, matricNumber } = req.body;
-
-    if (
-      hasDangerousPattern(name) ||
-      hasDangerousPattern(email) ||
-      hasDangerousPattern(faculty) ||
-      hasDangerousPattern(department) ||
-      hasDangerousPattern(studyCenter) ||
-      hasDangerousPattern(matricNumber)
-    ) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid characters detected in signup fields',
-      });
-    }
-
-    const safeName = sanitizeText(name);
+    const { name, email, password, faculty, department, studyCenter, matricNumber } = req.body;
     const safeEmail = normalizeEmail(email);
-    const safeFaculty = sanitizeText(faculty);
-    const safeDepartment = sanitizeText(department);
-    const safeStudyCenter = sanitizeText(studyCenter);
-    const safeMatricNumber = sanitizeText(matricNumber);
-
-    if (!isValidName(safeName)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Enter a valid full name (letters, spaces, apostrophe, hyphen only)',
-      });
-    }
-
-    if (!isValidSignupEmail(safeEmail)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Enter a valid email address',
-      });
-    }
-
-    if (!password || String(password).length < 8) {
-      return res.status(400).json({
-        success: false,
-        message: 'Password must be at least 8 characters long',
-      });
-    }
 
     // Check if user exists
     const userExists = await User.findOne({ email: safeEmail });
     if (userExists) {
+      await auditLog({
+        eventType: 'auth.signup',
+        req,
+        email: safeEmail,
+        success: false,
+        message: 'User already exists',
+      });
       return res.status(400).json({
         success: false,
         message: 'User already exists',
@@ -100,14 +60,24 @@ exports.signup = async (req, res) => {
 
     // Create user
     const user = await User.create({
-      name: safeName,
+      name,
       email: safeEmail,
       password,
-      role: role || 'student',
-      faculty: safeFaculty,
-      department: safeDepartment,
-      studyCenter: safeStudyCenter,
-      matricNumber: safeMatricNumber,
+      role: 'student',
+      faculty,
+      department,
+      studyCenter,
+      matricNumber,
+    });
+    const token = generateToken(user._id);
+    setAuthCookie(res, token);
+    await auditLog({
+      eventType: 'auth.signup',
+      req,
+      userId: user._id,
+      email: user.email,
+      success: true,
+      message: 'Signup successful',
     });
 
     res.status(201).json({
@@ -118,10 +88,17 @@ exports.signup = async (req, res) => {
         email: user.email,
         role: user.role,
         studyCenter: user.studyCenter,
-        token: generateToken(user._id),
+        token,
       },
     });
   } catch (error) {
+    await auditLog({
+      eventType: 'auth.signup',
+      req,
+      email: normalizeEmail(req.body?.email),
+      success: false,
+      message: error.message,
+    });
     res.status(500).json({
       success: false,
       message: error.message,
@@ -137,17 +114,16 @@ exports.login = async (req, res) => {
     const { email, password } = req.body;
     const safeEmail = normalizeEmail(email);
 
-    // Validate email & password
-    if (!safeEmail || !password) {
-      return res.status(400).json({
-        success: false,
-        message: 'Please provide email and password',
-      });
-    }
-
     // Check for user
     const user = await User.findOne({ email: safeEmail }).select('+password');
     if (!user) {
+      await auditLog({
+        eventType: 'auth.login',
+        req,
+        email: safeEmail,
+        success: false,
+        message: 'Invalid credentials',
+      });
       return res.status(401).json({
         success: false,
         message: 'Invalid credentials',
@@ -157,11 +133,29 @@ exports.login = async (req, res) => {
     // Check if password matches
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
+      await auditLog({
+        eventType: 'auth.login',
+        req,
+        userId: user._id,
+        email: safeEmail,
+        success: false,
+        message: 'Invalid credentials',
+      });
       return res.status(401).json({
         success: false,
         message: 'Invalid credentials',
       });
     }
+    const token = generateToken(user._id);
+    setAuthCookie(res, token);
+    await auditLog({
+      eventType: 'auth.login',
+      req,
+      userId: user._id,
+      email: user.email,
+      success: true,
+      message: 'Login successful',
+    });
 
     res.status(200).json({
       success: true,
@@ -170,10 +164,17 @@ exports.login = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
-        token: generateToken(user._id),
+        token,
       },
     });
   } catch (error) {
+    await auditLog({
+      eventType: 'auth.login',
+      req,
+      email: normalizeEmail(req.body?.email),
+      success: false,
+      message: error.message,
+    });
     res.status(500).json({
       success: false,
       message: error.message,
@@ -208,16 +209,16 @@ exports.forgotPassword = async (req, res) => {
     const { email } = req.body;
     const safeEmail = normalizeEmail(email);
 
-    if (!safeEmail) {
-      return res.status(400).json({
-        success: false,
-        message: 'Please provide an email address',
-      });
-    }
-
     const user = await User.findOne({ email: safeEmail });
 
     if (!user) {
+      await auditLog({
+        eventType: 'auth.forgot_password',
+        req,
+        email: safeEmail,
+        success: false,
+        message: 'No account found',
+      });
       return res.status(404).json({
         success: false,
         message: 'No account found with that email address',
@@ -232,6 +233,14 @@ exports.forgotPassword = async (req, res) => {
     // Send email
     try {
       await sendPasswordResetEmail(user.email, resetToken, user.name);
+      await auditLog({
+        eventType: 'auth.forgot_password',
+        req,
+        userId: user._id,
+        email: user.email,
+        success: true,
+        message: 'Password reset email sent',
+      });
 
       res.status(200).json({
         success: true,
@@ -242,6 +251,14 @@ exports.forgotPassword = async (req, res) => {
       user.resetPasswordToken = undefined;
       user.resetPasswordExpire = undefined;
       await user.save({ validateBeforeSave: false });
+      await auditLog({
+        eventType: 'auth.forgot_password',
+        req,
+        userId: user._id,
+        email: user.email,
+        success: false,
+        message: 'Reset email send failed',
+      });
 
       return res.status(500).json({
         success: false,
@@ -263,20 +280,6 @@ exports.resetPassword = async (req, res) => {
   try {
     const { password } = req.body;
 
-    if (!password) {
-      return res.status(400).json({
-        success: false,
-        message: 'Please provide a new password',
-      });
-    }
-
-    if (password.length < 8) {
-      return res.status(400).json({
-        success: false,
-        message: 'Password must be at least 8 characters long',
-      });
-    }
-
     // Get hashed token
     const resetPasswordToken = crypto
       .createHash('sha256')
@@ -289,6 +292,12 @@ exports.resetPassword = async (req, res) => {
     });
 
     if (!user) {
+      await auditLog({
+        eventType: 'auth.reset_password',
+        req,
+        success: false,
+        message: 'Invalid or expired reset token',
+      });
       return res.status(400).json({
         success: false,
         message: 'Invalid or expired reset token',
@@ -300,6 +309,16 @@ exports.resetPassword = async (req, res) => {
     user.resetPasswordToken = undefined;
     user.resetPasswordExpire = undefined;
     await user.save();
+    const token = generateToken(user._id);
+    setAuthCookie(res, token);
+    await auditLog({
+      eventType: 'auth.reset_password',
+      req,
+      userId: user._id,
+      email: user.email,
+      success: true,
+      message: 'Password reset successful',
+    });
 
     res.status(200).json({
       success: true,
@@ -309,13 +328,37 @@ exports.resetPassword = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
-        token: generateToken(user._id),
+        token,
       },
     });
   } catch (error) {
+    await auditLog({
+      eventType: 'auth.reset_password',
+      req,
+      success: false,
+      message: error.message,
+    });
     res.status(500).json({
       success: false,
       message: error.message,
     });
   }
+};
+
+// @desc    Logout user
+// @route   POST /api/auth/logout
+// @access  Public
+exports.logout = async (req, res) => {
+  clearAuthCookie(res);
+  await auditLog({
+    eventType: 'auth.logout',
+    req,
+    userId: req.user?._id,
+    success: true,
+    message: 'Logout',
+  });
+  return res.status(200).json({
+    success: true,
+    message: 'Logged out',
+  });
 };

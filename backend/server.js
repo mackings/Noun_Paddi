@@ -1,6 +1,8 @@
 const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
+const helmet = require('helmet');
+const cookieParser = require('cookie-parser');
 const connectDB = require('./config/db');
 const { startBroadcastScheduler } = require('./utils/broadcastScheduler');
 
@@ -11,10 +13,17 @@ dotenv.config();
 connectDB();
 
 const app = express();
+app.disable('x-powered-by');
 
 // Body parser middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false,
+  hsts: process.env.NODE_ENV === 'production',
+}));
 
 const normalizeOrigin = (value) => String(value || '').trim().replace(/\/+$/, '');
 const getHostname = (value) => {
@@ -38,6 +47,7 @@ const allowedHostnames = new Set(
     .map((origin) => getHostname(origin))
     .filter(Boolean)
 );
+const allowVercelPreviews = String(process.env.ALLOW_VERCEL_PREVIEWS || '').toLowerCase() === 'true';
 
 // Enable CORS - Allow all Vercel deployments and localhost
 const corsOptions = {
@@ -53,8 +63,8 @@ const corsOptions = {
       return callback(null, true);
     }
 
-    // Allow all Vercel deployments (*.vercel.app)
-    if (hostname === 'vercel.app' || hostname.endsWith('.vercel.app')) {
+    // Allow Vercel preview deployments only when explicitly enabled.
+    if (allowVercelPreviews && (hostname === 'vercel.app' || hostname.endsWith('.vercel.app'))) {
       return callback(null, true);
     }
 

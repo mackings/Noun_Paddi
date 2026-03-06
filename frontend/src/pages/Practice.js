@@ -340,64 +340,25 @@ const Practice = () => {
     }
 
     try {
-      // Check if this is a client-side checkable question (has correctAnswer field)
-      const hasCorrectAnswer = currentQuestion.correctAnswer !== undefined && currentQuestion.correctAnswer !== null;
+      const response = await api.post(
+        `/questions/${currentQuestion._id}/check`,
+        { answer: selectedAnswer }
+      );
 
-      if (hasCorrectAnswer) {
-        // Client-side checking for transformed questions
-        let isCorrect = false;
+      const answerResult = response.data.data || {};
+      setShowResult(true);
+      setAnswers((prev) => {
+        const next = [...prev];
+        next[currentQuestionIndex] = {
+          ...answerResult,
+          questionId: currentQuestion._id,
+          answer: selectedAnswer,
+        };
+        return next;
+      });
 
-        if (questionType === 'multi-select') {
-          // For multi-select, check if arrays match
-          const correctAnswer = Array.isArray(currentQuestion.correctAnswer)
-            ? currentQuestion.correctAnswer
-            : [currentQuestion.correctAnswer];
-          const userAnswer = Array.isArray(selectedAnswer) ? selectedAnswer : [selectedAnswer];
-
-          // Arrays must have same length and same elements
-          isCorrect =
-            correctAnswer.length === userAnswer.length &&
-            correctAnswer.every(ans => userAnswer.includes(ans));
-        } else if (questionType === 'true-false') {
-          // For true/false, simple equality check
-          isCorrect = currentQuestion.correctAnswer === selectedAnswer;
-        } else {
-          // For multiple-choice, simple equality check
-          isCorrect = currentQuestion.correctAnswer === selectedAnswer;
-        }
-
-        setShowResult(true);
-        setAnswers((prev) => {
-          const next = [...prev];
-          next[currentQuestionIndex] = {
-            isCorrect,
-            correctAnswer: currentQuestion.correctAnswer,
-            explanation: currentQuestion.explanation || (isCorrect ? 'Correct!' : 'Incorrect.'),
-            questionType
-          };
-          return next;
-        });
-
-        if (isCorrect) {
-          setScore(score + 1);
-        }
-      } else {
-        // Backend API check for original questions without correctAnswer
-        const response = await api.post(
-          `/questions/${currentQuestion._id}/check`,
-          { answer: selectedAnswer }
-        );
-
-        setShowResult(true);
-        setAnswers((prev) => {
-          const next = [...prev];
-          next[currentQuestionIndex] = response.data.data;
-          return next;
-        });
-
-        if (response.data.data.isCorrect) {
-          setScore(score + 1);
-        }
+      if (answerResult.isCorrect) {
+        setScore((prev) => prev + 1);
       }
     } catch (error) {
       console.error('Error checking answer:', error);
@@ -405,6 +366,8 @@ const Practice = () => {
       setAnswers((prev) => {
         const next = [...prev];
         next[currentQuestionIndex] = {
+          questionId: currentQuestion._id,
+          answer: selectedAnswer,
           isCorrect: false,
           correctAnswer: null,
           explanation: 'Error checking answer. Please try again.',

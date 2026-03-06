@@ -20,7 +20,6 @@ exports.getQuestionsByCourse = async (req, res) => {
         questionText: q.questionText,
         questionType: q.questionType || 'multiple-choice',
         options: q.options,
-        correctAnswer: q.correctAnswer, // Include for client-side transformation
         difficulty: q.difficulty,
         explanation: q.explanation,
       }));

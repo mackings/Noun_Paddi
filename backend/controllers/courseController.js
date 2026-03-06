@@ -2,6 +2,7 @@ const Course = require('../models/Course');
 const Material = require('../models/Material');
 const Department = require('../models/Department');
 const { courseCache, materialCache, cacheHelper } = require('../utils/cache');
+const escapeRegex = (value) => String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 // @desc    Get all courses
 // @route   GET /api/courses
@@ -61,13 +62,21 @@ exports.getCoursesByDepartment = async (req, res) => {
 // @access  Public
 exports.searchCourses = async (req, res) => {
   try {
-    const query = req.query.query;
+    const query = String(req.query.query || '').trim();
+    if (!query) {
+      return res.status(200).json({
+        success: true,
+        count: 0,
+        data: [],
+      });
+    }
+    const safeRegex = escapeRegex(query);
 
     const courses = await Course.find({
       isArchived: { $ne: true },
       $or: [
-        { courseCode: { $regex: query, $options: 'i' } },
-        { courseName: { $regex: query, $options: 'i' } },
+        { courseCode: { $regex: safeRegex, $options: 'i' } },
+        { courseName: { $regex: safeRegex, $options: 'i' } },
       ],
     }).populate('departmentId', 'name facultyId');
 

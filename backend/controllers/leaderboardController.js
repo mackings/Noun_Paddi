@@ -1,4 +1,5 @@
 const ExamResult = require('../models/ExamResult');
+const Question = require('../models/Question');
 const mongoose = require('mongoose');
 const { recordPracticeAttemptActivity } = require('../services/gamificationService');
 
@@ -7,29 +8,88 @@ const { recordPracticeAttemptActivity } = require('../services/gamificationServi
 // @access  Private
 exports.submitExamResult = async (req, res) => {
   try {
-    const { courseId, score, totalQuestions, duration, timeTaken, answers } = req.body;
+    const { courseId, duration, timeTaken, answers } = req.body;
 
-    const percentage = ((score / totalQuestions) * 100).toFixed(2);
+    if (!mongoose.Types.ObjectId.isValid(courseId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid courseId',
+      });
+    }
+
+    const submittedAnswers = Array.isArray(answers) ? answers : [];
+    const answerMap = new Map();
+    submittedAnswers.forEach((item) => {
+      if (!item?.questionId || !mongoose.Types.ObjectId.isValid(item.questionId)) return;
+      answerMap.set(String(item.questionId), item.answer);
+    });
+
+    const questionIds = [...answerMap.keys()];
+    const matchedQuestions = questionIds.length > 0
+      ? await Question.find({
+          _id: { $in: questionIds },
+          courseId,
+        }).select('_id correctAnswer questionType')
+      : [];
+
+    const compareAnswers = (question, providedAnswer) => {
+      const questionType = question.questionType || 'multiple-choice';
+      const correctAnswer = question.correctAnswer;
+
+      if (questionType === 'multi-select') {
+        const provided = (Array.isArray(providedAnswer) ? providedAnswer : [providedAnswer])
+          .map((value) => Number(value))
+          .filter((value) => Number.isFinite(value))
+          .sort((a, b) => a - b);
+        const correct = (Array.isArray(correctAnswer) ? correctAnswer : [correctAnswer])
+          .map((value) => Number(value))
+          .filter((value) => Number.isFinite(value))
+          .sort((a, b) => a - b);
+        return provided.length === correct.length && provided.every((value, idx) => value === correct[idx]);
+      }
+
+      const provided = Array.isArray(providedAnswer) ? Number(providedAnswer[0]) : Number(providedAnswer);
+      const correct = Array.isArray(correctAnswer) ? Number(correctAnswer[0]) : Number(correctAnswer);
+      return Number.isFinite(provided) && Number.isFinite(correct) && provided === correct;
+    };
+
+    let computedScore = 0;
+    const verifiedAnswers = matchedQuestions.map((question) => {
+      const providedAnswer = answerMap.get(String(question._id));
+      const isCorrect = compareAnswers(question, providedAnswer);
+      if (isCorrect) computedScore += 1;
+      return {
+        questionId: question._id,
+        answer: providedAnswer,
+        isCorrect,
+      };
+    });
+
+    const totalQuestionsInCourse = await Question.countDocuments({ courseId });
+    const computedTotalQuestions = Math.max(1, Math.min(70, totalQuestionsInCourse || 70));
+    const safeDuration = Math.max(1, Math.min(3 * 60 * 60, Number(duration) || 60 * 60));
+    const safeTimeTaken = Math.max(0, Math.min(safeDuration, Number(timeTaken) || 0));
+    const percentage = Number(((computedScore / computedTotalQuestions) * 100).toFixed(2));
 
     const result = await ExamResult.create({
       studentId: req.user._id,
       courseId,
-      score,
-      totalQuestions,
+      score: computedScore,
+      totalQuestions: computedTotalQuestions,
       percentage,
-      duration,
-      timeTaken,
-      answers,
+      duration: safeDuration,
+      timeTaken: safeTimeTaken,
+      answers: verifiedAnswers,
     });
 
     try {
       await recordPracticeAttemptActivity({
         studentId: req.user._id,
         courseId,
-        score,
-        totalQuestions,
+        score: computedScore,
+        totalQuestions: computedTotalQuestions,
         percentage,
-        timeTaken,
+        timeTaken: safeTimeTaken,
       });
     } catch (activityError) {
       console.error('Practice activity tracking failed:', activityError);

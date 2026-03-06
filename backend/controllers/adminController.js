@@ -4,6 +4,7 @@ const Department = require('../models/Department');
 const Course = require('../models/Course');
 const User = require('../models/User');
 const { sendAdminInviteEmail } = require('../utils/emailService');
+const { auditLog } = require('../utils/securityAudit');
 const BroadcastSchedule = require('../models/BroadcastSchedule');
 const {
   dispatchBroadcast,
@@ -146,6 +147,14 @@ exports.inviteAdmin = async (req, res) => {
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
+      await auditLog({
+        eventType: 'admin.invite',
+        req,
+        userId: req.user?._id,
+        email,
+        success: false,
+        message: 'Invite target already exists',
+      });
       return res.status(400).json({
         success: false,
         message: 'A user with this email already exists',
@@ -168,6 +177,15 @@ exports.inviteAdmin = async (req, res) => {
       userName: name,
       tempPassword: rawPassword,
     });
+    await auditLog({
+      eventType: 'admin.invite',
+      req,
+      userId: req.user?._id,
+      email,
+      success: true,
+      message: 'Admin invite sent',
+      metadata: { invitedUserId: adminUser._id },
+    });
 
     res.status(201).json({
       success: true,
@@ -179,6 +197,14 @@ exports.inviteAdmin = async (req, res) => {
       },
     });
   } catch (error) {
+    await auditLog({
+      eventType: 'admin.invite',
+      req,
+      userId: req.user?._id,
+      email: req.body?.email,
+      success: false,
+      message: error.message,
+    });
     res.status(500).json({
       success: false,
       message: error.message,
@@ -263,6 +289,19 @@ exports.sendPushNotification = async (req, res) => {
       emailTarget,
       emails: emailRecipients,
     });
+    await auditLog({
+      eventType: 'admin.broadcast.send',
+      req,
+      userId: req.user?._id,
+      success: true,
+      message: 'Broadcast dispatched',
+      metadata: {
+        channels: result.channels,
+        pushSent: result.push?.sent || 0,
+        emailSent: result.email?.sent || 0,
+        errors: result.errors?.length || 0,
+      },
+    });
 
     return res.status(200).json({
       success: true,
@@ -273,6 +312,13 @@ exports.sendPushNotification = async (req, res) => {
       },
     });
   } catch (error) {
+    await auditLog({
+      eventType: 'admin.broadcast.send',
+      req,
+      userId: req.user?._id,
+      success: false,
+      message: error.message,
+    });
     console.error('[broadcast] send failed:', error.message);
     return res.status(500).json({
       success: false,

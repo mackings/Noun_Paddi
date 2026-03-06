@@ -7,9 +7,10 @@ const {
   getMyRank,
 } = require('../controllers/leaderboardController');
 const { protect } = require('../middleware/auth');
+const { validateLeaderboardSubmitInput } = require('../middleware/requestValidation');
 
 // Submit exam result
-router.post('/submit', protect, submitExamResult);
+router.post('/submit', protect, validateLeaderboardSubmitInput, submitExamResult);
 
 // Get leaderboard for a course
 router.get('/course/:courseId', getCourseLeaderboard);

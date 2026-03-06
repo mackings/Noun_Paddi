@@ -2,6 +2,7 @@ const Material = require('../models/Material');
 const Summary = require('../models/Summary');
 const Question = require('../models/Question');
 const axios = require('axios');
+const jwt = require('jsonwebtoken');
 const {
   summarizeText,
   generateQuestions,
@@ -815,6 +816,41 @@ exports.streamMaterialStatus = async (req, res) => {
   req.on('close', cleanup);
 
   await sendStatus();
+};
+
+// @desc    Issue short-lived token for material status stream
+// @route   POST /api/materials/:materialId/stream-token
+// @access  Private
+exports.issueMaterialStreamToken = async (req, res) => {
+  try {
+    const material = await Material.findById(req.params.materialId).select('_id');
+    if (!material) {
+      return res.status(404).json({
+        success: false,
+        message: 'Material not found',
+      });
+    }
+
+    const token = jwt.sign(
+      {
+        id: req.user._id,
+        sse: true,
+        materialId: String(material._id),
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: '5m' }
+    );
+
+    return res.status(200).json({
+      success: true,
+      data: { token },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to issue stream token',
+    });
+  }
 };
 
 // @desc    Get student's upload statistics

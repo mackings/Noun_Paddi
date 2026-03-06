@@ -79,6 +79,16 @@ const isValidName = (name) => {
   return /^[a-zA-Z][a-zA-Z\s'.-]{1,79}$/.test(normalized);
 };
 
+const validateStrongPassword = (password) => {
+  const raw = String(password || '');
+  if (raw.length < 8) return 'Password must be at least 8 characters long';
+  if (!/[A-Z]/.test(raw)) return 'Password must include at least one uppercase letter';
+  if (!/[a-z]/.test(raw)) return 'Password must include at least one lowercase letter';
+  if (!/[0-9]/.test(raw)) return 'Password must include at least one number';
+  if (!/[^A-Za-z0-9]/.test(raw)) return 'Password must include at least one special character';
+  return '';
+};
+
 const Signup = () => {
   const [formData, setFormData] = useState({
     name: '',
@@ -134,8 +144,9 @@ const Signup = () => {
       return;
     }
 
-    if (!formData.password || formData.password.length < 8) {
-      setError('Password must be at least 8 characters long');
+    const passwordMessage = validateStrongPassword(formData.password);
+    if (passwordMessage) {
+      setError(passwordMessage);
       return;
     }
 

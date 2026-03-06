@@ -457,19 +457,27 @@ const StudentDashboard = () => {
     }
   };
 
-  const startStatusStream = (materialId) => {
+  const startStatusStream = async (materialId) => {
     closeStatusStream();
-    const token = localStorage.getItem('token');
     const baseUrl = (process.env.REACT_APP_API_URL || 'http://localhost:5000/api').trim();
 
-    if (!token) {
+    try {
+      const streamTokenRes = await api.post(`/materials/${materialId}/stream-token`);
+      const streamToken = streamTokenRes?.data?.data?.token;
+      if (!streamToken) {
+        pollProcessingStatus(materialId);
+        return;
+      }
+
+      const streamUrl = `${baseUrl}/materials/${materialId}/stream?token=${encodeURIComponent(streamToken)}`;
+      const source = new EventSource(streamUrl);
+      sseRef.current = source;
+    } catch (error) {
       pollProcessingStatus(materialId);
       return;
     }
-
-    const streamUrl = `${baseUrl}/materials/${materialId}/stream?token=${encodeURIComponent(token)}`;
-    const source = new EventSource(streamUrl);
-    sseRef.current = source;
+    const source = sseRef.current;
+    if (!source) return;
 
     statusTimeoutRef.current = setTimeout(() => {
       setProcessingStatus({

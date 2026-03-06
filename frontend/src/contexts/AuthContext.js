@@ -64,21 +64,16 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const loadUser = async () => {
       const token = localStorage.getItem('token');
-      if (token) {
-        try {
-          const response = await api.get('/auth/me');
-          setUser(response.data.data);
-          cacheUser(response.data.data);
-          await ensurePushPermissionForUser({ requestPermission: false });
-        } catch (error) {
-          const status = error?.response?.status;
-          if (status === 401 || status === 403) {
-            localStorage.removeItem('token');
-            setUser(null);
-            cacheUser(null);
-          }
+      try {
+        const response = await api.get('/auth/me');
+        setUser(response.data.data);
+        cacheUser(response.data.data);
+        await ensurePushPermissionForUser({ requestPermission: false });
+      } catch (error) {
+        const status = error?.response?.status;
+        if (status === 401 || status === 403 || token) {
+          localStorage.removeItem('token');
         }
-      } else {
         setUser(null);
         cacheUser(null);
       }
@@ -117,6 +112,11 @@ export const AuthProvider = ({ children }) => {
       await removePushSubscription();
     } catch (error) {
       console.error('Push unsubscribe error:', error);
+    }
+    try {
+      await api.post('/auth/logout');
+    } catch (error) {
+      console.error('Logout endpoint error:', error);
     }
     localStorage.removeItem('token');
     cacheUser(null);
