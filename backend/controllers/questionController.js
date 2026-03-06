@@ -63,13 +63,27 @@ exports.ensureQuestionsForCourse = async (req, res) => {
       });
     }
 
+    if (material.generationLockExpiresAt && material.generationLockExpiresAt > new Date()) {
+      return res.status(200).json({
+        success: true,
+        status: 'processing',
+        count: existingCount,
+        expectedQuestions: 70,
+        materialId: material._id,
+        message: 'Question generation is already in progress for this course.',
+      });
+    }
+
     if (material.processingStatus !== 'processing') {
       material.processingStatus = 'processing';
       await material.save();
     }
 
     const targetCount = Math.min(existingCount + 20, 70);
-    generateRemainingQuestions(material._id, req.user?._id, targetCount, { completeOnFinish: false }).catch((error) => {
+    generateRemainingQuestions(material._id, req.user?._id, targetCount, {
+      completeOnFinish: false,
+      lockKey: `ensure:${material._id}:${targetCount}`,
+    }).catch((error) => {
       console.error('Ensure questions generation failed:', error);
     });
 

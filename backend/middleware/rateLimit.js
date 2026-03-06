@@ -11,11 +11,13 @@ exports.createRateLimit = ({
   max = 20,
   keyPrefix = 'global',
   message = 'Too many requests. Please try again later.',
+  keyBuilder,
 } = {}) => {
   return (req, res, next) => {
     const now = Date.now();
     const ip = getClientIp(req);
-    const key = `${keyPrefix}:${ip}`;
+    const scopedKey = typeof keyBuilder === 'function' ? keyBuilder(req, ip) : ip;
+    const key = `${keyPrefix}:${scopedKey || ip}`;
     const existing = buckets.get(key);
 
     if (!existing || existing.expiresAt <= now) {

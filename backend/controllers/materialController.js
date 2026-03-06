@@ -14,6 +14,38 @@ const {
 const crypto = require('crypto');
 const { materialCache, questionCache, cacheHelper } = require('../utils/cache');
 const { cloudinary } = require('../config/cloudinary');
+const { acquireGenerationLock, releaseGenerationLock } = require('../utils/generationGuard');
+
+const SUMMARY_AND_QUESTIONS_LOCK_TTL_MS = 30 * 60 * 1000;
+const QUESTIONS_ONLY_LOCK_TTL_MS = 15 * 60 * 1000;
+
+const buildStudentRedoMessage = () =>
+  'Summary generation failed. We removed this material from the course. Please make the PDF lighter and upload it again.';
+
+const cleanupFailedStudentMaterial = async (material, reason) => {
+  if (!material) return;
+
+  await Promise.allSettled([
+    Summary.deleteMany({ materialId: material._id }),
+    Question.deleteMany({ materialId: material._id }),
+    material.cloudinaryPublicId
+      ? cloudinary.uploader.destroy(material.cloudinaryPublicId, { resource_type: 'raw' })
+      : Promise.resolve(),
+  ]);
+
+  material.status = 'rejected';
+  material.summary = '';
+  material.hasSummary = false;
+  material.hasQuestions = false;
+  material.processingStatus = 'failed';
+  material.processingError = reason;
+  material.contributorPoints = 0;
+  await material.save();
+
+  cacheHelper.invalidatePattern(materialCache, `course_${material.courseId}_*`);
+  cacheHelper.invalidate(materialCache, `material_${material._id}_summary`);
+  cacheHelper.invalidatePattern(questionCache, `course_${material.courseId}_*`);
+};
 
 // @desc    Upload course material
 // @route   POST /api/materials/upload
@@ -86,7 +118,18 @@ exports.uploadMaterial = async (req, res) => {
 // @route   POST /api/materials/:materialId/summarize
 // @access  Private/Admin
 exports.generateSummary = async (req, res) => {
+  const lockKey = `admin-summary:${req.params.materialId}`;
+  let lockAcquired = false;
   try {
+    const lockResult = await acquireGenerationLock(req.params.materialId, lockKey, SUMMARY_AND_QUESTIONS_LOCK_TTL_MS);
+    if (!lockResult.acquired) {
+      return res.status(409).json({
+        success: false,
+        message: 'Summary generation is already in progress for this material',
+      });
+    }
+    lockAcquired = true;
+
     const material = await Material.findById(req.params.materialId);
 
     if (!material) {
@@ -114,6 +157,10 @@ exports.generateSummary = async (req, res) => {
       success: false,
       message: error.message,
     });
+  } finally {
+    if (lockAcquired) {
+      await releaseGenerationLock(req.params.materialId, lockKey);
+    }
   }
 };
 
@@ -121,7 +168,18 @@ exports.generateSummary = async (req, res) => {
 // @route   POST /api/materials/:materialId/generate-questions
 // @access  Private/Admin
 exports.generateQuestionsForMaterial = async (req, res) => {
+  const lockKey = `admin-questions:${req.params.materialId}`;
+  let lockAcquired = false;
   try {
+    const lockResult = await acquireGenerationLock(req.params.materialId, lockKey, QUESTIONS_ONLY_LOCK_TTL_MS);
+    if (!lockResult.acquired) {
+      return res.status(409).json({
+        success: false,
+        message: 'Question generation is already in progress for this material',
+      });
+    }
+    lockAcquired = true;
+
     const material = await Material.findById(req.params.materialId);
 
     if (!material) {
@@ -159,6 +217,10 @@ exports.generateQuestionsForMaterial = async (req, res) => {
       success: false,
       message: error.message,
     });
+  } finally {
+    if (lockAcquired) {
+      await releaseGenerationLock(req.params.materialId, lockKey);
+    }
   }
 };
 
@@ -234,7 +296,7 @@ exports.getCourseMaterials = async (req, res) => {
     const cacheKey = `course_${req.params.courseId}_materials`;
 
     const materialsWithSummaries = await cacheHelper.getOrSet(materialCache, cacheKey, async () => {
-      const materials = await Material.find({ courseId: req.params.courseId })
+      const materials = await Material.find({ courseId: req.params.courseId, status: 'approved' })
         .sort({ createdAt: -1 })
         .populate('uploadedBy', 'name');
 
@@ -522,15 +584,25 @@ exports.getUploadSignature = async (req, res) => {
 // Helper function to generate summary and questions in background
 // OPTIMIZED: Uses parallel generation for faster upload experience
 async function generateSummaryAndQuestions(materialId, userId) {
+  const lockKey = `summary-questions:${materialId}`;
+  let lockAcquired = false;
   try {
+    const lockResult = await acquireGenerationLock(materialId, lockKey, SUMMARY_AND_QUESTIONS_LOCK_TTL_MS);
+    if (!lockResult.acquired) {
+      console.log(`Skipped duplicate summary+questions generation for material ${materialId}`);
+      return { status: 'locked' };
+    }
+    lockAcquired = true;
+
     const material = await Material.findById(materialId);
     if (!material) {
       console.error('Material not found for background processing:', materialId);
-      return;
+      return { status: 'missing' };
     }
 
     // Update status to processing
     material.processingStatus = 'processing';
+    material.processingError = '';
     await material.save();
 
     const apiKeyCount = getClientCount();
@@ -580,6 +652,7 @@ async function generateSummaryAndQuestions(materialId, userId) {
     cacheHelper.invalidatePattern(questionCache, `course_${material.courseId}_*`);
     console.log(`Initial questions ready for material: ${materialId}`);
     console.log('Remaining questions will be generated on exam start.');
+    return { status: 'completed' };
   } catch (error) {
     console.error('Error in background processing:', error);
 
@@ -587,22 +660,40 @@ async function generateSummaryAndQuestions(materialId, userId) {
     try {
       const material = await Material.findById(materialId);
       if (material) {
-        material.processingStatus = 'failed';
-        material.processingError = error.message;
-        await material.save();
+        if (material.uploadedByRole === 'student') {
+          await cleanupFailedStudentMaterial(material, buildStudentRedoMessage());
+        } else {
+          material.processingStatus = 'failed';
+          material.processingError = error.message;
+          await material.save();
+        }
       }
     } catch (updateError) {
       console.error('Error updating failed status:', updateError);
+    }
+    return { status: 'failed', error };
+  } finally {
+    if (lockAcquired) {
+      await releaseGenerationLock(materialId, lockKey);
     }
   }
 }
 
 // OPTIMIZED: Generate remaining questions using parallel batches
 async function generateRemainingQuestions(materialId, userId, targetCount = 70, options = {}) {
+  const lockKey = options.lockKey || `questions:${materialId}:${targetCount}`;
+  let lockAcquired = false;
   const material = await Material.findById(materialId);
   if (!material) {
-    return;
+    return { status: 'missing' };
   }
+
+  const lockResult = await acquireGenerationLock(materialId, lockKey, QUESTIONS_ONLY_LOCK_TTL_MS);
+  if (!lockResult.acquired) {
+    console.log(`Skipped duplicate questions generation for material ${materialId}`);
+    return { status: 'locked' };
+  }
+  lockAcquired = true;
 
   let currentCount = await Question.countDocuments({ materialId });
   let remaining = targetCount - currentCount;
@@ -613,7 +704,7 @@ async function generateRemainingQuestions(materialId, userId, targetCount = 70, 
     material.contributorPoints = 10;
     await material.save();
     console.log(`Material ${materialId} already has ${currentCount} questions, marking complete`);
-    return;
+    return { status: 'ready', count: currentCount };
   }
 
   console.log(`Generating ${remaining} more questions for material: ${materialId}`);
@@ -677,6 +768,7 @@ async function generateRemainingQuestions(materialId, userId, targetCount = 70, 
     cacheHelper.invalidatePattern(questionCache, `course_${material.courseId}_*`);
 
     console.log(`Processing completed for material: ${materialId}`);
+    return { status: 'completed', count: finalCount };
   } catch (error) {
     console.error(`Error generating remaining questions for ${materialId}:`, error);
 
@@ -700,6 +792,11 @@ async function generateRemainingQuestions(materialId, userId, targetCount = 70, 
 
     // Still invalidate caches so partial results are visible
     cacheHelper.invalidatePattern(questionCache, `course_${material.courseId}_*`);
+    return { status: 'failed', error, count: partialCount };
+  } finally {
+    if (lockAcquired) {
+      await releaseGenerationLock(materialId, lockKey);
+    }
   }
 }
 

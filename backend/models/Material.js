@@ -71,6 +71,22 @@ const materialSchema = new mongoose.Schema({
   processingError: {
     type: String,
   },
+  generationLockKey: {
+    type: String,
+    default: '',
+  },
+  generationLockExpiresAt: {
+    type: Date,
+    default: null,
+  },
+  lastGenerationStartedAt: {
+    type: Date,
+    default: null,
+  },
+  lastGenerationCompletedAt: {
+    type: Date,
+    default: null,
+  },
 }, {
   timestamps: true, // Adds createdAt and updatedAt automatically
 });
