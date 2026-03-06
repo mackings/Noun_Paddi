@@ -45,6 +45,40 @@ const NIGERIA_STATES = [
   'Federal Capital Territory (FCT)',
 ];
 
+const ALLOWED_EMAIL_TLDS = new Set([
+  'com', 'org', 'net', 'edu', 'gov', 'ng', 'co', 'io', 'info', 'me', 'app',
+]);
+
+const hasDangerousPattern = (value) =>
+  /<[^>]+>|javascript:|on\w+\s*=|script/gi.test(String(value || ''));
+
+const normalizeText = (value) =>
+  String(value || '')
+    .replace(/<[^>]*>/g, '')
+    .split('')
+    .filter((char) => {
+      const code = char.charCodeAt(0);
+      return (code >= 32 && code !== 127) || char === ' ';
+    })
+    .join('')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const isValidEmail = (email) => {
+  const normalized = normalizeText(email).toLowerCase();
+  const basicRegex = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,24}$/i;
+  if (!basicRegex.test(normalized)) return false;
+  const parts = normalized.split('.');
+  const tld = parts[parts.length - 1];
+  return ALLOWED_EMAIL_TLDS.has(tld);
+};
+
+const isValidName = (name) => {
+  const normalized = normalizeText(name);
+  if (normalized.length < 2 || normalized.length > 80) return false;
+  return /^[a-zA-Z][a-zA-Z\s'.-]{1,79}$/.test(normalized);
+};
+
 const Signup = () => {
   const [formData, setFormData] = useState({
     name: '',
@@ -81,10 +115,38 @@ const Signup = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
+    const safeName = normalizeText(formData.name);
+    const safeEmail = normalizeText(formData.email).toLowerCase();
+
+    if (hasDangerousPattern(formData.name) || hasDangerousPattern(formData.email)) {
+      setError('Invalid characters detected in signup fields');
+      return;
+    }
+
+    if (!isValidName(safeName)) {
+      setError('Enter a valid full name (letters, spaces, apostrophe, hyphen only)');
+      return;
+    }
+
+    if (!isValidEmail(safeEmail)) {
+      setError('Enter a valid email address');
+      return;
+    }
+
+    if (!formData.password || formData.password.length < 8) {
+      setError('Password must be at least 8 characters long');
+      return;
+    }
+
     setLoading(true);
 
     try {
-      await signup(formData);
+      await signup({
+        ...formData,
+        name: safeName,
+        email: safeEmail,
+      });
       const redirect = getSafeRedirect();
       if (redirect) {
         navigate(redirect);
@@ -127,6 +189,7 @@ const Signup = () => {
                 placeholder="Enter your full name"
                 value={formData.name}
                 onChange={handleChange}
+                maxLength={80}
                 required
               />
             </div>
@@ -215,7 +278,7 @@ const Signup = () => {
                 placeholder="Create a strong password"
                 value={formData.password}
                 onChange={handleChange}
-                minLength="6"
+                minLength="8"
                 required
               />
               <button
