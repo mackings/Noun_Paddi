@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../utils/api';
 import { trackFeatureVisit } from '../utils/featureTracking';
@@ -8,14 +8,28 @@ import './Explore.css';
 
 const normalizeSearchValue = (value) => String(value || '').toLowerCase().trim();
 const compactSearchValue = (value) => normalizeSearchValue(value).replace(/[^a-z0-9]/g, '');
+const hasDangerousSearchPattern = (value) =>
+  /<[^>]+>|javascript:|on\w+\s*=|script/gi.test(String(value || ''));
+const shouldAutoScrollResults = (value) => {
+  const normalized = normalizeSearchValue(value);
+  const compact = compactSearchValue(value);
+
+  if (compact.length >= 5) return true; // gst10, gst101
+  if (normalized.length >= 4 && /\s/.test(normalized)) return true; // gst 1
+  if (/^[a-z]{3,}$/i.test(compact)) return true; // gst
+  return false;
+};
 
 const Explore = () => {
   const [faculties, setFaculties] = useState([]);
   const [courses, setCourses] = useState([]);
   const [allCourses, setAllCourses] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchError, setSearchError] = useState('');
   const [selectedFaculty, setSelectedFaculty] = useState(null);
   const [loading, setLoading] = useState(true);
+  const resultsRef = useRef(null);
+  const searchInputRef = useRef(null);
 
   useEffect(() => {
     fetchFaculties();
@@ -86,11 +100,24 @@ const Explore = () => {
 
   const handleSearch = (query) => {
     const searchTerm = query ?? searchQuery;
+    if (hasDangerousSearchPattern(searchTerm)) {
+      setSearchError('Invalid characters detected in search');
+      return;
+    }
+    setSearchError('');
     applyFilters(searchTerm);
   };
 
   const handleSearchInput = (e) => {
     const value = e.target.value;
+    if (hasDangerousSearchPattern(value)) {
+      setSearchQuery(value);
+      setSearchError('Invalid characters detected in search');
+      setCourses([]);
+      return;
+    }
+
+    setSearchError('');
     setSearchQuery(value);
     applyFilters(value);
   };
@@ -108,6 +135,25 @@ const Explore = () => {
 
   const trimmedSearch = searchQuery.trim();
   const displayedCourses = trimmedSearch ? courses : courses.slice(0, 50);
+  const allowAutoScroll = shouldAutoScrollResults(searchQuery);
+
+  useEffect(() => {
+    if (!trimmedSearch || !allowAutoScroll || loading || courses.length === 0) return;
+
+    const activeElement = document.activeElement;
+    if (activeElement && typeof activeElement.blur === 'function') {
+      activeElement.blur();
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      resultsRef.current?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
+    }, 180);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [trimmedSearch, allowAutoScroll, courses.length, loading]);
 
   const structuredData = {
     "@context": "https://schema.org",
@@ -154,19 +200,51 @@ const Explore = () => {
 
         {/* Search Bar */}
         <div className="search-section">
-          <div className="search-bar">
-            <FiSearch className="search-icon" />
-            <input
-              type="text"
-              placeholder="Search by course code or name..."
-              value={searchQuery}
-              onChange={handleSearchInput}
-              onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-              className="search-input"
-            />
-            <button className="search-btn" onClick={() => handleSearch()}>
-              Search
-            </button>
+          <div className="search-shell">
+            <div className="search-shell-header">
+              <div>
+                <p className="search-kicker">Find a course fast</p>
+                <h2>Search by course code or title</h2>
+              </div>
+              {trimmedSearch && !searchError && (
+                <div className="search-results-pill">
+                  {courses.length} result{courses.length === 1 ? '' : 's'}
+                </div>
+              )}
+            </div>
+            <div className="search-bar">
+              <FiSearch className="search-icon" />
+              <input
+                ref={searchInputRef}
+                type="text"
+                placeholder="Try GST101, MTH202, or Computer Science..."
+                value={searchQuery}
+                onChange={handleSearchInput}
+                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                className="search-input"
+              />
+              {trimmedSearch && (
+                <button
+                  type="button"
+                  className="search-clear-btn"
+                  onClick={() => {
+                    setSearchError('');
+                    setSearchQuery('');
+                    applyFilters('', selectedFaculty);
+                    searchInputRef.current?.focus();
+                  }}
+                >
+                  Clear
+                </button>
+              )}
+              <button className="search-btn" onClick={() => handleSearch()}>
+                Search
+              </button>
+            </div>
+            {searchError && <p className="search-error">{searchError}</p>}
+            <p className="search-helper">
+              Search works across all courses. Faculty filters still apply when no search term is entered.
+            </p>
           </div>
         </div>
 
@@ -197,9 +275,9 @@ const Explore = () => {
         </div>
 
         {/* Courses Grid */}
-        <div className="courses-section">
+        <div className="courses-section" ref={resultsRef}>
           <div className="courses-header">
-            <h2>Available Courses</h2>
+            <h2>{trimmedSearch ? 'Search Results' : 'Available Courses'}</h2>
             <Link className="view-all-courses-btn" to="/courses">
               View All Courses
             </Link>

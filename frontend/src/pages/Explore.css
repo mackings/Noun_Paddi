@@ -138,6 +138,53 @@
   animation: fadeInUp 0.6s ease-out 0.1s backwards;
 }
 
+.search-shell {
+  max-width: 920px;
+  padding: 24px 26px;
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at top right, rgba(14, 165, 233, 0.12), transparent 32%),
+    linear-gradient(180deg, rgba(15, 118, 110, 0.06), rgba(255, 255, 255, 0.9));
+  border: 1px solid rgba(15, 118, 110, 0.18);
+  box-shadow: 0 22px 44px rgba(15, 23, 42, 0.08);
+}
+
+.search-shell-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.search-kicker {
+  margin: 0 0 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--explore-accent-strong);
+}
+
+.search-shell-header h2 {
+  margin: 0;
+  font-size: 26px;
+  color: var(--explore-ink);
+}
+
+.search-results-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: rgba(15, 118, 110, 0.12);
+  color: var(--explore-accent-strong);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
 .search-bar {
   display: flex;
   align-items: center;
@@ -171,10 +218,12 @@
   font-size: 16px;
   outline: none;
   font-weight: 500;
+  padding-left: 6px;
 }
 
 .search-input::placeholder {
   color: var(--explore-mute);
+  letter-spacing: 0.02em;
 }
 
 .search-btn {
@@ -190,6 +239,35 @@
 
 .search-btn:hover {
   transform: translateY(-1px);
+}
+
+.search-clear-btn {
+  background: rgba(15, 23, 42, 0.06);
+  color: var(--explore-ink);
+  border: 1px solid var(--explore-line);
+  padding: 10px 16px;
+  border-radius: 999px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.search-clear-btn:hover {
+  background: rgba(15, 118, 110, 0.1);
+  border-color: rgba(15, 118, 110, 0.24);
+}
+
+.search-helper {
+  margin: 14px 2px 0;
+  color: var(--explore-mute);
+  font-size: 14px;
+}
+
+.search-error {
+  margin: 14px 2px 0;
+  color: #c62828;
+  font-size: 13px;
+  font-weight: 700;
 }
 
 /* Faculties Section */
@@ -244,6 +322,7 @@
 /* Courses Section */
 .courses-section {
   animation: fadeInUp 0.6s ease-out 0.3s backwards;
+  scroll-margin-top: 110px;
 }
 
 .courses-header {
@@ -634,6 +713,15 @@
     font-size: 15px;
   }
 
+  .search-shell {
+    padding: 22px 20px;
+  }
+
+  .search-shell-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
   .search-bar {
     padding: 18px 20px;
     flex-wrap: wrap;
@@ -641,6 +729,12 @@
   }
 
   .search-btn {
+    width: 100%;
+    padding: 14px 18px;
+    font-size: 16px;
+  }
+
+  .search-clear-btn {
     width: 100%;
     padding: 14px 18px;
     font-size: 16px;
@@ -683,6 +777,14 @@
 @media (max-width: 480px) {
   .explore-header {
     padding: 20px 18px;
+  }
+
+  .search-shell {
+    padding: 18px 16px;
+  }
+
+  .search-shell-header h2 {
+    font-size: 22px;
   }
 
   .search-bar {
