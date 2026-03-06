@@ -69,15 +69,24 @@ const isValidEmail = (email) => {
   const normalized = normalizeText(email).toLowerCase();
   const basicRegex = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,24}$/i;
   if (!basicRegex.test(normalized)) return false;
-  const parts = normalized.split('.');
-  const tld = parts[parts.length - 1];
+  const [localPart = '', domainPart = ''] = normalized.split('@');
+  if (localPart.length < 2 || localPart.length > 64) return false;
+  if (localPart.startsWith('.') || localPart.endsWith('.') || localPart.includes('..')) return false;
+  const labels = domainPart.split('.');
+  if (labels.length < 2) return false;
+  if (labels.some((label) => label.length < 2 || label.length > 63)) return false;
+  if (labels.some((label) => label.startsWith('-') || label.endsWith('-'))) return false;
+  if (labels.some((label) => !/^[a-z0-9-]+$/i.test(label))) return false;
+  const tld = labels[labels.length - 1];
   return ALLOWED_EMAIL_TLDS.has(tld);
 };
 
 const isValidName = (name) => {
   const normalized = normalizeText(name);
-  if (normalized.length < 2 || normalized.length > 80) return false;
-  return /^[a-zA-Z][a-zA-Z\s'.-]{1,79}$/.test(normalized);
+  if (normalized.length < 5 || normalized.length > 80) return false;
+  const parts = normalized.split(' ').filter(Boolean);
+  if (parts.length < 2) return false;
+  return parts.every((part) => /^[a-zA-Z][a-zA-Z'.-]{1,39}$/.test(part));
 };
 
 const isValidProfileText = (value) => {
@@ -105,6 +114,50 @@ const validateStrongPassword = (password) => {
   return '';
 };
 
+const getPasswordChecks = (password) => {
+  const raw = String(password || '');
+  return [
+    { key: 'length', label: 'At least 8 characters', passed: raw.length >= 8 },
+    { key: 'upper', label: 'One uppercase letter', passed: /[A-Z]/.test(raw) },
+    { key: 'lower', label: 'One lowercase letter', passed: /[a-z]/.test(raw) },
+    { key: 'number', label: 'One number', passed: /[0-9]/.test(raw) },
+    { key: 'special', label: 'One special character', passed: /[^A-Za-z0-9]/.test(raw) },
+  ];
+};
+
+const getPasswordHelper = (password) => {
+  const remaining = Math.max(0, 8 - String(password || '').length);
+  if (remaining > 0) {
+    return `${remaining} more character${remaining === 1 ? '' : 's'} to reach 8`;
+  }
+  return 'Minimum length reached';
+};
+
+const FACULTY_CACHE_KEY = 'np_signup_faculties_v1';
+const FACULTY_CACHE_TTL = 12 * 60 * 60 * 1000;
+
+const readFacultyCache = () => {
+  try {
+    const cached = JSON.parse(localStorage.getItem(FACULTY_CACHE_KEY) || 'null');
+    if (!cached || !Array.isArray(cached.data) || !cached.savedAt) return [];
+    if (Date.now() - cached.savedAt > FACULTY_CACHE_TTL) return [];
+    return cached.data;
+  } catch (error) {
+    return [];
+  }
+};
+
+const writeFacultyCache = (data) => {
+  try {
+    localStorage.setItem(FACULTY_CACHE_KEY, JSON.stringify({
+      data,
+      savedAt: Date.now(),
+    }));
+  } catch (error) {
+    // Ignore cache write failures
+  }
+};
+
 const Signup = () => {
   const [formData, setFormData] = useState({
     name: '',
@@ -116,11 +169,11 @@ const Signup = () => {
     studyCenter: '',
     matricNumber: '',
   });
+  const [fieldErrors, setFieldErrors] = useState({});
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [faculties, setFaculties] = useState([]);
-  const [departments, setDepartments] = useState([]);
+  const [faculties, setFaculties] = useState(() => readFacultyCache());
   const { signup } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -129,7 +182,9 @@ const Signup = () => {
     const fetchFaculties = async () => {
       try {
         const response = await api.get('/faculties');
-        setFaculties(Array.isArray(response.data?.data) ? response.data.data : []);
+        const nextFaculties = Array.isArray(response.data?.data) ? response.data.data : [];
+        setFaculties(nextFaculties);
+        writeFacultyCache(nextFaculties);
       } catch (err) {
         console.error('Error fetching faculties:', err);
       }
@@ -137,25 +192,6 @@ const Signup = () => {
 
     fetchFaculties();
   }, []);
-
-  useEffect(() => {
-    const fetchDepartments = async () => {
-      if (!formData.faculty) {
-        setDepartments([]);
-        return;
-      }
-
-      try {
-        const response = await api.get(`/faculties/${formData.faculty}/departments`);
-        setDepartments(Array.isArray(response.data?.data) ? response.data.data : []);
-      } catch (err) {
-        console.error('Error fetching departments:', err);
-        setDepartments([]);
-      }
-    };
-
-    fetchDepartments();
-  }, [formData.faculty]);
 
   const getSafeRedirect = () => {
     const params = new URLSearchParams(location.search);
@@ -167,63 +203,62 @@ const Signup = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    setFieldErrors((current) => ({ ...current, [name]: '' }));
     setFormData({
       ...formData,
       [name]: value,
-      ...(name === 'faculty' ? { department: '' } : {}),
     });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setFieldErrors({});
 
     const safeName = normalizeText(formData.name);
     const safeEmail = normalizeText(formData.email).toLowerCase();
     const selectedFaculty = faculties.find((faculty) => faculty._id === formData.faculty);
-    const selectedDepartment = departments.find((department) => department._id === formData.department);
     const facultyLabel = normalizeText(selectedFaculty?.name || '');
-    const departmentLabel = normalizeText(selectedDepartment?.name || '');
+    const departmentLabel = normalizeText(formData.department);
 
-    if (hasDangerousPattern(formData.name) || hasDangerousPattern(formData.email)) {
-      setError('Invalid characters detected in signup fields');
-      return;
+    const nextFieldErrors = {};
+
+    if (hasDangerousPattern(formData.name)) {
+      nextFieldErrors.name = 'Invalid characters detected in your name';
+    } else if (!isValidName(safeName)) {
+      nextFieldErrors.name = 'Enter your full name, for example Mac Kingsley';
     }
 
-    if (!isValidName(safeName)) {
-      setError('Enter a valid full name (letters, spaces, apostrophe, hyphen only)');
-      return;
-    }
-
-    if (!isValidEmail(safeEmail)) {
-      setError('Enter a valid email address');
-      return;
+    if (hasDangerousPattern(formData.email)) {
+      nextFieldErrors.email = 'Invalid characters detected in your email';
+    } else if (!isValidEmail(safeEmail)) {
+      nextFieldErrors.email = 'Enter a valid email address';
     }
 
     if (!isValidProfileText(facultyLabel)) {
-      setError('Select a valid faculty');
-      return;
+      nextFieldErrors.faculty = 'Select a valid faculty';
     }
 
     if (!isValidProfileText(departmentLabel)) {
-      setError('Select a valid department');
-      return;
+      nextFieldErrors.department = 'Enter a valid department';
     }
 
     if (!NIGERIA_STATES.includes(formData.studyCenter)) {
-      setError('Select a valid study center');
-      return;
+      nextFieldErrors.studyCenter = 'Select a valid study center';
     }
 
     const safeMatricNumber = normalizeMatricNumber(formData.matricNumber);
     if (!isValidMatricNumber(safeMatricNumber)) {
-      setError('Enter a valid matric number');
-      return;
+      nextFieldErrors.matricNumber = 'Enter a valid matric number';
     }
 
     const passwordMessage = validateStrongPassword(formData.password);
     if (passwordMessage) {
-      setError(passwordMessage);
+      nextFieldErrors.password = passwordMessage;
+    }
+
+    if (Object.keys(nextFieldErrors).length > 0) {
+      setFieldErrors(nextFieldErrors);
       return;
     }
 
@@ -245,11 +280,28 @@ const Signup = () => {
       }
       navigate(formData.role === 'admin' ? '/admin/upload' : '/explore');
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to create account');
+      const message = err.response?.data?.message || 'Failed to create account';
+      const serverFieldErrors = {};
+
+      if (/full name|valid full name|name/i.test(message)) serverFieldErrors.name = message;
+      else if (/email/i.test(message)) serverFieldErrors.email = message;
+      else if (/password/i.test(message)) serverFieldErrors.password = message;
+      else if (/faculty/i.test(message)) serverFieldErrors.faculty = message;
+      else if (/department/i.test(message)) serverFieldErrors.department = message;
+      else if (/study center/i.test(message)) serverFieldErrors.studyCenter = message;
+      else if (/matric/i.test(message)) serverFieldErrors.matricNumber = message;
+      else setError(message);
+
+      if (Object.keys(serverFieldErrors).length > 0) {
+        setFieldErrors(serverFieldErrors);
+      }
     } finally {
       setLoading(false);
     }
   };
+
+  const passwordChecks = getPasswordChecks(formData.password);
+  const passwordHelper = getPasswordHelper(formData.password);
 
   return (
     <div className="auth-container">
@@ -284,6 +336,7 @@ const Signup = () => {
                 required
               />
             </div>
+            {fieldErrors.name && <p className="field-error">{fieldErrors.name}</p>}
           </div>
 
           <div className="form-group">
@@ -300,6 +353,7 @@ const Signup = () => {
                 required
               />
             </div>
+            {fieldErrors.email && <p className="field-error">{fieldErrors.email}</p>}
           </div>
 
           {formData.role === 'student' && (
@@ -323,6 +377,7 @@ const Signup = () => {
                     ))}
                   </select>
                 </div>
+                {fieldErrors.faculty && <p className="field-error">{fieldErrors.faculty}</p>}
               </div>
 
               <div className="form-group">
@@ -341,6 +396,7 @@ const Signup = () => {
                     required
                   />
                 </div>
+                {fieldErrors.matricNumber && <p className="field-error">{fieldErrors.matricNumber}</p>}
               </div>
 
               <div className="signup-row">
@@ -348,22 +404,18 @@ const Signup = () => {
                   <label className="form-label">Department</label>
                   <div className="input-group">
                     <FiFileText className="input-icon" size={20} />
-                    <select
+                    <input
+                      type="text"
                       name="department"
                       className="form-control"
                       value={formData.department}
                       onChange={handleChange}
+                      placeholder="e.g., Computer Science"
+                      maxLength={80}
                       required
-                      disabled={!formData.faculty}
-                    >
-                      <option value="">{formData.faculty ? 'Select your department' : 'Select faculty first'}</option>
-                      {departments.map((department) => (
-                        <option key={department._id} value={department._id}>
-                          {department.name}
-                        </option>
-                      ))}
-                    </select>
+                    />
                   </div>
+                  {fieldErrors.department && <p className="field-error">{fieldErrors.department}</p>}
                 </div>
                 <div className="form-group">
                   <label className="form-label">Study Center</label>
@@ -384,6 +436,7 @@ const Signup = () => {
                       ))}
                     </select>
                   </div>
+                  {fieldErrors.studyCenter && <p className="field-error">{fieldErrors.studyCenter}</p>}
                 </div>
               </div>
             </>
@@ -412,6 +465,18 @@ const Signup = () => {
                 {showPassword ? <FiEyeOff size={20} /> : <FiEye size={20} />}
               </button>
             </div>
+            <p className="password-helper">{passwordHelper}</p>
+            <div className="password-checklist">
+              {passwordChecks.map((check) => (
+                <p
+                  key={check.key}
+                  className={`password-check ${check.passed ? 'passed' : 'pending'}`}
+                >
+                  {check.passed ? 'OK' : 'NO'} {check.label}
+                </p>
+              ))}
+            </div>
+            {fieldErrors.password && <p className="field-error">{fieldErrors.password}</p>}
           </div>
 
           <button

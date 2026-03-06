@@ -29,10 +29,13 @@ test('hasDangerousPattern detects script-like payloads', () => {
 test('email validation rejects untrusted tlds', () => {
   assert.equal(isValidEmailWithAllowlist('a@ttt.von'), false);
   assert.equal(isValidEmailWithAllowlist('student@example.com'), true);
+  assert.equal(isValidEmailWithAllowlist('a@b.com'), false);
+  assert.equal(isValidEmailWithAllowlist('student@-mail.com'), false);
 });
 
 test('name validation accepts plain names and rejects script-like input', () => {
   assert.equal(isValidName('John Doe'), true);
+  assert.equal(isValidName('Lan'), false);
   assert.equal(isValidName('<script>alert(1)</script>'), false);
 });
 

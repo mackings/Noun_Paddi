@@ -7,9 +7,15 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Please add a name'],
     trim: true,
-    minlength: [2, 'Name must be at least 2 characters'],
+    minlength: [5, 'Full name must be at least 5 characters'],
     maxlength: [80, 'Name cannot exceed 80 characters'],
-    match: [/^[a-zA-Z][a-zA-Z\s'.-]{1,79}$/, 'Name contains invalid characters'],
+    validate: {
+      validator(value) {
+        const parts = String(value || '').trim().split(/\s+/).filter(Boolean);
+        return parts.length >= 2 && parts.every((part) => /^[a-zA-Z][a-zA-Z'.-]{1,39}$/.test(part));
+      },
+      message: 'Please enter your full name, for example Mac Kingsley',
+    },
   },
   email: {
     type: String,

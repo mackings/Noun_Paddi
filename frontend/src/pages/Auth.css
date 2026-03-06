@@ -454,6 +454,43 @@
   line-height: 1.4;
 }
 
+.field-error {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #c62828;
+  font-weight: 600;
+}
+
+.password-helper {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-secondary);
+}
+
+.password-checklist {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 12px;
+  margin-top: 10px;
+}
+
+.password-check {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  font-weight: 600;
+}
+
+.password-check.passed {
+  color: #15803d;
+}
+
+.password-check.pending {
+  color: var(--text-tertiary);
+}
+
 .signup-row {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

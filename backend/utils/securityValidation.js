@@ -69,15 +69,26 @@ const isValidEmailWithAllowlist = (email) => {
   const normalized = normalizeEmail(email);
   const basicRegex = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,24}$/i;
   if (!basicRegex.test(normalized)) return false;
-  const parts = normalized.split('.');
-  const tld = parts[parts.length - 1];
+  const [localPart = '', domainPart = ''] = normalized.split('@');
+  if (localPart.length < 2 || localPart.length > 64) return false;
+  if (localPart.startsWith('.') || localPart.endsWith('.') || localPart.includes('..')) return false;
+
+  const labels = domainPart.split('.');
+  if (labels.length < 2) return false;
+  if (labels.some((label) => label.length < 2 || label.length > 63)) return false;
+  if (labels.some((label) => label.startsWith('-') || label.endsWith('-'))) return false;
+  if (labels.some((label) => !/^[a-z0-9-]+$/i.test(label))) return false;
+
+  const tld = labels[labels.length - 1];
   return ALLOWED_EMAIL_TLDS.has(tld);
 };
 
 const isValidName = (name) => {
   const normalized = sanitizeText(name);
-  if (normalized.length < 2 || normalized.length > 80) return false;
-  return /^[a-zA-Z][a-zA-Z\s'.-]{1,79}$/.test(normalized);
+  if (normalized.length < 5 || normalized.length > 80) return false;
+  const parts = normalized.split(' ').filter(Boolean);
+  if (parts.length < 2) return false;
+  return parts.every((part) => /^[a-zA-Z][a-zA-Z'.-]{1,39}$/.test(part));
 };
 
 const isValidProfileText = (value, { min = 3, max = 80 } = {}) => {
