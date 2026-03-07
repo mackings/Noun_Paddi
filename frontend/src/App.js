@@ -42,21 +42,21 @@ const WelcomeLanding = () => {
     '@graph': [
       {
         '@type': 'WebSite',
-        '@id': 'https://nounpaddi.com/#website',
-        url: 'https://nounpaddi.com',
+        '@id': 'https://paddi.com.ng/#website',
+        url: 'https://paddi.com.ng',
         name: 'NounPaddi',
         alternateName: 'NounPaddi Community',
         description: 'NounPaddi is a NOUN student community and learning platform with course summaries, practice exams, and study support.',
       },
       {
         '@type': 'EducationalOrganization',
-        '@id': 'https://nounpaddi.com/#organization',
+        '@id': 'https://paddi.com.ng/#organization',
         name: 'NounPaddi',
         alternateName: 'NounPaddi Community',
-        url: 'https://nounpaddi.com',
+        url: 'https://paddi.com.ng',
         description: 'Learning and community platform for National Open University of Nigeria students.',
         founder: {
-          '@id': 'https://nounpaddi.com/#founder',
+          '@id': 'https://paddi.com.ng/#founder',
         },
         areaServed: {
           '@type': 'Country',
@@ -65,11 +65,11 @@ const WelcomeLanding = () => {
       },
       {
         '@type': 'Person',
-        '@id': 'https://nounpaddi.com/#founder',
+        '@id': 'https://paddi.com.ng/#founder',
         name: 'Kingsley Udoma',
         jobTitle: 'Developer and Founder',
         worksFor: {
-          '@id': 'https://nounpaddi.com/#organization',
+          '@id': 'https://paddi.com.ng/#organization',
         },
       },
     ],

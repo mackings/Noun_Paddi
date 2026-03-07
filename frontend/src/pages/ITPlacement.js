@@ -257,7 +257,7 @@ const ITPlacement = () => {
       "provider": {
         "@type": "EducationalOrganization",
         "name": "NounPaddi",
-        "url": "https://nounpaddi.com"
+        "url": "https://paddi.com.ng"
       },
       "occupationalCategory": [
         "Software Developer",

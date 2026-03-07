@@ -12,7 +12,7 @@ const SEO = ({
   robots = 'index, follow',
   structuredData = null,
 }) => {
-  const siteUrl = process.env.REACT_APP_SITE_URL || 'https://nounpaddi.com';
+  const siteUrl = process.env.REACT_APP_SITE_URL || 'https://paddi.com.ng';
   const fullUrl = url
     ? (url.startsWith('http') ? url : `${siteUrl}${url}`)
     : siteUrl;

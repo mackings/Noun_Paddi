@@ -9,7 +9,7 @@ const Disclaimer = () => {
     '@type': 'WebPage',
     name: 'NounPaddi Disclaimer & Responsible Use Policy',
     description: 'Responsible use policy and disclaimer for NounPaddi, the NOUN student learning community.',
-    url: 'https://nounpaddi.com/disclaimer',
+    url: 'https://paddi.com.ng/disclaimer',
   };
 
   return (

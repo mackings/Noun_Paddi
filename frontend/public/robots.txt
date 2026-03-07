@@ -26,4 +26,4 @@ Disallow: /reset-password
 Disallow: /share/
 Disallow: /admin/
 
-Sitemap: https://nounpaddi.com/sitemap.xml
+Sitemap: https://paddi.com.ng/sitemap.xml

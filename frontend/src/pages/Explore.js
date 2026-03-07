@@ -160,7 +160,7 @@ const Explore = () => {
     "@type": "EducationalOrganization",
     "name": "NounPaddi",
     "description": "Comprehensive course materials and study resources for National Open University of Nigeria (NOUN) students",
-    "url": "https://nounpaddi.com",
+    "url": "https://paddi.com.ng",
     "numberOfCourses": courses.length,
     "educationalLevel": "Higher Education",
     "areaServed": {
