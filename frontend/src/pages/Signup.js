@@ -310,6 +310,7 @@ const Signup = () => {
         description="Create your free NounPaddi account to access personalized course materials, practice exams, and IT placement opportunities for National Open University of Nigeria students."
         url="/signup"
         keywords="sign up, register, create account, NOUN student registration, join NounPaddi, free account"
+        robots="noindex, nofollow"
       />
       <div className="auth-card signup-card">
         <div className="auth-logo">

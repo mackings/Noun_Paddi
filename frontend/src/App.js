@@ -31,11 +31,50 @@ import ShareRedirect from './pages/ShareRedirect';
 import Disclaimer from './pages/Disclaimer';
 import Footer from './components/Footer';
 import AdminLayout from './components/AdminLayout';
+import SEO from './components/SEO';
 import './App.css';
 
 const FIRST_VISIT_KEY = 'np_first_visit_seen_v1';
 
 const WelcomeLanding = () => {
+  const structuredData = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'WebSite',
+        '@id': 'https://nounpaddi.com/#website',
+        url: 'https://nounpaddi.com',
+        name: 'NounPaddi',
+        alternateName: 'NounPaddi Community',
+        description: 'NounPaddi is a NOUN student community and learning platform with course summaries, practice exams, and study support.',
+      },
+      {
+        '@type': 'EducationalOrganization',
+        '@id': 'https://nounpaddi.com/#organization',
+        name: 'NounPaddi',
+        alternateName: 'NounPaddi Community',
+        url: 'https://nounpaddi.com',
+        description: 'Learning and community platform for National Open University of Nigeria students.',
+        founder: {
+          '@id': 'https://nounpaddi.com/#founder',
+        },
+        areaServed: {
+          '@type': 'Country',
+          name: 'Nigeria',
+        },
+      },
+      {
+        '@type': 'Person',
+        '@id': 'https://nounpaddi.com/#founder',
+        name: 'Kingsley Udoma',
+        jobTitle: 'Developer and Founder',
+        worksFor: {
+          '@id': 'https://nounpaddi.com/#organization',
+        },
+      },
+    ],
+  };
+
   const markSeen = () => {
     try {
       localStorage.setItem(FIRST_VISIT_KEY, '1');
@@ -46,6 +85,13 @@ const WelcomeLanding = () => {
 
   return (
     <div className="welcome-landing">
+      <SEO
+        title="NounPaddi Community for NOUN Students | Founded by Kingsley Udoma"
+        description="NounPaddi is a NOUN student community with course summaries, practice exams, and study support for National Open University of Nigeria students, founded by Kingsley Udoma."
+        url="/"
+        keywords="NounPaddi, NOUN community, NOUN students, National Open University of Nigeria, course summaries, practice exams, Kingsley Udoma"
+        structuredData={structuredData}
+      />
       <div className="container">
         <div className="welcome-hero-shell">
           <div className="welcome-glow welcome-glow-one"></div>

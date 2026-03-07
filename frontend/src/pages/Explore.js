@@ -176,6 +176,7 @@ const Explore = () => {
         description="Browse comprehensive course materials, practice questions, and study resources for all NOUN faculties. Access personalized learning materials to excel in your studies."
         url="/explore"
         keywords="NOUN courses, study materials, course materials Nigeria, NOUN faculties, e-learning resources, distance learning materials, NOUN study guide"
+        robots="noindex, nofollow"
         structuredData={structuredData}
       />
       <div className="container">

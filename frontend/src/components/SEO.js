@@ -2,17 +2,20 @@ import React from 'react';
 import { Helmet } from 'react-helmet-async';
 
 const SEO = ({
-  title = 'NounPaddi - Your Academic Companion for NOUN Success',
-  description = 'NounPaddi helps National Open University of Nigeria (NOUN) students excel with comprehensive course materials, practice questions, IT placement programs, and study resources.',
-  keywords = 'NOUN, National Open University, Nigeria, e-learning, course materials, practice questions, IT placement, study center, distance learning, online education',
+  title = 'NounPaddi Community for NOUN Students | Founded by Kingsley Udoma',
+  description = 'NounPaddi is a learning and community platform for National Open University of Nigeria (NOUN) students, with course materials, summaries, practice questions, and support built by Kingsley Udoma.',
+  keywords = 'NounPaddi, NOUN community, National Open University of Nigeria, NOUN students, course materials, practice questions, summaries, Kingsley Udoma',
   image = '/og-image.png',
   url = '',
   type = 'website',
-  author = 'NounPaddi Team',
+  author = 'Kingsley Udoma',
+  robots = 'index, follow',
   structuredData = null,
 }) => {
   const siteUrl = process.env.REACT_APP_SITE_URL || 'https://nounpaddi.com';
-  const fullUrl = url ? `${siteUrl}${url}` : siteUrl;
+  const fullUrl = url
+    ? (url.startsWith('http') ? url : `${siteUrl}${url}`)
+    : siteUrl;
   const imageUrl = image.startsWith('http') ? image : `${siteUrl}${image}`;
 
   return (
@@ -42,7 +45,7 @@ const SEO = ({
       <meta property="twitter:image" content={imageUrl} />
 
       {/* Additional Meta Tags */}
-      <meta name="robots" content="index, follow" />
+      <meta name="robots" content={robots} />
       <meta name="language" content="English" />
       <meta name="revisit-after" content="7 days" />
       <meta name="theme-color" content="#667eea" />

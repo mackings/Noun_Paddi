@@ -705,6 +705,7 @@ const Practice = () => {
           description="Test your knowledge with practice exams for all NOUN courses. Get instant feedback, track your progress, and prepare for your exams with confidence."
           url="/practice"
           keywords="NOUN practice questions, exam preparation, NOUN past questions, quiz Nigeria, test preparation, study questions NOUN"
+          robots="noindex, nofollow"
           structuredData={structuredData}
         />
         <div className="container">
@@ -739,6 +740,7 @@ const Practice = () => {
           title="Select Exam Mode - NounPaddi"
           description="Choose between auto‑graded practice exams or POP handwritten style answers."
           url="/practice"
+          robots="noindex, nofollow"
         />
         <div className="container">
           <div className="timer-setup-card">
@@ -791,6 +793,7 @@ const Practice = () => {
           title="Set Exam Timer - NounPaddi"
           description="Configure your practice exam timer and start your test."
           url="/practice"
+          robots="noindex, nofollow"
         />
         <div className="container">
           <div className="timer-setup-card">

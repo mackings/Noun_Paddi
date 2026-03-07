@@ -8,26 +8,26 @@
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/nounpaddi-icon.png" />
 
     <!-- Primary Meta Tags -->
-    <title>NounPaddi - Your Academic Companion for NOUN Success</title>
-    <meta name="title" content="NounPaddi - Your Academic Companion for NOUN Success" />
-    <meta name="description" content="NounPaddi helps National Open University of Nigeria (NOUN) students excel with comprehensive course materials, practice questions, IT placement programs, and study resources." />
-    <meta name="keywords" content="NOUN, National Open University, Nigeria, e-learning, course materials, practice questions, IT placement, study center, distance learning, online education" />
-    <meta name="author" content="NounPaddi Team" />
+    <title>NounPaddi Community for NOUN Students | Founded by Kingsley Udoma</title>
+    <meta name="title" content="NounPaddi Community for NOUN Students | Founded by Kingsley Udoma" />
+    <meta name="description" content="NounPaddi is a NOUN student learning and community platform for course materials, summaries, practice questions, and study support, founded by Kingsley Udoma." />
+    <meta name="keywords" content="NounPaddi, NOUN community, National Open University of Nigeria, NOUN students, course materials, practice questions, summaries, Kingsley Udoma" />
+    <meta name="author" content="Kingsley Udoma" />
     <meta name="robots" content="index, follow" />
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://nounpaddi.com/" />
-    <meta property="og:title" content="NounPaddi - Your Academic Companion for NOUN Success" />
-    <meta property="og:description" content="NounPaddi helps National Open University of Nigeria (NOUN) students excel with comprehensive course materials, practice questions, IT placement programs, and study resources." />
+    <meta property="og:title" content="NounPaddi Community for NOUN Students | Founded by Kingsley Udoma" />
+    <meta property="og:description" content="NounPaddi is a NOUN student learning and community platform for course materials, summaries, practice questions, and study support, founded by Kingsley Udoma." />
     <meta property="og:site_name" content="NounPaddi" />
     <meta property="og:locale" content="en_NG" />
 
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image" />
     <meta property="twitter:url" content="https://nounpaddi.com/" />
-    <meta property="twitter:title" content="NounPaddi - Your Academic Companion for NOUN Success" />
-    <meta property="twitter:description" content="NounPaddi helps National Open University of Nigeria (NOUN) students excel with comprehensive course materials, practice questions, IT placement programs, and study resources." />
+    <meta property="twitter:title" content="NounPaddi Community for NOUN Students | Founded by Kingsley Udoma" />
+    <meta property="twitter:description" content="NounPaddi is a NOUN student learning and community platform for course materials, summaries, practice questions, and study support, founded by Kingsley Udoma." />
 
     <!-- Additional Meta Tags -->
     <meta name="language" content="English" />
@@ -39,29 +39,49 @@
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "EducationalOrganization",
-      "name": "NounPaddi",
-      "description": "Comprehensive learning platform for National Open University of Nigeria (NOUN) students",
-      "url": "https://nounpaddi.com",
-      "logo": "https://nounpaddi.com/nounpaddi-icon.png",
-      "areaServed": {
-        "@type": "Country",
-        "name": "Nigeria"
-      },
-      "educationalLevel": "Higher Education",
-      "offers": [
+      "@graph": [
         {
-          "@type": "Offer",
-          "itemOffered": {
-            "@type": "Course",
-            "name": "NOUN Course Materials & Practice Exams"
+          "@type": "WebSite",
+          "@id": "https://nounpaddi.com/#website",
+          "url": "https://nounpaddi.com",
+          "name": "NounPaddi",
+          "alternateName": "Noun Paddi",
+          "description": "NOUN student learning and community platform",
+          "publisher": {
+            "@id": "https://nounpaddi.com/#organization"
           }
         },
         {
-          "@type": "Offer",
-          "itemOffered": {
-            "@type": "EducationalOccupationalProgram",
-            "name": "IT Placement Program"
+          "@type": "EducationalOrganization",
+          "@id": "https://nounpaddi.com/#organization",
+          "name": "NounPaddi",
+          "alternateName": "NounPaddi Community",
+          "description": "Learning and community platform for National Open University of Nigeria (NOUN) students",
+          "url": "https://nounpaddi.com",
+          "logo": "https://nounpaddi.com/nounpaddi-icon.png",
+          "founder": {
+            "@id": "https://nounpaddi.com/#founder"
+          },
+          "areaServed": {
+            "@type": "Country",
+            "name": "Nigeria"
+          },
+          "educationalLevel": "Higher Education",
+          "knowsAbout": [
+            "NOUN course materials",
+            "NOUN practice questions",
+            "NOUN student community",
+            "study summaries",
+            "SIWES and IT placement"
+          ]
+        },
+        {
+          "@type": "Person",
+          "@id": "https://nounpaddi.com/#founder",
+          "name": "Kingsley Udoma",
+          "jobTitle": "Developer and Founder",
+          "worksFor": {
+            "@id": "https://nounpaddi.com/#organization"
           }
         }
       ]

@@ -1,10 +1,26 @@
 import React from 'react';
 import { FiAlertTriangle, FiShield, FiBookOpen, FiCheckCircle } from 'react-icons/fi';
+import SEO from '../components/SEO';
 import './Disclaimer.css';
 
 const Disclaimer = () => {
+  const structuredData = {
+    '@context': 'https://schema.org',
+    '@type': 'WebPage',
+    name: 'NounPaddi Disclaimer & Responsible Use Policy',
+    description: 'Responsible use policy and disclaimer for NounPaddi, the NOUN student learning community.',
+    url: 'https://nounpaddi.com/disclaimer',
+  };
+
   return (
     <div className="disclaimer-page">
+      <SEO
+        title="NounPaddi Disclaimer & Responsible Use Policy"
+        description="Read the NounPaddi disclaimer and responsible use policy for NOUN students using summaries, practice questions, and study tools."
+        url="/disclaimer"
+        keywords="NounPaddi disclaimer, responsible use policy, NOUN study platform policy"
+        structuredData={structuredData}
+      />
       <div className="container">
         <div className="disclaimer-hero">
           <div className="disclaimer-icon-wrap">

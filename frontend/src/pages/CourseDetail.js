@@ -4,6 +4,7 @@ import api from '../utils/api';
 import { formatDate } from '../utils/dateHelper';
 import { splitSummaryIntoSections, formatLine } from '../utils/formatSummary';
 import { trackFeatureVisit } from '../utils/featureTracking';
+import SEO from '../components/SEO';
 import {
   FiBook,
   FiFileText,
@@ -252,6 +253,34 @@ const CourseDetail = () => {
     };
   }, [activeTab, courseId, selectedMaterial, summarySections]);
 
+  const courseSeo = useMemo(() => {
+    if (!course) return null;
+
+    const descriptionParts = [
+      `${course.courseCode} ${course.courseName}`,
+      `${materials.length} material${materials.length === 1 ? '' : 's'} available`,
+    ];
+
+    if (selectedMaterial?.title) {
+      descriptionParts.push(`Current summary: ${selectedMaterial.title}`);
+    }
+
+    return {
+      title: `${course.courseCode} ${course.courseName} Summary - NounPaddi`,
+      description: `${descriptionParts.join('. ')}. Access NOUN course summaries and study materials on NounPaddi.`,
+      structuredData: {
+        '@context': 'https://schema.org',
+        '@type': 'Course',
+        name: `${course.courseCode} ${course.courseName}`,
+        description: `${course.courseName} study summaries and course materials on NounPaddi.`,
+        provider: {
+          '@type': 'EducationalOrganization',
+          name: 'NounPaddi',
+        },
+      },
+    };
+  }, [course, materials.length, selectedMaterial?.title]);
+
   const blockCopy = (event) => {
     event.preventDefault();
     event.stopPropagation();
@@ -371,6 +400,16 @@ const CourseDetail = () => {
 
   return (
     <div className="course-detail-container">
+      {courseSeo && (
+        <SEO
+          title={courseSeo.title}
+          description={courseSeo.description}
+          url={`/course/${courseId}`}
+          keywords={`${course?.courseCode || ''}, ${course?.courseName || ''}, NOUN summary, course materials`}
+          robots="noindex, nofollow"
+          structuredData={courseSeo.structuredData}
+        />
+      )}
       <div className="container">
         {/* Breadcrumb */}
         <Link to="/explore" className="breadcrumb">

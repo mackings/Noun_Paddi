@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import api from '../utils/api';
 import { formatDate } from '../utils/dateHelper';
 import { trackFeatureVisit } from '../utils/featureTracking';
+import SEO from '../components/SEO';
 import {
   FiBook,
   FiFileText,
@@ -859,6 +860,13 @@ const StudentDashboard = () => {
 
   return (
     <div className="student-dashboard-container">
+      <SEO
+        title="Student Dashboard - NounPaddi"
+        description="Student dashboard for NounPaddi activity, uploads, summaries, and leaderboard progress."
+        url="/dashboard"
+        keywords="student dashboard, nounpaddi dashboard, uploads, leaderboard"
+        robots="noindex, nofollow"
+      />
       <div className="container">
         <div className="dashboard-header">
           <div>

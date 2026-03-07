@@ -60,6 +60,7 @@ const Login = () => {
         description="Sign in to NounPaddi to access course materials, practice exams, and IT placement opportunities for NOUN students."
         url="/login"
         keywords="login, sign in, NOUN student portal, NounPaddi login"
+        robots="noindex, nofollow"
       />
       <div className="auth-card">
         <div className="auth-logo">

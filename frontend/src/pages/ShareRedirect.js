@@ -48,6 +48,7 @@ const ShareRedirect = () => {
         description="Opening a shared course summary on NounPaddi."
         url={`/share/${token}`}
         keywords="share, pdf, nounpaddi"
+        robots="noindex, nofollow"
       />
       <div className="auth-card">
         <h1 className="auth-title">Shared PDF</h1>

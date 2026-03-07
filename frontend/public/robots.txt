@@ -1,21 +1,29 @@
-# https://www.robotstxt.org/robotstxt.html
 User-agent: *
 Allow: /
 
-# Disallow admin pages from being indexed
-Disallow: /admin/
-Disallow: /admin/*
+# Public pages that can be indexed
+Allow: /disclaimer
 
-# Disallow auth pages from being indexed
+# Private application routes
+Disallow: /dashboard
+Disallow: /explore
+Disallow: /courses
+Disallow: /course/
+Disallow: /practice
+Disallow: /profile
+Disallow: /it-placement
+Disallow: /reminders
+Disallow: /plagiarism
+Disallow: /projects
+Disallow: /projects/
+Disallow: /consultation-terms
+
+# Auth and utility routes
 Disallow: /login
 Disallow: /signup
 Disallow: /forgot-password
 Disallow: /reset-password
+Disallow: /share/
+Disallow: /admin/
 
-# Important pages to index
-Allow: /explore
-Allow: /practice
-Allow: /it-placement
-
-# Sitemap location
 Sitemap: https://nounpaddi.com/sitemap.xml

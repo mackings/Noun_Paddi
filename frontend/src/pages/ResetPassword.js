@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { FiLock, FiCheckCircle } from 'react-icons/fi';
 import api from '../utils/api';
+import SEO from '../components/SEO';
 import './Auth.css';
 
 const ResetPassword = () => {
@@ -76,6 +77,13 @@ const ResetPassword = () => {
 
   return (
     <div className="auth-container">
+      <SEO
+        title="Reset Password - NounPaddi"
+        description="Set a new password for your NounPaddi account."
+        url="/reset-password"
+        keywords="reset password, nounpaddi password reset"
+        robots="noindex, nofollow"
+      />
       <div className="auth-wrapper">
         <div className="auth-card">
           <div className="auth-header">

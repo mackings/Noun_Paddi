@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FiMail, FiArrowLeft, FiCheckCircle } from 'react-icons/fi';
 import api from '../utils/api';
+import SEO from '../components/SEO';
 import './Auth.css';
 
 const ForgotPassword = () => {
@@ -35,6 +36,13 @@ const ForgotPassword = () => {
 
   return (
     <div className="auth-container">
+      <SEO
+        title="Forgot Password - NounPaddi"
+        description="Reset your NounPaddi account password."
+        url="/forgot-password"
+        keywords="forgot password, password reset, nounpaddi account"
+        robots="noindex, nofollow"
+      />
       <div className="auth-wrapper">
         <div className="auth-card">
           <div className="auth-header">
