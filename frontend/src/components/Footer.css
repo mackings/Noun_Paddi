@@ -30,6 +30,23 @@
   max-width: 520px;
 }
 
+.footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.footer-links a {
+  color: #0f766e;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.footer-links a:hover {
+  text-decoration: underline;
+}
+
 .footer-cta {
   display: inline-flex;
   align-items: center;

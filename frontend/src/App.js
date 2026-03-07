@@ -29,6 +29,9 @@ import ConsultationTerms from './pages/ConsultationTerms';
 import ProjectConsultation from './pages/ProjectConsultation';
 import ShareRedirect from './pages/ShareRedirect';
 import Disclaimer from './pages/Disclaimer';
+import PublicCoursesLanding from './pages/PublicCoursesLanding';
+import PublicSummariesLanding from './pages/PublicSummariesLanding';
+import PublicSiwesLanding from './pages/PublicSiwesLanding';
 import Footer from './components/Footer';
 import AdminLayout from './components/AdminLayout';
 import SEO from './components/SEO';
@@ -221,6 +224,34 @@ const NotificationPermissionBar = () => {
   );
 };
 
+const CoursesRoute = () => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="flex-center" style={{ minHeight: '100vh' }}>
+        <div className="spinner"></div>
+      </div>
+    );
+  }
+
+  return user ? <AllCourses /> : <PublicCoursesLanding />;
+};
+
+const ITPlacementRoute = () => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="flex-center" style={{ minHeight: '100vh' }}>
+        <div className="spinner"></div>
+      </div>
+    );
+  }
+
+  return user ? <ITPlacement /> : <PublicSiwesLanding />;
+};
+
 const AppLayout = () => {
   const location = useLocation();
   const hideFooterRoutes = ['/login', '/signup', '/forgot-password', '/reset-password'];
@@ -262,11 +293,7 @@ const AppLayout = () => {
                 />
                 <Route
                   path="/courses"
-                  element={
-                    <ProtectedRoute>
-                      <AllCourses />
-                    </ProtectedRoute>
-                  }
+                  element={<CoursesRoute />}
                 />
                 <Route
                   path="/course/:courseId"
@@ -294,12 +321,9 @@ const AppLayout = () => {
                 />
                 <Route
                   path="/it-placement"
-                  element={
-                    <ProtectedRoute>
-                      <ITPlacement />
-                    </ProtectedRoute>
-                  }
+                  element={<ITPlacementRoute />}
                 />
+                <Route path="/summaries" element={<PublicSummariesLanding />} />
                 <Route
                   path="/reminders"
                   element={

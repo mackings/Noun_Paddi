@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { FiMessageCircle } from 'react-icons/fi';
 import './Footer.css';
 
@@ -11,6 +12,12 @@ const Footer = () => {
           <p>
             Get updates, study tips, and quick support with other students in our WhatsApp group.
           </p>
+          <div className="footer-links">
+            <Link to="/courses">Courses</Link>
+            <Link to="/summaries">Summaries</Link>
+            <Link to="/it-placement">SIWES</Link>
+            <Link to="/disclaimer">Disclaimer</Link>
+          </div>
         </div>
         <a
           className="btn btn-primary footer-cta"

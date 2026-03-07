@@ -2,16 +2,17 @@ User-agent: *
 Allow: /
 
 # Public pages that can be indexed
+Allow: /courses
+Allow: /summaries
+Allow: /it-placement
 Allow: /disclaimer
 
 # Private application routes
 Disallow: /dashboard
 Disallow: /explore
-Disallow: /courses
 Disallow: /course/
 Disallow: /practice
 Disallow: /profile
-Disallow: /it-placement
 Disallow: /reminders
 Disallow: /plagiarism
 Disallow: /projects
