@@ -49,9 +49,53 @@ export const AuthProvider = ({ children }) => {
     setNotificationPermission(Notification.permission);
   }, []);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+
+    const syncPermission = () => {
+      refreshNotificationPermission();
+    };
+
+    window.addEventListener('focus', syncPermission);
+    document.addEventListener('visibilitychange', syncPermission);
+
+    let permissionStatus;
+
+    const bindPermissionsListener = async () => {
+      if (!navigator.permissions?.query) return;
+
+      try {
+        permissionStatus = await navigator.permissions.query({ name: 'notifications' });
+        if (permissionStatus?.addEventListener) {
+          permissionStatus.addEventListener('change', syncPermission);
+        } else if (permissionStatus?.onchange !== undefined) {
+          permissionStatus.onchange = syncPermission;
+        }
+      } catch (error) {
+        // Ignore unsupported Permissions API cases.
+      }
+    };
+
+    bindPermissionsListener();
+
+    return () => {
+      window.removeEventListener('focus', syncPermission);
+      document.removeEventListener('visibilitychange', syncPermission);
+      if (permissionStatus?.removeEventListener) {
+        permissionStatus.removeEventListener('change', syncPermission);
+      } else if (permissionStatus?.onchange !== undefined) {
+        permissionStatus.onchange = null;
+      }
+    };
+  }, [refreshNotificationPermission]);
+
   const ensurePushPermissionForUser = useCallback(async ({ requestPermission = false } = {}) => {
     try {
       const result = await setupPushNotifications({ requestPermission });
+      if (result?.supported === false) {
+        setNotificationPermission('unsupported');
+        return result;
+      }
       refreshNotificationPermission();
       return result;
     } catch (error) {
