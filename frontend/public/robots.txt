@@ -6,12 +6,17 @@ Allow: /courses
 Allow: /summaries
 Allow: /it-placement
 Allow: /disclaimer
+Allow: /practice
+Allow: /course/
+Allow: /noun-course-materials
+Allow: /noun-practice-questions
+Allow: /noun-student-community
+Allow: /noun-course/
+Allow: /news
 
 # Private application routes
 Disallow: /dashboard
 Disallow: /explore
-Disallow: /course/
-Disallow: /practice
 Disallow: /profile
 Disallow: /reminders
 Disallow: /plagiarism

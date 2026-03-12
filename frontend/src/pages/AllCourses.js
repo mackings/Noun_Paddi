@@ -102,7 +102,7 @@ const AllCourses = () => {
         description="Browse all available courses with search, faculty filter, department filter, and pagination."
         url="/courses"
         keywords="all courses, noun courses, faculty filter, department filter, paginated courses"
-        robots="noindex, nofollow"
+        robots="index, follow"
         structuredData={structuredData}
       />
       <div className="container">

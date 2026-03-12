@@ -10,6 +10,7 @@ import './Practice.css';
 const Practice = () => {
   const expectedQuestionCount = 70;
   const minStartQuestions = 10;
+  const isLoggedIn = typeof window !== 'undefined' && Boolean(localStorage.getItem('token'));
   const [courses, setCourses] = useState([]);
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [questions, setQuestions] = useState([]);
@@ -121,6 +122,8 @@ const Practice = () => {
       setQuestions(transformedQuestions);
       setSelectedCourse(courseId);
       setShowModeSetup(true);
+      setLeaderboard([]);
+      setMyRank(null);
       setLoading(false);
     } catch (error) {
       console.error('Error fetching questions:', error);
@@ -129,6 +132,7 @@ const Practice = () => {
   };
 
   const scheduleQuestionRefresh = (courseId) => {
+    if (!isLoggedIn) return;
     if (!courseId) return;
     if (questionPollRef.current) return;
 
@@ -204,7 +208,12 @@ const Practice = () => {
   };
 
   const startExamWithTimer = async () => {
-    if (questions.length < minStartQuestions) {
+    if (questions.length === 0) {
+      setExamStartError('No practice questions are available for this course yet.');
+      return;
+    }
+
+    if (isLoggedIn && questions.length < minStartQuestions) {
       setExamStartError('We are still preparing your exam. Please wait a moment and try again.');
       return;
     }
@@ -224,12 +233,14 @@ const Practice = () => {
     setPopReviewItems([]);
     setExamComplete(false);
 
-    try {
-      await api.post(`/questions/course/${selectedCourse}/ensure`);
-    } catch (error) {
-      console.error('Error queueing question generation:', error);
+    if (isLoggedIn) {
+      try {
+        await api.post(`/questions/course/${selectedCourse}/ensure`);
+      } catch (error) {
+        console.error('Error queueing question generation:', error);
+      }
+      scheduleQuestionRefresh(selectedCourse);
     }
-    scheduleQuestionRefresh(selectedCourse);
   };
 
   const handleTimeUp = async () => {
@@ -245,7 +256,7 @@ const Practice = () => {
     try {
       const token = localStorage.getItem('token');
       const timeTaken = selectedDuration * 60 - (timeRemaining || 0); // Actual time taken in seconds
-      const totalQuestions = examMode === 'e-exam' ? expectedQuestionCount : questions.length;
+      const totalQuestions = examMode === 'e-exam' ? questions.length : questions.length;
 
       // Only submit if user is logged in
       if (token) {
@@ -379,7 +390,7 @@ const Practice = () => {
   };
 
   const handleNextQuestion = async () => {
-    const totalQuestions = examMode === 'pop' ? popQuestions.length : expectedQuestionCount;
+    const totalQuestions = examMode === 'pop' ? popQuestions.length : questions.length;
     if (currentQuestionIndex < totalQuestions - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
       setSelectedAnswer(null); // Reset to null for all question types
@@ -450,7 +461,7 @@ const Practice = () => {
   }
 
   if (examComplete) {
-    const totalQuestions = examMode === 'e-exam' ? expectedQuestionCount : examQuestions.length;
+    const totalQuestions = examMode === 'e-exam' ? questions.length : examQuestions.length;
     const percentage = totalQuestions > 0 ? (score / totalQuestions) * 100 : 0;
     const popAnswerCount = Object.values(popAnswers).filter((value) => value && value.trim()).length;
     const popTotalScore = popGradeResult?.totalScore || 0;
@@ -477,6 +488,11 @@ const Practice = () => {
                     <p className="text-success">Great job! You passed!</p>
                   ) : (
                     <p className="text-warning">Keep practicing to improve!</p>
+                  )}
+                  {!isLoggedIn && (
+                    <p className="public-practice-note">
+                      Sign in if you want future exam scores saved to the leaderboard.
+                    </p>
                   )}
                 </div>
               </>
@@ -705,7 +721,7 @@ const Practice = () => {
           description="Test your knowledge with practice exams for all NOUN courses. Get instant feedback, track your progress, and prepare for your exams with confidence."
           url="/practice"
           keywords="NOUN practice questions, exam preparation, NOUN past questions, quiz Nigeria, test preparation, study questions NOUN"
-          robots="noindex, nofollow"
+          robots="index, follow"
           structuredData={structuredData}
         />
         <div className="container">
@@ -740,7 +756,7 @@ const Practice = () => {
           title="Select Exam Mode - NounPaddi"
           description="Choose between auto‑graded practice exams or POP handwritten style answers."
           url="/practice"
-          robots="noindex, nofollow"
+          robots="index, follow"
         />
         <div className="container">
           <div className="timer-setup-card">
@@ -757,14 +773,22 @@ const Practice = () => {
                 <div className="exam-mode-tag">Auto‑graded</div>
                 <p>Multiple choice, instant feedback, leaderboard scoring.</p>
               </button>
-              <button
-                className="exam-mode-card"
-                onClick={() => selectExamMode('pop')}
-              >
-                <div className="exam-mode-title">POP Exam</div>
-                <div className="exam-mode-tag">Write answers</div>
-                <p>Type your responses offhand. System grading after submit.</p>
-              </button>
+              {isLoggedIn ? (
+                <button
+                  className="exam-mode-card"
+                  onClick={() => selectExamMode('pop')}
+                >
+                  <div className="exam-mode-title">POP Exam</div>
+                  <div className="exam-mode-tag">Write answers</div>
+                  <p>Type your responses offhand. System grading after submit.</p>
+                </button>
+              ) : (
+                <div className="exam-mode-card disabled">
+                  <div className="exam-mode-title">POP Exam</div>
+                  <div className="exam-mode-tag">Sign in required</div>
+                  <p>Sign in to unlock handwritten POP practice, grading, and saved results.</p>
+                </div>
+              )}
             </div>
             <div className="timer-setup-actions">
               <button onClick={resetExam} className="btn btn-secondary">
@@ -793,7 +817,7 @@ const Practice = () => {
           title="Set Exam Timer - NounPaddi"
           description="Configure your practice exam timer and start your test."
           url="/practice"
-          robots="noindex, nofollow"
+          robots="index, follow"
         />
         <div className="container">
           <div className="timer-setup-card">
@@ -819,8 +843,13 @@ const Practice = () => {
             </div>
 
             <div className="timer-setup-info">
-              <p><strong>{expectedQuestionCount} questions</strong> available for this exam</p>
-              <p>Time per question: ~{Math.floor((selectedDuration * 60) / expectedQuestionCount)} seconds</p>
+              <p><strong>{questions.length} questions</strong> available for this exam</p>
+              <p>Time per question: ~{Math.max(1, Math.floor((selectedDuration * 60) / Math.max(questions.length, 1)))} seconds</p>
+              {!isLoggedIn && (
+                <p className="timer-setup-note">
+                  You can practice publicly. Sign in if you want your score saved to the leaderboard.
+                </p>
+              )}
               {examStartError && (
                 <p className="timer-setup-error">{examStartError}</p>
               )}
@@ -882,7 +911,7 @@ const Practice = () => {
   }
 
   const isPopMode = examMode === 'pop';
-  const totalExamQuestions = isPopMode ? popQuestions.length : expectedQuestionCount;
+  const totalExamQuestions = isPopMode ? popQuestions.length : questions.length;
   const currentQuestion = isPopMode ? examQuestions[currentQuestionIndex] : questions[currentQuestionIndex];
   const hasCurrentQuestion = isPopMode ? !!currentQuestion : currentQuestionIndex < questions.length;
   const questionType = !isPopMode && hasCurrentQuestion ? (currentQuestion.questionType || 'multiple-choice') : null;

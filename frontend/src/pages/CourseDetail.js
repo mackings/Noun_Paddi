@@ -406,7 +406,7 @@ const CourseDetail = () => {
           description={courseSeo.description}
           url={`/course/${courseId}`}
           keywords={`${course?.courseCode || ''}, ${course?.courseName || ''}, NOUN summary, course materials`}
-          robots="noindex, nofollow"
+          robots="index, follow"
           structuredData={courseSeo.structuredData}
         />
       )}

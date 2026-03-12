@@ -15,6 +15,10 @@ const Footer = () => {
           <div className="footer-links">
             <Link to="/courses">Courses</Link>
             <Link to="/summaries">Summaries</Link>
+            <Link to="/noun-course-materials">NOUN Materials</Link>
+            <Link to="/noun-practice-questions">NOUN Practice</Link>
+            <Link to="/noun-student-community">NOUN Community</Link>
+            <Link to="/news">NOUN Updates</Link>
             <Link to="/it-placement">SIWES</Link>
             <Link to="/disclaimer">Disclaimer</Link>
           </div>

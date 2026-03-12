@@ -29,9 +29,14 @@ import ConsultationTerms from './pages/ConsultationTerms';
 import ProjectConsultation from './pages/ProjectConsultation';
 import ShareRedirect from './pages/ShareRedirect';
 import Disclaimer from './pages/Disclaimer';
-import PublicCoursesLanding from './pages/PublicCoursesLanding';
 import PublicSummariesLanding from './pages/PublicSummariesLanding';
 import PublicSiwesLanding from './pages/PublicSiwesLanding';
+import PublicNounMaterialsLanding from './pages/PublicNounMaterialsLanding';
+import PublicNounPracticeLanding from './pages/PublicNounPracticeLanding';
+import PublicNounCommunityLanding from './pages/PublicNounCommunityLanding';
+import PublicCoursePreview from './pages/PublicCoursePreview';
+import NewsHub from './pages/NewsHub';
+import NewsArticle from './pages/NewsArticle';
 import Footer from './components/Footer';
 import AdminLayout from './components/AdminLayout';
 import SEO from './components/SEO';
@@ -107,6 +112,10 @@ const WelcomeLanding = () => {
               Everything you need in one focused workspace: discover materials, get free summaries,
               and practice confidently before exams.
             </p>
+            <p className="welcome-lead">
+              NounPaddi supports National Open University of Nigeria students with NOUN course materials,
+              NOUN course summaries, practice questions, and SIWES guidance in one place.
+            </p>
             <div className="welcome-proof-strip">
               <span>Built for NOUN students</span>
               <span>Fast & simple onboarding</span>
@@ -143,6 +152,11 @@ const WelcomeLanding = () => {
             </div>
 
             <p className="welcome-footnote">Join now and start learning in minutes.</p>
+            <div className="footer-links" style={{ marginTop: '18px' }}>
+              <Link to="/noun-course-materials">NOUN Materials</Link>
+              <Link to="/noun-practice-questions">NOUN Practice Questions</Link>
+              <Link to="/noun-student-community">NOUN Student Community</Link>
+            </div>
           </div>
         </div>
       </div>
@@ -224,20 +238,6 @@ const NotificationPermissionBar = () => {
   );
 };
 
-const CoursesRoute = () => {
-  const { user, loading } = useAuth();
-
-  if (loading) {
-    return (
-      <div className="flex-center" style={{ minHeight: '100vh' }}>
-        <div className="spinner"></div>
-      </div>
-    );
-  }
-
-  return user ? <AllCourses /> : <PublicCoursesLanding />;
-};
-
 const ITPlacementRoute = () => {
   const { user, loading } = useAuth();
 
@@ -273,6 +273,12 @@ const AppLayout = () => {
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/share/:token" element={<ShareRedirect />} />
                 <Route path="/disclaimer" element={<Disclaimer />} />
+                <Route path="/noun-course-materials" element={<PublicNounMaterialsLanding />} />
+                <Route path="/noun-practice-questions" element={<PublicNounPracticeLanding />} />
+                <Route path="/noun-student-community" element={<PublicNounCommunityLanding />} />
+                <Route path="/noun-course/:courseSlug" element={<PublicCoursePreview />} />
+                <Route path="/news" element={<NewsHub />} />
+                <Route path="/news/:slug" element={<NewsArticle />} />
 
                 {/* Student Routes */}
                 <Route
@@ -293,23 +299,15 @@ const AppLayout = () => {
                 />
                 <Route
                   path="/courses"
-                  element={<CoursesRoute />}
+                  element={<AllCourses />}
                 />
                 <Route
                   path="/course/:courseId"
-                  element={
-                    <ProtectedRoute>
-                      <CourseDetail />
-                    </ProtectedRoute>
-                  }
+                  element={<CourseDetail />}
                 />
                 <Route
                   path="/practice"
-                  element={
-                    <ProtectedRoute>
-                      <Practice />
-                    </ProtectedRoute>
-                  }
+                  element={<Practice />}
                 />
                 <Route
                   path="/profile"
