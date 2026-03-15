@@ -35,6 +35,7 @@ const Navbar = () => {
           <div className="navbar-content">
           <Link to="/" className="navbar-brand" onClick={() => setMobileMenuOpen(false)}>
             <FiBook className="brand-icon" />
+            <span className="brand-text">NounPaddi</span>
           </Link>
 
           {/* Desktop Menu */}
