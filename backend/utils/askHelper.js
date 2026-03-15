@@ -6,6 +6,24 @@ const USER_AGENT = 'Mozilla/5.0 (compatible; NounPaddiAsk/1.0; +https://paddi.co
 const MAX_PAGE_SCAN_COUNT = 3;
 const MAX_FILE_CANDIDATES_TO_VERIFY = 8;
 const WHATSAPP_GROUP_URL = 'https://chat.whatsapp.com/Ezx0OmcT1bs1BSymYT1f4G';
+const PRIORITY_DOMAINS = ['noungeeks.com', 'puredu.net', 'bbcnoun.com.ng'];
+const SITE_SEED_URLS = {
+  past_question: [
+    { url: 'https://noungeeks.com/noun-past-questions/', title: 'NounGeeks Past Questions' },
+    { url: 'https://puredu.net/noun-past-questions', title: 'PurEdu Past Questions' },
+    { url: 'https://bbcnoun.com.ng/', title: 'BBCNOUN Home' },
+  ],
+  tma: [
+    { url: 'https://noungeeks.com/category/noun-tma-past-questions-and-answers/', title: 'NounGeeks TMA Past Questions' },
+    { url: 'https://puredu.net/noun-tma-questions-and-answers-box', title: 'PurEdu TMA Questions and Answers' },
+    { url: 'https://bbcnoun.com.ng/', title: 'BBCNOUN Home' },
+  ],
+  timetable: [
+    { url: 'https://noungeeks.com/', title: 'NounGeeks Home' },
+    { url: 'https://puredu.net/noun-personalised-exam-table', title: 'PurEdu Exam Table' },
+    { url: 'https://bbcnoun.com.ng/', title: 'BBCNOUN Home' },
+  ],
+};
 
 function normalizeWhitespace(value) {
   return String(value || '').replace(/\s+/g, ' ').trim();
@@ -21,6 +39,14 @@ function decodeHtmlEntities(value) {
     .replace(/&nbsp;/g, ' ')
     .replace(/&#x2F;/gi, '/')
     .replace(/&#x27;/gi, "'");
+}
+
+function getHostname(url = '') {
+  try {
+    return new URL(url).hostname.toLowerCase();
+  } catch (error) {
+    return '';
+  }
 }
 
 function extractCourseCode(query) {
@@ -179,6 +205,10 @@ function normalizePotentialFileUrl(url = '') {
   } catch (error) {
     return raw;
   }
+}
+
+function getSeedSources(intent) {
+  return SITE_SEED_URLS[intent] || [];
 }
 
 function getGeminiApiKey() {
@@ -425,6 +455,7 @@ function scorePdfCandidate(candidate, query, intent = 'past_question') {
   const haystack = `${candidate.title || ''} ${candidate.url || ''}`.toLowerCase();
   const courseCode = extractCourseCode(query);
   const year = extractYear(query);
+  const hostname = getHostname(candidate.url);
   let score = 0;
 
   if (isPdfUrl(candidate.url)) score += 5;
@@ -439,11 +470,15 @@ function scorePdfCandidate(candidate, query, intent = 'past_question') {
   if (haystack.includes('first semester')) score += 1;
   if (haystack.includes('second semester')) score += 1;
   if (haystack.includes('2025') || haystack.includes('2026')) score += intent === 'timetable' ? 1 : 0;
+  if (PRIORITY_DOMAINS.some((domain) => hostname === domain || hostname.endsWith(`.${domain}`))) {
+    score += 3;
+  }
 
   return score;
 }
 
 async function findBestPdfFile(query, sources, intent = 'past_question') {
+  const seededSources = getSeedSources(intent);
   const directCandidates = sources
     .filter((source) => isLikelyDownloadUrl(source.url))
     .map((source) => ({
@@ -454,7 +489,9 @@ async function findBestPdfFile(query, sources, intent = 'past_question') {
 
   const scannedCandidates = [];
 
-  for (const source of sources.slice(0, MAX_PAGE_SCAN_COUNT)) {
+  const explorationSources = [...sources, ...seededSources];
+
+  for (const source of explorationSources.slice(0, Math.max(MAX_PAGE_SCAN_COUNT, seededSources.length + MAX_PAGE_SCAN_COUNT))) {
     if (isLikelyDownloadUrl(source.url)) continue;
 
     try {
@@ -714,10 +751,35 @@ Return ONLY valid JSON in this exact shape:
 Rules:
 - Focus only on NOUN-related results.
 - Prefer actual past-question documents or pages that clearly point to past questions.
+- Prioritize these websites when relevant: noungeeks.com, puredu.net, bbcnoun.com.ng.
 - Include up to 6 candidate URLs that are the most likely direct PDF links or page links that lead to the file.
 - Do not include links, URLs, source names, or citations in the answer.
 - If you do not find a reliable match, make that clear in the answer.
 - Keep the response compact and useful for a student.`;
+  }
+
+  if (intent === 'tma') {
+    return `Use Google Search grounding to answer this NOUN TMA request: "${query}".
+
+Return ONLY valid JSON in this exact shape:
+{
+  "type": "information",
+  "intent": "tma",
+  "title": "short title",
+  "answer": "short summary paragraph",
+  "sections": [
+    { "title": "section title", "items": ["bullet 1", "bullet 2"] }
+  ],
+  "candidateUrls": ["https://example.com/tma-page", "https://example.com/file.pdf"],
+  "suggestions": ["follow up 1", "follow up 2", "follow up 3"]
+}
+
+Rules:
+- Focus only on National Open University of Nigeria (NOUN).
+- Prioritize these websites when relevant: noungeeks.com, puredu.net, bbcnoun.com.ng.
+- Include up to 6 candidate URLs that are most likely to contain TMA past questions, TMA answers, or downloadable TMA files.
+- Do not include links, URLs, source names, or citations in the answer.
+- Keep it student-friendly and ready for UI presentation.`;
   }
 
   if (intent === 'timetable') {
@@ -739,6 +801,7 @@ Return ONLY valid JSON in this exact shape:
 Rules:
 - Focus only on National Open University of Nigeria (NOUN).
 - Prefer the latest timetable information, but if no new downloadable file is found, include candidate URLs for older verified timetable documents.
+- Prioritize these websites when relevant: noungeeks.com, puredu.net, bbcnoun.com.ng.
 - Use exact dates when grounded results mention dates.
 - Do not include links, URLs, source names, or citations in the answer.
 - Keep it student-friendly and ready for UI presentation.`;
@@ -760,6 +823,7 @@ Return ONLY valid JSON in this exact shape:
 
 Rules:
 - Focus only on National Open University of Nigeria (NOUN).
+- Prioritize these websites when relevant: noungeeks.com, puredu.net, bbcnoun.com.ng.
 - Use exact dates when grounded results mention dates.
 - If the information is uncertain or conflicting, say that clearly.
 - Do not include links, URLs, source names, or citations in the answer.
