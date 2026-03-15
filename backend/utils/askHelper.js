@@ -356,6 +356,16 @@ async function extractFileCandidatesFromPage(url) {
     }
   }
 
+  const rawUrlMatches = html.match(/https?:\/\/[^"'()\s<>]+(?:\.pdf(?:\?[^"'()\s<>]*)?)/gi) || [];
+  for (const rawUrl of rawUrlMatches) {
+    const normalized = normalizePotentialFileUrl(decodeHtmlEntities(rawUrl));
+    if (!normalized) continue;
+    candidates.push({
+      url: normalized,
+      title: '',
+    });
+  }
+
   return candidates;
 }
 
