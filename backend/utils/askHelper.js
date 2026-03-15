@@ -4,6 +4,7 @@ const GEMINI_MODEL = 'gemini-2.5-flash';
 const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 const USER_AGENT = 'Mozilla/5.0 (compatible; NounPaddiAsk/1.0; +https://paddi.com.ng)';
 const MAX_PAGE_SCAN_COUNT = 3;
+const MAX_FILE_CANDIDATES_TO_VERIFY = 8;
 
 function normalizeWhitespace(value) {
   return String(value || '').replace(/\s+/g, ' ').trim();
@@ -123,6 +124,52 @@ function isPdfUrl(url = '') {
   return normalized.includes('.pdf') || normalized.includes('format=pdf');
 }
 
+function isLikelyDownloadUrl(url = '') {
+  const normalized = String(url || '').toLowerCase();
+  return (
+    isPdfUrl(normalized) ||
+    normalized.includes('drive.google.com') ||
+    normalized.includes('docs.google.com') ||
+    normalized.includes('dropbox.com') ||
+    normalized.includes('onedrive.live.com') ||
+    normalized.includes('1drv.ms') ||
+    normalized.includes('mediafire.com') ||
+    normalized.includes('download') ||
+    normalized.includes('export=download')
+  );
+}
+
+function normalizePotentialFileUrl(url = '') {
+  const raw = String(url || '').trim();
+  if (!raw) return raw;
+
+  try {
+    const parsed = new URL(raw);
+    const hostname = parsed.hostname.toLowerCase();
+
+    if (hostname.includes('drive.google.com')) {
+      const fileMatch = parsed.pathname.match(/\/file\/d\/([^/]+)/i);
+      if (fileMatch?.[1]) {
+        return `https://drive.google.com/uc?export=download&id=${fileMatch[1]}`;
+      }
+
+      const id = parsed.searchParams.get('id');
+      if (id) {
+        return `https://drive.google.com/uc?export=download&id=${id}`;
+      }
+    }
+
+    if (hostname.includes('dropbox.com')) {
+      parsed.searchParams.set('dl', '1');
+      return parsed.toString();
+    }
+
+    return parsed.toString();
+  } catch (error) {
+    return raw;
+  }
+}
+
 function getGeminiApiKey() {
   const keysEnv = process.env.GEMINI_API_KEYS || process.env.GEMINI_API_KEY || '';
   return keysEnv.split(',').map((item) => item.trim()).find(Boolean) || '';
@@ -166,6 +213,21 @@ function extractGroundingSources(candidate) {
   return Array.from(unique.values());
 }
 
+function extractUrlsFromText(text) {
+  const matches = String(text || '').match(/https?:\/\/[^\s)>\]"]+/gi) || [];
+  const unique = [];
+  const seen = new Set();
+
+  for (const match of matches) {
+    const normalized = normalizePotentialFileUrl(match.replace(/[.,;]+$/g, ''));
+    if (!normalized || seen.has(normalized)) continue;
+    seen.add(normalized);
+    unique.push(normalized);
+  }
+
+  return unique;
+}
+
 async function runGeminiGroundedPrompt(prompt) {
   const apiKey = getGeminiApiKey();
   if (!apiKey) {
@@ -203,6 +265,7 @@ async function runGeminiGroundedPrompt(prompt) {
       text,
       parsed: tryParseJson(text),
       sources: extractGroundingSources(candidate),
+      extractedUrls: extractUrlsFromText(text),
       webSearchQueries: candidate?.groundingMetadata?.webSearchQueries || [],
     };
   } catch (error) {
@@ -251,37 +314,141 @@ async function fetchPdfLinksFromPage(url) {
   return pdfLinks;
 }
 
+async function extractFileCandidatesFromPage(url) {
+  const response = await axios.get(url, {
+    headers: {
+      'User-Agent': USER_AGENT,
+      Accept: 'text/html,application/xhtml+xml',
+      'Accept-Language': 'en-US,en;q=0.9',
+    },
+    timeout: 15000,
+  });
+
+  const html = String(response.data || '');
+  const linkRegex = /<a\b[^>]*href\s*=\s*["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
+  const candidates = [];
+  let match;
+
+  while ((match = linkRegex.exec(html)) !== null) {
+    const href = decodeHtmlEntities(match[1] || '');
+    const anchorText = normalizeWhitespace(
+      decodeHtmlEntities(String(match[2] || '').replace(/<[^>]+>/g, ' '))
+    );
+
+    if (!href) continue;
+
+    try {
+      const absolute = normalizePotentialFileUrl(new URL(href, url).toString());
+      const combinedText = `${absolute} ${anchorText}`.toLowerCase();
+      if (
+        isLikelyDownloadUrl(absolute) ||
+        combinedText.includes('pdf') ||
+        combinedText.includes('download') ||
+        combinedText.includes('past question')
+      ) {
+        candidates.push({
+          url: absolute,
+          title: anchorText,
+        });
+      }
+    } catch (error) {
+      // Ignore malformed URLs.
+    }
+  }
+
+  return candidates;
+}
+
+async function verifyPdfCandidate(candidate) {
+  try {
+    const response = await axios.get(candidate.url, {
+      responseType: 'stream',
+      timeout: 20000,
+      maxRedirects: 5,
+      headers: {
+        'User-Agent': USER_AGENT,
+        Accept: 'application/pdf,application/octet-stream,text/html;q=0.8,*/*;q=0.5',
+        'Accept-Language': 'en-US,en;q=0.9',
+      },
+      validateStatus: (status) => status >= 200 && status < 400,
+    });
+
+    const contentType = String(response.headers['content-type'] || '').toLowerCase();
+    const disposition = String(response.headers['content-disposition'] || '').toLowerCase();
+    const finalUrl = normalizePotentialFileUrl(
+      response.request?.res?.responseUrl || candidate.url
+    );
+
+    response.data.destroy();
+
+    const isPdf =
+      contentType.includes('application/pdf') ||
+      (contentType.includes('application/octet-stream') && disposition.includes('.pdf')) ||
+      disposition.includes('.pdf') ||
+      isPdfUrl(finalUrl);
+
+    if (!isPdf) {
+      return null;
+    }
+
+    return {
+      ...candidate,
+      url: finalUrl,
+    };
+  } catch (error) {
+    return null;
+  }
+}
+
 function scorePdfCandidate(candidate, query) {
   const haystack = `${candidate.title || ''} ${candidate.url || ''}`.toLowerCase();
   const courseCode = extractCourseCode(query);
+  const year = extractYear(query);
   let score = 0;
 
   if (isPdfUrl(candidate.url)) score += 5;
+  if (isLikelyDownloadUrl(candidate.url)) score += 2;
   if (haystack.includes('past question')) score += 3;
   if (haystack.includes('noun')) score += 2;
   if (haystack.includes('exam')) score += 1;
   if (courseCode && haystack.includes(courseCode.toLowerCase())) score += 3;
   if (courseCode && haystack.includes(courseCode.toLowerCase().replace(/\s+/g, ''))) score += 2;
+  if (year && haystack.includes(year)) score += 2;
+  if (haystack.includes('first semester')) score += 1;
+  if (haystack.includes('second semester')) score += 1;
 
   return score;
 }
 
 async function findBestPastQuestionPdf(query, sources) {
   const directCandidates = sources
-    .filter((source) => isPdfUrl(source.url))
-    .map((source) => ({ ...source, direct: true }));
+    .filter((source) => isLikelyDownloadUrl(source.url))
+    .map((source) => ({
+      ...source,
+      url: normalizePotentialFileUrl(source.url),
+      direct: true,
+    }));
 
   const scannedCandidates = [];
 
   for (const source of sources.slice(0, MAX_PAGE_SCAN_COUNT)) {
-    if (isPdfUrl(source.url)) continue;
+    if (isLikelyDownloadUrl(source.url)) continue;
 
     try {
       const pdfLinks = await fetchPdfLinksFromPage(source.url);
       for (const pdfUrl of pdfLinks) {
         scannedCandidates.push({
-          url: pdfUrl,
+          url: normalizePotentialFileUrl(pdfUrl),
           title: source.title,
+          direct: false,
+        });
+      }
+
+      const fileCandidates = await extractFileCandidatesFromPage(source.url);
+      for (const candidate of fileCandidates) {
+        scannedCandidates.push({
+          url: candidate.url,
+          title: candidate.title || source.title,
           direct: false,
         });
       }
@@ -290,8 +457,61 @@ async function findBestPastQuestionPdf(query, sources) {
     }
   }
 
-  return [...directCandidates, ...scannedCandidates]
-    .sort((a, b) => scorePdfCandidate(b, query) - scorePdfCandidate(a, query))[0] || null;
+  const uniqueCandidates = [];
+  const seen = new Set();
+
+  for (const candidate of [...directCandidates, ...scannedCandidates]) {
+    const key = normalizePotentialFileUrl(candidate.url);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    uniqueCandidates.push({
+      ...candidate,
+      url: key,
+    });
+  }
+
+  const ranked = uniqueCandidates
+    .sort((a, b) => scorePdfCandidate(b, query) - scorePdfCandidate(a, query))
+    .slice(0, MAX_FILE_CANDIDATES_TO_VERIFY);
+
+  for (const candidate of ranked) {
+    const verified = await verifyPdfCandidate(candidate);
+    if (verified) {
+      return verified;
+    }
+  }
+
+  return null;
+}
+
+function buildPastQuestionCandidateList(grounded) {
+  const parsedCandidates = Array.isArray(grounded?.parsed?.candidateUrls)
+    ? grounded.parsed.candidateUrls
+    : [];
+
+  const groundedSourceUrls = Array.isArray(grounded?.sources)
+    ? grounded.sources.map((item) => item.url)
+    : [];
+
+  const extractedUrls = Array.isArray(grounded?.extractedUrls)
+    ? grounded.extractedUrls
+    : [];
+
+  const all = [...parsedCandidates, ...extractedUrls, ...groundedSourceUrls];
+  const unique = [];
+  const seen = new Set();
+
+  for (const item of all) {
+    const normalized = normalizePotentialFileUrl(item);
+    if (!normalized || seen.has(normalized)) continue;
+    seen.add(normalized);
+    unique.push({
+      url: normalized,
+      title: '',
+    });
+  }
+
+  return unique;
 }
 
 function buildSuggestions(intent, query) {
@@ -336,7 +556,11 @@ function buildSuggestions(intent, query) {
 
 async function buildPastQuestionResponse(query, grounded) {
   const parsed = grounded.parsed || {};
-  const bestPdf = await findBestPastQuestionPdf(query, grounded.sources);
+  const candidatePool = [
+    ...buildPastQuestionCandidateList(grounded),
+    ...(grounded.sources || []),
+  ];
+  const bestPdf = await findBestPastQuestionPdf(query, candidatePool);
 
   if (!bestPdf) {
     return {
@@ -346,11 +570,11 @@ async function buildPastQuestionResponse(query, grounded) {
       answer: parsed.answer || `Gemini searched the web but did not find a usable PDF for "${query}". Add a year, semester, or a more exact course title.`,
       sections: [
         {
-          title: 'Try a narrower prompt',
+          title: 'No verified file found yet',
           items: [
-            'Add the year if you know it.',
-            'Add first semester or second semester.',
-            'Use the exact NOUN course code.',
+            'A grounded result was found, but no direct downloadable PDF could be verified.',
+            'Some sites expose files behind a viewer, redirect, login, or anti-bot step.',
+            'Try a slightly different wording for the same course and year.',
           ],
         },
       ],
@@ -409,12 +633,14 @@ Return ONLY valid JSON in this exact shape:
   "type": "past_question_pdf",
   "title": "short result title",
   "answer": "one short student-friendly paragraph with no links, no URLs, and no citations",
+  "candidateUrls": ["https://example.com/file.pdf", "https://example.com/page-with-file"],
   "suggestions": ["follow up 1", "follow up 2", "follow up 3"]
 }
 
 Rules:
 - Focus only on NOUN-related results.
 - Prefer actual past-question documents or pages that clearly point to past questions.
+- Include up to 6 candidate URLs that are the most likely direct PDF links or page links that lead to the file.
 - Do not include links, URLs, source names, or citations in the answer.
 - If you do not find a reliable match, make that clear in the answer.
 - Keep the response compact and useful for a student.`;

@@ -85,10 +85,28 @@ exports.streamAskPdf = async (req, res) => {
     const response = await axios.get(payload.url, {
       responseType: 'stream',
       timeout: 20000,
+      maxRedirects: 5,
       headers: {
         'User-Agent': 'Mozilla/5.0 (compatible; NounPaddiAsk/1.0; +https://paddi.com.ng)',
+        Accept: 'application/pdf,application/octet-stream,text/html;q=0.8,*/*;q=0.5',
       },
     });
+
+    const upstreamType = String(response.headers['content-type'] || '').toLowerCase();
+    const upstreamDisposition = String(response.headers['content-disposition'] || '');
+    const isPdf =
+      upstreamType.includes('application/pdf') ||
+      (upstreamType.includes('application/octet-stream') && upstreamDisposition.toLowerCase().includes('.pdf')) ||
+      upstreamDisposition.toLowerCase().includes('.pdf') ||
+      String(payload.url || '').toLowerCase().includes('.pdf');
+
+    if (!isPdf) {
+      response.data.destroy();
+      return res.status(502).json({
+        success: false,
+        message: 'The located file is not a usable PDF.',
+      });
+    }
 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `inline; filename="${String(payload.fileName || 'noun-past-question.pdf').replace(/"/g, '')}"`);
