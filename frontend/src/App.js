@@ -300,11 +300,7 @@ const AppLayout = () => {
                 />
                 <Route
                   path="/ask"
-                  element={
-                    <ProtectedRoute>
-                      <Ask />
-                    </ProtectedRoute>
-                  }
+                  element={<Ask />}
                 />
                 <Route
                   path="/courses"

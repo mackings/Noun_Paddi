@@ -68,6 +68,44 @@ const initialAssistantMessage = {
   },
 };
 
+const askStructuredData = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'WebPage',
+      name: 'Ask NOUN Questions and Past Questions',
+      url: 'https://paddi.com.ng/ask',
+      description: 'Find NOUN past questions, timetable updates, matriculation information, TMA help, and NOUN study files on Ask Paddi.',
+      isPartOf: {
+        '@type': 'WebSite',
+        name: 'NounPaddi',
+        url: 'https://paddi.com.ng',
+      },
+    },
+    {
+      '@type': 'FAQPage',
+      mainEntity: [
+        {
+          '@type': 'Question',
+          name: 'Can Ask Paddi find NOUN past questions?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'Ask Paddi helps students find NOUN past questions and related study files by course code, then opens or prepares those files for download inside the app when possible.',
+          },
+        },
+        {
+          '@type': 'Question',
+          name: 'Can Ask Paddi show NOUN timetable, matriculation, and TMA information?',
+          acceptedAnswer: {
+            '@type': 'Answer',
+            text: 'Yes. Ask Paddi is designed for NOUN timetable updates, matriculation information, TMA guidance, and other NOUN student questions in a chat-style interface.',
+          },
+        },
+      ],
+    },
+  ],
+};
+
 function ResponseCard({ message, onSuggestionClick }) {
   const { data, loading, error } = message;
 
@@ -464,9 +502,12 @@ const Ask = () => {
         await loadPdfIntoMessage(placeholderId, payload.pdf.token, payload.pdf.fileName);
       }
     } catch (requestError) {
+      const status = requestError.response?.status;
       updateMessage(placeholderId, () => ({
         loading: false,
-        error: requestError.response?.data?.message || 'Ask could not process that request.',
+        error: status === 401
+          ? 'Sign in to use Ask and open NOUN files.'
+          : (requestError.response?.data?.message || 'Ask could not process that request.'),
         data: null,
       }));
     } finally {
@@ -479,11 +520,12 @@ const Ask = () => {
   return (
     <div className="ask-page">
       <SEO
-        title="Ask NOUN Questions - NounPaddi"
-        description="Ask NounPaddi to find NOUN-specific past questions, matriculation details, timetables, and TMA guidance."
+        title="Ask Paddi: NOUN Past Questions, Timetable, Matriculation and TMA Help"
+        description="Ask Paddi helps NOUN students find past questions, timetable updates, matriculation information, TMA help, and NOUN study files in one place."
         url="/ask"
-        keywords="NOUN ask, NOUN past question finder, NOUN timetable, NOUN matriculation, NOUN TMA"
-        robots="noindex, nofollow"
+        keywords="Ask Paddi, NOUN past questions, NOUN timetable, NOUN matriculation, NOUN TMA, NounGeeks alternative, BBCNOUN alternative, Puredu alternative, NOUN study help"
+        robots="index, follow"
+        structuredData={askStructuredData}
       />
 
       <div className="container">
@@ -492,12 +534,12 @@ const Ask = () => {
             <p className="ask-kicker">Ask</p>
             <h1>NOUN help in a chat thread.</h1>
             <p className="ask-lead">
-              Ask finds NOUN-related answers, shows them in chat format, and opens files inside the thread when possible.
+              Ask Paddi helps NOUN students find past questions, timetable updates, matriculation information, TMA guidance, and study files in one place.
             </p>
             <div className="ask-sidebar-points">
               <div className="ask-hero-card-row">
                 <FiSearch />
-                <span>Finds NOUN-related results and presents them clearly</span>
+                <span>Search NOUN-related results and present them clearly</span>
               </div>
               <div className="ask-hero-card-row">
                 <FiFileText />
@@ -508,6 +550,9 @@ const Ask = () => {
                 <span>For past questions, the course code is enough to list available files</span>
               </div>
             </div>
+            <p className="ask-lead">
+              Students often search across NOUN sources like NounGeeks, BBCNOUN, and Puredu. Ask Paddi is built to help them find those NOUN study resources faster in one focused interface.
+            </p>
             <div className="ask-example-stack">
               {ASK_EXAMPLES.map((example) => (
                 <button

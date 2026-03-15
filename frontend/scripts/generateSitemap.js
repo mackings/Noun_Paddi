@@ -14,6 +14,7 @@ const sitemapPath = path.join(publicDir, 'sitemap.xml');
 const staticUrls = [
   '/',
   '/disclaimer',
+  '/ask',
   '/courses',
   '/summaries',
   '/it-placement',

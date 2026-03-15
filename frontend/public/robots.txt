@@ -6,6 +6,7 @@ Allow: /courses
 Allow: /summaries
 Allow: /it-placement
 Allow: /disclaimer
+Allow: /ask
 Allow: /practice
 Allow: /course/
 Allow: /noun-course-materials
