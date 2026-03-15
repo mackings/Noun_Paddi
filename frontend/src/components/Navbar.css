@@ -25,6 +25,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 12px;
   font-size: 24px;
   font-weight: 700;
   text-decoration: none;
@@ -43,6 +44,15 @@
   padding: 6px;
   color: white;
   display: block;
+}
+
+.brand-text {
+  font-size: 24px;
+  font-weight: 700;
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .navbar-menu {
@@ -426,6 +436,7 @@
 @media (max-width: 480px) {
   .navbar-brand {
     font-size: 20px;
+    gap: 10px;
   }
 
   .brand-icon {
@@ -434,7 +445,8 @@
   }
 
   .brand-text {
-    display: none;
+    display: inline;
+    font-size: 20px;
   }
 
   .logout-text {
