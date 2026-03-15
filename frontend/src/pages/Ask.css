@@ -211,6 +211,27 @@
   color: var(--ask-ink);
 }
 
+.ask-file-status,
+.ask-mobile-file-note {
+  margin-top: 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  border-radius: 18px;
+  padding: 14px 16px;
+  color: var(--ask-ink);
+}
+
+.ask-file-status {
+  background: rgba(15, 118, 110, 0.08);
+  border: 1px solid rgba(15, 118, 110, 0.16);
+}
+
+.ask-mobile-file-note {
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.16);
+}
+
 .ask-section-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -268,6 +289,8 @@
   text-decoration: none;
   background: linear-gradient(135deg, #0f766e, #155e75);
   color: #fff;
+  border: none;
+  cursor: pointer;
 }
 
 .ask-whatsapp-btn {
@@ -357,8 +380,7 @@
 }
 
 .ask-download-btn-button {
-  border: none;
-  cursor: pointer;
+  min-width: 124px;
 }
 
 .ask-pdf-meta {
@@ -497,9 +519,14 @@
 
   .ask-form,
   .ask-pdf-meta,
-  .ask-composer-header {
-    grid-template-columns: 1fr;
+  .ask-composer-header,
+  .ask-community-card,
+  .ask-file-row {
     flex-direction: column;
+  }
+
+  .ask-form {
+    grid-template-columns: 1fr;
   }
 
   .ask-submit {
@@ -511,6 +538,13 @@
   }
 
   .ask-pdf-frame {
-    height: 56vh;
+    height: 48vh;
+  }
+
+  .ask-download-btn,
+  .ask-whatsapp-btn,
+  .ask-download-btn-button {
+    width: 100%;
+    justify-content: center;
   }
 }

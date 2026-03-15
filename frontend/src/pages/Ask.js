@@ -43,6 +43,20 @@ const buildLoadingTitle = (value) => {
   return `Loading Your ${trimmed.slice(0, 36)}`;
 };
 
+const isMobileClient = () => {
+  if (typeof window === 'undefined') return false;
+  return window.matchMedia('(max-width: 720px)').matches || /android|iphone|ipad|ipod|mobile/i.test(window.navigator.userAgent || '');
+};
+
+const triggerDownload = (blobUrl, fileName) => {
+  const anchor = document.createElement('a');
+  anchor.href = blobUrl;
+  anchor.download = fileName || 'noun-file';
+  document.body.appendChild(anchor);
+  anchor.click();
+  document.body.removeChild(anchor);
+};
+
 const initialAssistantMessage = {
   id: makeId(),
   role: 'assistant',
@@ -90,6 +104,12 @@ function ResponseCard({ message, onSuggestionClick }) {
 
       {data.title && <h3>{data.title}</h3>}
       {data.answer && <p className="ask-card-summary">{data.answer}</p>}
+      {data.fileStatus && (
+        <div className="ask-file-status">
+          <FiDownload />
+          <span>{data.fileStatus}</span>
+        </div>
+      )}
       {data.followUpQuestion && (
         <div className="ask-followup-box">
           <FiMessageSquare />
@@ -123,8 +143,19 @@ function ResponseCard({ message, onSuggestionClick }) {
               {data.pdfLoading && (
                 <div className="ask-loading-pill">
                   <FiLoader className="spin" />
-                  Loading PDF
+                  Preparing file
                 </div>
+              )}
+              {data.pdfBlobUrl && data.pdfCanPreview === false && (
+                <a
+                  href={data.pdfBlobUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="ask-download-btn"
+                >
+                  <FiFileText />
+                  Open File
+                </a>
               )}
               {data.pdfBlobUrl && (
                 <a
@@ -138,12 +169,17 @@ function ResponseCard({ message, onSuggestionClick }) {
               )}
             </div>
           </div>
-          {data.pdfBlobUrl && (
+          {data.pdfBlobUrl && data.pdfCanPreview !== false && (
             <iframe
               title={data.pdf?.fileName || 'Ask PDF Viewer'}
               src={data.pdfBlobUrl}
               className="ask-pdf-frame"
             />
+          )}
+          {data.pdfBlobUrl && data.pdfCanPreview === false && (
+            <div className="ask-mobile-file-note">
+              PDF preview is limited on this device. Use Open File or Download above.
+            </div>
           )}
         </div>
       )}
@@ -213,6 +249,7 @@ const Ask = () => {
   const [composerError, setComposerError] = useState('');
   const mountedRef = useRef(true);
   const threadRef = useRef(null);
+  const threadShellRef = useRef(null);
   const blobUrlsRef = useRef(new Set());
 
   useEffect(() => {
@@ -238,6 +275,19 @@ const Ask = () => {
     return () => window.cancelAnimationFrame(frame);
   }, [messages.length]);
 
+  const scrollToResults = () => {
+    window.requestAnimationFrame(() => {
+      threadShellRef.current?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
+      threadRef.current?.scrollTo({
+        top: threadRef.current.scrollHeight,
+        behavior: 'smooth',
+      });
+    });
+  };
+
   const updateMessage = (messageId, updater) => {
     setMessages((current) =>
       current.map((message) => (
@@ -253,8 +303,10 @@ const Ask = () => {
       data: {
         ...message.data,
         pdfLoading: true,
+        fileStatus: 'Preparing your file.',
       },
     }));
+    scrollToResults();
 
     try {
       const result = await api.get(`/ask/pdf/${encodeURIComponent(token)}`, {
@@ -262,6 +314,7 @@ const Ask = () => {
       });
 
       const blobUrl = URL.createObjectURL(result.data);
+      const mobileClient = isMobileClient();
       blobUrlsRef.current.add(blobUrl);
       updateMessage(messageId, (message) => {
         if (message?.data?.pdfBlobUrl) {
@@ -277,15 +330,21 @@ const Ask = () => {
               fileName,
             },
             pdfBlobUrl: blobUrl,
+            pdfCanPreview: !mobileClient,
             pdfLoading: false,
+            fileStatus: mobileClient
+              ? 'Your file is ready. Use Open File or Download below.'
+              : 'Your file is ready below.',
           },
         };
       });
+      scrollToResults();
     } catch (requestError) {
       updateMessage(messageId, (message) => ({
         data: {
           ...message.data,
           pdfLoading: false,
+          fileStatus: '',
           answer: requestError.response?.data?.message || 'The result was found, but the PDF could not be opened right now.',
         },
       }));
@@ -297,8 +356,10 @@ const Ask = () => {
       data: {
         ...message.data,
         pdfLoading: true,
+        fileStatus: `Preparing ${file.fileName || 'your file'}.`,
       },
     }));
+    scrollToResults();
 
     try {
       const result = await api.get(`/ask/pdf/${encodeURIComponent(file.token)}`, {
@@ -306,6 +367,7 @@ const Ask = () => {
       });
 
       const blobUrl = URL.createObjectURL(result.data);
+      const mobileClient = isMobileClient();
       blobUrlsRef.current.add(blobUrl);
       updateMessage(messageId, (message) => {
         if (message?.data?.pdfBlobUrl) {
@@ -314,12 +376,7 @@ const Ask = () => {
         }
 
         if (file.extension !== 'pdf') {
-          const anchor = document.createElement('a');
-          anchor.href = blobUrl;
-          anchor.download = file.fileName || 'noun-file';
-          document.body.appendChild(anchor);
-          anchor.click();
-          document.body.removeChild(anchor);
+          triggerDownload(blobUrl, file.fileName || 'noun-file');
         }
 
         return {
@@ -329,19 +386,25 @@ const Ask = () => {
               fileName: file.fileName,
             },
             pdfBlobUrl: blobUrl,
+            pdfCanPreview: file.extension === 'pdf' && !mobileClient,
             pdfLoading: false,
             type: file.extension === 'pdf' ? 'past_question_pdf' : message.data.type,
             answer: file.extension === 'pdf'
               ? message.data.answer
-              : 'The file is ready. Your download should start automatically, and you can download it again below if needed.',
+              : 'The file is ready. The download has started, and you can download it again below if needed.',
+            fileStatus: file.extension === 'pdf'
+              ? (mobileClient ? 'Your PDF is ready. Use Open File or Download below.' : 'Your PDF is ready below.')
+              : `${file.fileName || 'Your file'} is downloading.`,
           },
         };
       });
+      scrollToResults();
     } catch (requestError) {
       updateMessage(messageId, (message) => ({
         data: {
           ...message.data,
           pdfLoading: false,
+          fileStatus: '',
           answer: requestError.response?.data?.message || 'That file could not be opened right now.',
         },
       }));
@@ -377,6 +440,7 @@ const Ask = () => {
     setComposerError('');
     setQuery('');
     setMessages((current) => [...current, userMessage, placeholderMessage]);
+    scrollToResults();
 
     try {
       const result = await api.post('/ask/query', { query: trimmed });
@@ -421,14 +485,14 @@ const Ask = () => {
         <section className="ask-shell">
           <div className="ask-sidebar">
             <p className="ask-kicker">Ask</p>
-            <h1>NOUN research in a chat thread.</h1>
+            <h1>NOUN help in a chat thread.</h1>
             <p className="ask-lead">
-              Ask researches the web with Gemini, replies in chat format, and opens past-question PDFs inline.
+              Ask finds NOUN-related answers, shows them in chat format, and opens files inside the thread when possible.
             </p>
             <div className="ask-sidebar-points">
               <div className="ask-hero-card-row">
                 <FiSearch />
-                <span>Gemini researches NOUN-related web results</span>
+                <span>Finds NOUN-related results and presents them clearly</span>
               </div>
               <div className="ask-hero-card-row">
                 <FiFileText />
@@ -454,7 +518,7 @@ const Ask = () => {
             </div>
           </div>
 
-          <section className="ask-thread-shell">
+          <section className="ask-thread-shell" ref={threadShellRef}>
             <div className="ask-thread" ref={threadRef}>
               {messages.map((message) => (
                 <div
