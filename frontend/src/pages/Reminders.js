@@ -151,8 +151,8 @@ const Reminders = () => {
     if (Notification.permission === 'granted') {
       new Notification('📚 ' + title, {
         body: 'Time to read! Your reminder is ringing 🎵 Click "Stop Alarm" to dismiss.',
-        icon: '/logo192.png',
-        badge: '/logo192.png',
+        icon: '/nounpaddi-icon.svg',
+        badge: '/nounpaddi-icon.svg',
         requireInteraction: true,
       });
     }

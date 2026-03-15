@@ -24,13 +24,9 @@
 .navbar-brand {
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: center;
   font-size: 24px;
   font-weight: 700;
-  background: var(--gradient-primary);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
   text-decoration: none;
   transition: all 0.3s ease;
 }
@@ -46,12 +42,7 @@
   border-radius: 8px;
   padding: 6px;
   color: white;
-  -webkit-text-fill-color: white;
-}
-
-.brand-text {
-  font-size: 24px;
-  font-weight: 700;
+  display: block;
 }
 
 .navbar-menu {
@@ -132,6 +123,27 @@
   transform: translateY(8px);
   transition: all 0.2s ease;
   z-index: 20;
+}
+
+.nav-profile-dropdown {
+  position: relative;
+}
+
+.nav-profile-toggle {
+  background: none;
+  cursor: pointer;
+}
+
+.nav-profile-menu {
+  left: auto;
+  right: 0;
+  min-width: 170px;
+}
+
+.nav-profile-menu .nav-dropdown-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .nav-dropdown.open .nav-dropdown-menu {
@@ -422,7 +434,7 @@
   }
 
   .brand-text {
-    font-size: 20px;
+    display: none;
   }
 
   .logout-text {

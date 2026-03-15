@@ -11,6 +11,7 @@ const Navbar = () => {
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [projectsMenuOpen, setProjectsMenuOpen] = useState(false);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -21,6 +22,7 @@ const Navbar = () => {
   const toggleMobileMenu = () => {
     setMobileMenuOpen(!mobileMenuOpen);
     setProjectsMenuOpen(false);
+    setProfileMenuOpen(false);
   };
 
   const toggleProjectsMenu = () => {
@@ -33,7 +35,6 @@ const Navbar = () => {
           <div className="navbar-content">
           <Link to="/" className="navbar-brand" onClick={() => setMobileMenuOpen(false)}>
             <FiBook className="brand-icon" />
-            <span className="brand-text">NounPaddi</span>
           </Link>
 
           {/* Desktop Menu */}
@@ -47,7 +48,6 @@ const Navbar = () => {
                     <Link to="/ask" className="nav-link"><FiMessageSquare size={16} /> Ask</Link>
                     <Link to="/practice" className="nav-link">Practice Exam</Link>
                     <Link to="/it-placement" className="nav-link">Siwes</Link>
-                    <Link to="/reminders" className="nav-link"><FiBell size={16} /> Alarms</Link>
                     <div
                       className={`nav-dropdown ${projectsMenuOpen ? 'open' : ''}`}
                       onMouseEnter={() => setProjectsMenuOpen(true)}
@@ -95,9 +95,39 @@ const Navbar = () => {
                 >
                   {theme === 'light' ? <FiMoon size={20} /> : <FiSun size={20} />}
                 </button>
-                <Link to="/profile" className="nav-user-icon" title={user.name}>
-                  <FiUser size={20} />
-                </Link>
+                <div
+                  className={`nav-dropdown nav-profile-dropdown ${profileMenuOpen ? 'open' : ''}`}
+                  onMouseEnter={() => setProfileMenuOpen(true)}
+                  onMouseLeave={() => setProfileMenuOpen(false)}
+                >
+                  <button
+                    type="button"
+                    className="nav-user-icon nav-profile-toggle"
+                    title={user.name}
+                    onClick={() => setProfileMenuOpen((current) => !current)}
+                    aria-expanded={profileMenuOpen}
+                  >
+                    <FiUser size={20} />
+                  </button>
+                  <div className="nav-dropdown-menu nav-profile-menu">
+                    <Link
+                      to="/profile"
+                      className="nav-dropdown-link"
+                      onClick={() => setProfileMenuOpen(false)}
+                    >
+                      <FiUser size={16} /> Profile
+                    </Link>
+                    {user.role === 'student' && (
+                      <Link
+                        to="/reminders"
+                        className="nav-dropdown-link"
+                        onClick={() => setProfileMenuOpen(false)}
+                      >
+                        <FiBell size={16} /> Alarms
+                      </Link>
+                    )}
+                  </div>
+                </div>
                 <button onClick={handleLogout} className="btn btn-sm btn-secondary">
                   <FiLogOut /> <span className="logout-text">Logout</span>
                 </button>
@@ -166,9 +196,17 @@ const Navbar = () => {
                     <Link to="/it-placement" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>
                       Siwes
                     </Link>
-                    <Link to="/reminders" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>
-                      <FiBell size={16} /> Alarms
-                    </Link>
+                    <div className="mobile-submenu">
+                      <div className="mobile-nav-link mobile-submenu-title">
+                        <FiUser size={16} /> Profile
+                      </div>
+                      <Link to="/profile" className="mobile-submenu-link" onClick={() => setMobileMenuOpen(false)}>
+                        My Profile
+                      </Link>
+                      <Link to="/reminders" className="mobile-submenu-link" onClick={() => setMobileMenuOpen(false)}>
+                        <FiBell size={16} /> Alarms
+                      </Link>
+                    </div>
                     <div className="mobile-submenu">
                       <div className="mobile-nav-link mobile-submenu-title">
                         <FiFolder size={16} /> Projects

@@ -27,8 +27,8 @@ self.addEventListener('push', (event) => {
 
   const options = {
     body: payload.body,
-    icon: payload.imageUrl || '/logo192.png',
-    badge: '/logo192.png',
+    icon: payload.imageUrl || '/nounpaddi-icon.svg',
+    badge: '/nounpaddi-icon.svg',
     image: payload.imageUrl || undefined,
     requireInteraction: true,
     data: {
