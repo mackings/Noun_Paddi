@@ -133,6 +133,7 @@ app.use('/api/reviews', require('./routes/review'));
 app.use('/api/share', require('./routes/share'));
 app.use('/api/analytics', require('./routes/analytics'));
 app.use('/api/push', require('./routes/push'));
+app.use('/api/ask', require('./routes/ask'));
 
 // Root route
 app.get('/', (req, res) => {

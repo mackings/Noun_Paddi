@@ -8,6 +8,7 @@ import Navbar from './components/Navbar';
 import Signup from './pages/Signup';
 import Login from './pages/Login';
 import Explore from './pages/Explore';
+import Ask from './pages/Ask';
 import AllCourses from './pages/AllCourses';
 import Practice from './pages/Practice';
 import AdminUpload from './pages/AdminUpload';
@@ -294,6 +295,14 @@ const AppLayout = () => {
                   element={
                     <ProtectedRoute>
                       <Explore />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/ask"
+                  element={
+                    <ProtectedRoute>
+                      <Ask />
                     </ProtectedRoute>
                   }
                 />
