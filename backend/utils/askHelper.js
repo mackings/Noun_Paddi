@@ -1,11 +1,9 @@
 const axios = require('axios');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
 
-const ASK_SEARCH_ENDPOINT = 'https://html.duckduckgo.com/html/';
-const MAX_SEARCH_RESULTS = 8;
-const MAX_EVIDENCE_PAGES = 3;
-const MAX_EVIDENCE_CHARS = 12000;
+const GEMINI_MODEL = 'gemini-2.5-flash';
+const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 const USER_AGENT = 'Mozilla/5.0 (compatible; NounPaddiAsk/1.0; +https://paddi.com.ng)';
+const MAX_PAGE_SCAN_COUNT = 3;
 
 function normalizeWhitespace(value) {
   return String(value || '').replace(/\s+/g, ' ').trim();
@@ -21,48 +19,6 @@ function decodeHtmlEntities(value) {
     .replace(/&nbsp;/g, ' ')
     .replace(/&#x2F;/gi, '/')
     .replace(/&#x27;/gi, "'");
-}
-
-function stripHtml(value) {
-  return normalizeWhitespace(
-    decodeHtmlEntities(
-      String(value || '')
-        .replace(/<script[\s\S]*?<\/script>/gi, ' ')
-        .replace(/<style[\s\S]*?<\/style>/gi, ' ')
-        .replace(/<[^>]+>/g, ' ')
-    )
-  );
-}
-
-function extractHostname(url) {
-  try {
-    return new URL(url).hostname.toLowerCase();
-  } catch (error) {
-    return '';
-  }
-}
-
-function isPdfUrl(url = '') {
-  const normalized = String(url || '').toLowerCase();
-  return normalized.includes('.pdf') || normalized.includes('format=pdf');
-}
-
-function decodeDuckDuckGoUrl(url) {
-  try {
-    const absolute = url.startsWith('http') ? url : `https:${url}`;
-    const parsed = new URL(absolute);
-    const redirected = parsed.searchParams.get('uddg');
-    return redirected ? decodeURIComponent(redirected) : absolute;
-  } catch (error) {
-    return url;
-  }
-}
-
-function getGeminiClient() {
-  const keysEnv = process.env.GEMINI_API_KEYS || process.env.GEMINI_API_KEY || '';
-  const key = keysEnv.split(',').map((item) => item.trim()).find(Boolean);
-  if (!key) return null;
-  return new GoogleGenerativeAI(key);
 }
 
 function extractCourseCode(query) {
@@ -90,25 +46,6 @@ function classifyIntent(query) {
   return 'general';
 }
 
-function buildSearchQuery(query, intent) {
-  const cleanQuery = normalizeWhitespace(query);
-
-  if (intent === 'past_question') {
-    return `${cleanQuery} NOUN past questions pdf`;
-  }
-  if (intent === 'matriculation') {
-    return `${cleanQuery} NOUN matriculation nou.edu.ng nounonline.edu.ng`;
-  }
-  if (intent === 'tma') {
-    return `${cleanQuery} NOUN TMA nounonline.edu.ng nou.edu.ng`;
-  }
-  if (intent === 'timetable') {
-    return `${cleanQuery} NOUN timetable exam schedule nounonline.edu.ng nou.edu.ng`;
-  }
-
-  return `${cleanQuery} National Open University of Nigeria NOUN`;
-}
-
 function buildClarification(intent, query) {
   if (intent !== 'past_question') return null;
 
@@ -123,7 +60,7 @@ function buildClarification(intent, query) {
     intent,
     title: 'Which past question do you need?',
     answer: 'Tell me the course code or title so I can look for the correct NOUN past question PDF.',
-    followUpQuestion: 'Send something like "GST 105 past question", "BIO 101 past question", or include the semester/year if you know it.',
+    followUpQuestion: 'Send something like "GST 105 past question", "BIO 101 past question", or include the semester or year if you know it.',
     suggestions: [
       'GST 105 past question',
       'BIO 101 past question',
@@ -132,117 +69,14 @@ function buildClarification(intent, query) {
   };
 }
 
-async function searchDuckDuckGo(query) {
-  let response;
-  try {
-    response = await axios.get(ASK_SEARCH_ENDPOINT, {
-      params: { q: query },
-      headers: {
-        'User-Agent': USER_AGENT,
-        Accept: 'text/html,application/xhtml+xml',
-        'Accept-Language': 'en-US,en;q=0.9',
-        Referer: 'https://duckduckgo.com/',
-      },
-      timeout: 15000,
-    });
-  } catch (error) {
-    if (error.response?.status === 403) {
-      throw new Error('Search provider blocked this request. Please try again in a moment.');
-    }
-    throw new Error('Unable to search the web right now.');
-  }
-
-  const html = String(response.data || '');
-  const resultRegex = /<a[^>]*class="result__a"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi;
-  const snippetRegex = /<a[^>]*class="result__snippet"[^>]*>|<div[^>]*class="result__snippet"[^>]*>([\s\S]*?)<\/div>/gi;
-  const snippets = [];
-  let snippetMatch;
-
-  while ((snippetMatch = snippetRegex.exec(html)) !== null) {
-    const snippetValue = stripHtml(snippetMatch[1] || '');
-    if (snippetValue) {
-      snippets.push(snippetValue);
-    }
-  }
-
-  const results = [];
-  let match;
-  let snippetIndex = 0;
-
-  while ((match = resultRegex.exec(html)) !== null && results.length < MAX_SEARCH_RESULTS) {
-    const url = decodeDuckDuckGoUrl(decodeHtmlEntities(match[1]));
-    const title = stripHtml(match[2]);
-
-    if (!url || !title) continue;
-    if (!/^https?:\/\//i.test(url)) continue;
-
-    results.push({
-      title,
-      url,
-      snippet: snippets[snippetIndex] || '',
-      isPdf: isPdfUrl(url) || /\.pdf\b/i.test(title),
-      hostname: extractHostname(url),
-    });
-    snippetIndex += 1;
-  }
-
-  return results;
+function isPdfUrl(url = '') {
+  const normalized = String(url || '').toLowerCase();
+  return normalized.includes('.pdf') || normalized.includes('format=pdf');
 }
 
-function scorePastQuestionResult(result, query) {
-  const haystack = `${result.title} ${result.snippet} ${result.url}`.toLowerCase();
-  const courseCode = extractCourseCode(query);
-  let score = 0;
-
-  if (result.isPdf) score += 5;
-  if (haystack.includes('past question')) score += 3;
-  if (haystack.includes('noun')) score += 2;
-  if (haystack.includes('exam')) score += 1;
-  if (courseCode && haystack.includes(courseCode.toLowerCase().replace(/\s+/g, ''))) score += 2;
-  if (courseCode && haystack.includes(courseCode.toLowerCase())) score += 2;
-
-  return score;
-}
-
-async function fetchPageText(url) {
-  const response = await axios.get(url, {
-    headers: {
-      'User-Agent': USER_AGENT,
-      Accept: 'text/html,application/xhtml+xml',
-      'Accept-Language': 'en-US,en;q=0.9',
-    },
-    timeout: 15000,
-  });
-
-  const text = stripHtml(response.data);
-  return text.slice(0, MAX_EVIDENCE_CHARS);
-}
-
-async function collectEvidence(results) {
-  const evidence = [];
-
-  for (const result of results) {
-    if (result.isPdf) continue;
-    try {
-      const text = await fetchPageText(result.url);
-      if (!text || text.length < 200) continue;
-
-      evidence.push({
-        title: result.title,
-        url: result.url,
-        hostname: result.hostname,
-        text,
-      });
-    } catch (error) {
-      // Ignore individual page fetch failures.
-    }
-
-    if (evidence.length >= MAX_EVIDENCE_PAGES) {
-      break;
-    }
-  }
-
-  return evidence;
+function getGeminiApiKey() {
+  const keysEnv = process.env.GEMINI_API_KEYS || process.env.GEMINI_API_KEY || '';
+  return keysEnv.split(',').map((item) => item.trim()).find(Boolean) || '';
 }
 
 function tryParseJson(text) {
@@ -256,73 +90,290 @@ function tryParseJson(text) {
   }
 }
 
-function buildFallbackInfo(query, intent, evidence) {
-  const titleMap = {
-    matriculation: 'Matriculation update',
-    timetable: 'Timetable update',
-    tma: 'TMA update',
-    general: 'NOUN update',
-  };
+function getCandidateText(candidate) {
+  const parts = candidate?.content?.parts || [];
+  return parts
+    .map((part) => String(part?.text || '').trim())
+    .filter(Boolean)
+    .join('\n')
+    .trim();
+}
 
-  const sentences = evidence
-    .map((item) => item.text)
-    .join(' ')
-    .split(/(?<=[.!?])\s+/)
-    .map((item) => normalizeWhitespace(item))
-    .filter((item) => item.length > 40)
-    .slice(0, 5);
+function extractGroundingSources(candidate) {
+  const chunks = candidate?.groundingMetadata?.groundingChunks || [];
+  const unique = new Map();
+
+  for (const chunk of chunks) {
+    const web = chunk?.web;
+    if (!web?.uri) continue;
+    const key = String(web.uri).trim();
+    if (!key || unique.has(key)) continue;
+    unique.set(key, {
+      url: key,
+      title: normalizeWhitespace(web.title || ''),
+    });
+  }
+
+  return Array.from(unique.values());
+}
+
+async function runGeminiGroundedPrompt(prompt) {
+  const apiKey = getGeminiApiKey();
+  if (!apiKey) {
+    throw new Error('Gemini API key is not configured.');
+  }
+
+  try {
+    const response = await axios.post(
+      GEMINI_ENDPOINT,
+      {
+        contents: [
+          {
+            parts: [{ text: prompt }],
+          },
+        ],
+        tools: [
+          {
+            google_search: {},
+          },
+        ],
+      },
+      {
+        headers: {
+          'x-goog-api-key': apiKey,
+          'Content-Type': 'application/json',
+        },
+        timeout: 30000,
+      }
+    );
+
+    const candidate = response.data?.candidates?.[0];
+    const text = getCandidateText(candidate);
+
+    return {
+      text,
+      parsed: tryParseJson(text),
+      sources: extractGroundingSources(candidate),
+      webSearchQueries: candidate?.groundingMetadata?.webSearchQueries || [],
+    };
+  } catch (error) {
+    const status = error.response?.status;
+    if (status === 400) {
+      throw new Error('Gemini grounding request failed. Check your Gemini API configuration.');
+    }
+    if (status === 403) {
+      throw new Error('Gemini search access was denied. Check that your API key can use Google Search grounding.');
+    }
+    if (status === 429) {
+      throw new Error('Gemini is rate-limiting Ask right now. Please try again shortly.');
+    }
+    throw new Error('Gemini could not complete the grounded web search right now.');
+  }
+}
+
+async function fetchPdfLinksFromPage(url) {
+  const response = await axios.get(url, {
+    headers: {
+      'User-Agent': USER_AGENT,
+      Accept: 'text/html,application/xhtml+xml',
+      'Accept-Language': 'en-US,en;q=0.9',
+    },
+    timeout: 15000,
+  });
+
+  const html = String(response.data || '');
+  const matches = html.match(/href\s*=\s*["']([^"']+\.pdf(?:\?[^"']*)?)["']/gi) || [];
+  const pdfLinks = [];
+
+  for (const match of matches) {
+    const hrefMatch = match.match(/href\s*=\s*["']([^"']+)["']/i);
+    if (!hrefMatch?.[1]) continue;
+
+    try {
+      const absolute = new URL(decodeHtmlEntities(hrefMatch[1]), url).toString();
+      if (!pdfLinks.includes(absolute)) {
+        pdfLinks.push(absolute);
+      }
+    } catch (error) {
+      // Ignore malformed URLs.
+    }
+  }
+
+  return pdfLinks;
+}
+
+function scorePdfCandidate(candidate, query) {
+  const haystack = `${candidate.title || ''} ${candidate.url || ''}`.toLowerCase();
+  const courseCode = extractCourseCode(query);
+  let score = 0;
+
+  if (isPdfUrl(candidate.url)) score += 5;
+  if (haystack.includes('past question')) score += 3;
+  if (haystack.includes('noun')) score += 2;
+  if (haystack.includes('exam')) score += 1;
+  if (courseCode && haystack.includes(courseCode.toLowerCase())) score += 3;
+  if (courseCode && haystack.includes(courseCode.toLowerCase().replace(/\s+/g, ''))) score += 2;
+
+  return score;
+}
+
+async function findBestPastQuestionPdf(query, sources) {
+  const directCandidates = sources
+    .filter((source) => isPdfUrl(source.url))
+    .map((source) => ({ ...source, direct: true }));
+
+  const scannedCandidates = [];
+
+  for (const source of sources.slice(0, MAX_PAGE_SCAN_COUNT)) {
+    if (isPdfUrl(source.url)) continue;
+
+    try {
+      const pdfLinks = await fetchPdfLinksFromPage(source.url);
+      for (const pdfUrl of pdfLinks) {
+        scannedCandidates.push({
+          url: pdfUrl,
+          title: source.title,
+          direct: false,
+        });
+      }
+    } catch (error) {
+      // Ignore individual page scan failures.
+    }
+  }
+
+  return [...directCandidates, ...scannedCandidates]
+    .sort((a, b) => scorePdfCandidate(b, query) - scorePdfCandidate(a, query))[0] || null;
+}
+
+function buildSuggestions(intent, query) {
+  if (intent === 'past_question') {
+    return [
+      `${query} 2023`,
+      `${query} first semester`,
+      `${query} pdf`,
+    ];
+  }
+
+  if (intent === 'matriculation') {
+    return [
+      'NOUN matriculation requirements',
+      'Latest NOUN matriculation date',
+      'Documents needed for NOUN matriculation',
+    ];
+  }
+
+  if (intent === 'timetable') {
+    return [
+      'Latest NOUN timetable',
+      'NOUN exam timetable for this semester',
+      'NOUN rescheduled exam timetable',
+    ];
+  }
+
+  if (intent === 'tma') {
+    return [
+      'How to submit NOUN TMA',
+      'NOUN TMA deadline',
+      'How NOUN TMA is graded',
+    ];
+  }
+
+  return [
+    'NOUN matriculation requirements',
+    'Latest NOUN timetable',
+    'Explain NOUN TMA submission',
+  ];
+}
+
+async function buildPastQuestionResponse(query, grounded) {
+  const parsed = grounded.parsed || {};
+  const bestPdf = await findBestPastQuestionPdf(query, grounded.sources);
+
+  if (!bestPdf) {
+    return {
+      type: 'information',
+      intent: 'past_question',
+      title: parsed.title || 'No past question PDF found',
+      answer: parsed.answer || `Gemini searched the web but did not find a usable PDF for "${query}". Add a year, semester, or a more exact course title.`,
+      sections: [
+        {
+          title: 'Try a narrower prompt',
+          items: [
+            'Add the year if you know it.',
+            'Add first semester or second semester.',
+            'Use the exact NOUN course code.',
+          ],
+        },
+      ],
+      suggestions: buildSuggestions('past_question', query),
+    };
+  }
 
   return {
-    type: 'information',
-    intent,
-    title: titleMap[intent] || 'NOUN update',
-    answer: sentences[0] || `I found NOUN-related information for "${query}", but I could not structure it cleanly.`,
-    sections: [
-      {
-        title: 'Details',
-        items: sentences.slice(1, 5),
-      },
-    ],
-    suggestions: [
-      'Show the current NOUN timetable',
-      'Explain NOUN matriculation requirements',
-      'How does NOUN TMA work?',
+    type: 'past_question_pdf',
+    intent: 'past_question',
+    title: parsed.title || bestPdf.title || 'NOUN past question',
+    answer: parsed.answer || 'Gemini found a past question PDF that matches your request. It is ready to open below.',
+    pdfUrl: bestPdf.url,
+    fileName: (bestPdf.title || 'noun-past-question').replace(/[^\w\s.-]/g, '').trim() || 'noun-past-question.pdf',
+    suggestions: parsed.suggestions || [
+      'Find another year for this course',
+      'Look for first semester version',
+      'Search a different NOUN course past question',
     ],
   };
 }
 
-async function structureInfoAnswer(query, intent, results, evidence) {
-  if (!evidence.length) {
+function buildInfoFallback(query, intent) {
+  return {
+    type: 'information',
+    intent,
+    title: 'No grounded NOUN answer found',
+    answer: `Gemini could not produce a grounded NOUN-specific answer for "${query}" right now.`,
+    sections: [],
+    suggestions: buildSuggestions(intent, query),
+  };
+}
+
+async function buildInformationResponse(query, intent, grounded) {
+  const parsed = grounded.parsed;
+  if (parsed && parsed.type === 'information') {
     return {
-      type: 'information',
-      intent,
-      title: 'No matching update found',
-      answer: 'I could not find enough NOUN-specific web information for that request right now.',
-      sections: [],
-      suggestions: [
-        'NOUN matriculation requirements',
-        'NOUN TMA submission guide',
-        'NOUN exam timetable',
-      ],
+      ...parsed,
+      suggestions: Array.isArray(parsed.suggestions) && parsed.suggestions.length > 0
+        ? parsed.suggestions
+        : buildSuggestions(intent, query),
     };
   }
 
-  const gemini = getGeminiClient();
-  if (!gemini) {
-    return buildFallbackInfo(query, intent, evidence);
-  }
+  return buildInfoFallback(query, intent);
+}
 
-  const prompt = `You are preparing a NOUN student-facing answer using web evidence gathered by the server.
+function buildGroundedPrompt(query, intent) {
+  if (intent === 'past_question') {
+    return `Use Google Search grounding to research this request about National Open University of Nigeria (NOUN): "${query}".
+
+Find whether a real NOUN past-question PDF or page likely exists.
+
+Return ONLY valid JSON in this exact shape:
+{
+  "type": "past_question_pdf",
+  "title": "short result title",
+  "answer": "one short student-friendly paragraph with no links, no URLs, and no citations",
+  "suggestions": ["follow up 1", "follow up 2", "follow up 3"]
+}
 
 Rules:
-- Return ONLY valid JSON.
-- Do not include URLs, source names, citations, or any reference list.
-- Keep the answer focused on National Open University of Nigeria (NOUN).
-- Use exact dates if the evidence includes dates.
-- If the evidence is uncertain or mixed, say that clearly.
-- Keep the tone direct and student-friendly.
+- Focus only on NOUN-related results.
+- Prefer actual past-question documents or pages that clearly point to past questions.
+- Do not include links, URLs, source names, or citations in the answer.
+- If you do not find a reliable match, make that clear in the answer.
+- Keep the response compact and useful for a student.`;
+  }
 
-Return JSON in this exact shape:
+  return `Use Google Search grounding to answer this NOUN student request: "${query}".
+
+Return ONLY valid JSON in this exact shape:
 {
   "type": "information",
   "intent": "${intent}",
@@ -334,27 +385,12 @@ Return JSON in this exact shape:
   "suggestions": ["follow up 1", "follow up 2", "follow up 3"]
 }
 
-User query: ${query}
-
-Search result hints:
-${results.slice(0, 5).map((item, index) => `${index + 1}. ${item.title} | ${item.snippet}`).join('\n')}
-
-Evidence:
-${evidence.map((item, index) => `Evidence ${index + 1}\nTitle: ${item.title}\nContent: ${item.text}`).join('\n\n')}
-`;
-
-  try {
-    const model = gemini.getGenerativeModel({ model: 'gemini-2.5-flash' });
-    const response = await model.generateContent(prompt);
-    const parsed = tryParseJson(response.response.text());
-    if (parsed && parsed.type === 'information') {
-      return parsed;
-    }
-  } catch (error) {
-    // Fall back below.
-  }
-
-  return buildFallbackInfo(query, intent, evidence);
+Rules:
+- Focus only on National Open University of Nigeria (NOUN).
+- Use exact dates when grounded results mention dates.
+- If the information is uncertain or conflicting, say that clearly.
+- Do not include links, URLs, source names, or citations in the answer.
+- Keep it student-friendly and ready for UI presentation.`;
 }
 
 async function answerAskQuery(query) {
@@ -369,77 +405,13 @@ async function answerAskQuery(query) {
     return clarification;
   }
 
-  const searchQuery = buildSearchQuery(cleanQuery, intent);
-  let results = [];
-  try {
-    results = await searchDuckDuckGo(searchQuery);
-  } catch (error) {
-    if (intent === 'past_question') {
-      return {
-        type: 'information',
-        intent,
-        title: 'Search is temporarily unavailable',
-        answer: 'Ask could not reach the web search provider right now. Please try again shortly or add the exact course code and year.',
-        sections: [],
-        suggestions: [
-          `${cleanQuery} 2023`,
-          `${cleanQuery} first semester`,
-          `${cleanQuery} pdf`,
-        ],
-      };
-    }
-
-    return {
-      type: 'information',
-      intent,
-      title: 'Search is temporarily unavailable',
-      answer: 'Ask could not reach the web search provider right now. Please try again shortly.',
-      sections: [],
-      suggestions: [
-        'NOUN matriculation requirements',
-        'NOUN exam timetable',
-        'NOUN TMA guide',
-      ],
-    };
-  }
+  const grounded = await runGeminiGroundedPrompt(buildGroundedPrompt(cleanQuery, intent));
 
   if (intent === 'past_question') {
-    const bestPdf = [...results]
-      .sort((a, b) => scorePastQuestionResult(b, cleanQuery) - scorePastQuestionResult(a, cleanQuery))
-      .find((item) => item.isPdf);
-
-    if (!bestPdf) {
-      return {
-        type: 'information',
-        intent,
-        title: 'No past question PDF found',
-        answer: `I could not find a clean PDF result for "${cleanQuery}" right now. Try adding the course code, semester, or year.`,
-        sections: [],
-        suggestions: [
-          `${cleanQuery} 2023`,
-          `${cleanQuery} first semester`,
-          `${cleanQuery} NOUN PDF`,
-        ],
-      };
-    }
-
-    return {
-      type: 'past_question_pdf',
-      intent,
-      title: bestPdf.title,
-      answer: 'I found a past question PDF that matches your request. It is ready to open below.',
-      pdfUrl: bestPdf.url,
-      fileName: bestPdf.title.replace(/[^\w\s.-]/g, '').trim() || 'noun-past-question.pdf',
-      suggestions: [
-        'Find another year for this course',
-        'Look for first semester version',
-        'Search a different NOUN course past question',
-      ],
-    };
+    return buildPastQuestionResponse(cleanQuery, grounded);
   }
 
-  const evidence = await collectEvidence(results);
-  return structureInfoAnswer(cleanQuery, intent, results, evidence);
+  return buildInformationResponse(cleanQuery, intent, grounded);
 }
 
 module.exports = {
