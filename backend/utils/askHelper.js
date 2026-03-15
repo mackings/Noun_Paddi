@@ -27,6 +27,11 @@ function extractCourseCode(query) {
   return `${match[1]} ${match[2]}`;
 }
 
+function extractYear(query) {
+  const match = String(query || '').match(/\b(20\d{2}|19\d{2})\b/);
+  return match ? match[1] : null;
+}
+
 function classifyIntent(query) {
   const normalized = String(query || '').toLowerCase();
 
@@ -50,20 +55,64 @@ function buildClarification(intent, query) {
   if (intent !== 'past_question') return null;
 
   const courseCode = extractCourseCode(query);
-  const normalized = String(query || '').toLowerCase();
-  const hasCourseHint = courseCode || normalized.split(' ').length >= 4;
+  const year = extractYear(query);
 
-  if (hasCourseHint) return null;
+  if (courseCode && year) return null;
+
+  if (!courseCode && !year) {
+    return {
+      type: 'clarification',
+      intent,
+      title: 'I need the course code and year',
+      answer: 'To find the right NOUN past question, send the course code and the year you want.',
+      followUpQuestion: 'Reply with something like "GST 105 past question 2023" or "BIO 101 past question 2022".',
+      suggestions: [
+        'GST 105 past question 2023',
+        'BIO 101 past question 2022',
+        'CSC 202 past question 2021',
+      ],
+    };
+  }
+
+  if (!courseCode) {
+    return {
+      type: 'clarification',
+      intent,
+      title: 'I still need the course code',
+      answer: 'Add the exact NOUN course code so I can search for the correct past question PDF.',
+      followUpQuestion: `Include the course code with the year, for example "${year || '2023'}".`,
+      suggestions: [
+        `GST 105 past question ${year || '2023'}`,
+        `BIO 101 past question ${year || '2023'}`,
+        `CSC 202 past question ${year || '2023'}`,
+      ],
+    };
+  }
+
+  if (!year) {
+    return {
+      type: 'clarification',
+      intent,
+      title: 'I still need the year',
+      answer: `I have the course code ${courseCode}. Now send the year so I can search for the right past question.`,
+      followUpQuestion: `Reply with something like "${courseCode} past question 2023".`,
+      suggestions: [
+        `${courseCode} past question 2023`,
+        `${courseCode} past question 2022`,
+        `${courseCode} past question 2021`,
+      ],
+    };
+  }
 
   return {
     type: 'clarification',
     intent,
-    title: 'Which past question do you need?',
-    answer: 'Tell me the course code or title so I can look for the correct NOUN past question PDF.',
-    followUpQuestion: 'Send something like "GST 105 past question", "BIO 101 past question", or include the semester or year if you know it.',
+    title: 'I need the course code and year',
+    answer: 'Send the exact course code and year so I can find the correct NOUN past question PDF.',
+    followUpQuestion: 'Reply with something like "GST 105 past question 2023".',
     suggestions: [
-      'GST 105 past question',
-      'BIO 101 past question',
+      'GST 105 past question 2023',
+      'BIO 101 past question 2022',
       'CSC 202 past question 2023',
     ],
   };

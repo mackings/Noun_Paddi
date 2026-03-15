@@ -1,91 +1,293 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { FiFileText, FiHelpCircle, FiLoader, FiMessageSquare, FiSearch, FiSend } from 'react-icons/fi';
+import {
+  FiArrowDownCircle,
+  FiDownload,
+  FiFileText,
+  FiLoader,
+  FiMessageSquare,
+  FiSearch,
+  FiSend,
+  FiUser,
+} from 'react-icons/fi';
 import api from '../utils/api';
 import { trackFeatureVisit } from '../utils/featureTracking';
 import SEO from '../components/SEO';
 import './Ask.css';
 
 const ASK_EXAMPLES = [
-  'GST 105 past question',
+  'GST 105 past question 2023',
   'What do I need for NOUN matriculation?',
   'Show the latest NOUN timetable',
   'Explain NOUN TMA submission',
 ];
 
+const makeId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+const initialAssistantMessage = {
+  id: makeId(),
+  role: 'assistant',
+  kind: 'response',
+  data: {
+    title: 'Ask anything about NOUN',
+    answer: 'Ask works like a chat thread. For past questions, include the course code and year so I can search, open the PDF here, and let you download it.',
+    suggestions: ASK_EXAMPLES,
+    sections: [
+      {
+        title: 'Good prompts',
+        items: [
+          'Use exact course codes for past questions.',
+          'Add the year when you want a specific paper.',
+          'Ask matriculation, timetable, and TMA questions in plain language.',
+        ],
+      },
+    ],
+  },
+};
+
+function ResponseCard({ message, onSuggestionClick }) {
+  const { data, loading, error } = message;
+
+  if (loading) {
+    return (
+      <div className="ask-card ask-card-loading">
+        <FiLoader className="spin" />
+        <div>
+          <h3>Researching your request</h3>
+          <p>Searching and preparing the result.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="ask-card ask-card-error">
+        <h3>Ask could not complete that request</h3>
+        <p>{error}</p>
+      </div>
+    );
+  }
+
+  if (!data) return null;
+
+  return (
+    <div className="ask-card">
+      {data.intent && (
+        <div className="ask-response-tag">
+          {data.intent.replace(/_/g, ' ')}
+        </div>
+      )}
+
+      {data.title && <h3>{data.title}</h3>}
+      {data.answer && <p className="ask-card-summary">{data.answer}</p>}
+      {data.followUpQuestion && (
+        <div className="ask-followup-box">
+          <FiMessageSquare />
+          <span>{data.followUpQuestion}</span>
+        </div>
+      )}
+
+      {Array.isArray(data.sections) && data.sections.length > 0 && (
+        <div className="ask-section-grid">
+          {data.sections.map((section, index) => (
+            <article className="ask-section-card" key={`${section.title}-${index}`}>
+              <h4>{section.title}</h4>
+              <ul>
+                {(section.items || []).map((item, itemIndex) => (
+                  <li key={`${section.title}-${itemIndex}`}>{item}</li>
+                ))}
+              </ul>
+            </article>
+          ))}
+        </div>
+      )}
+
+      {data.type === 'past_question_pdf' && (
+        <div className="ask-pdf-panel">
+          <div className="ask-pdf-meta">
+            <div>
+              <p className="ask-console-kicker">Past Question PDF</p>
+              <h4>{data.pdf?.fileName || 'NOUN past question'}</h4>
+            </div>
+            <div className="ask-pdf-actions">
+              {data.pdfLoading && (
+                <div className="ask-loading-pill">
+                  <FiLoader className="spin" />
+                  Loading PDF
+                </div>
+              )}
+              {data.pdfBlobUrl && (
+                <a
+                  href={data.pdfBlobUrl}
+                  download={data.pdf?.fileName || 'noun-past-question.pdf'}
+                  className="ask-download-btn"
+                >
+                  <FiDownload />
+                  Download
+                </a>
+              )}
+            </div>
+          </div>
+          {data.pdfBlobUrl && (
+            <iframe
+              title={data.pdf?.fileName || 'Ask PDF Viewer'}
+              src={data.pdfBlobUrl}
+              className="ask-pdf-frame"
+            />
+          )}
+        </div>
+      )}
+
+      {Array.isArray(data.suggestions) && data.suggestions.length > 0 && (
+        <div className="ask-suggestion-row">
+          {data.suggestions.map((item) => (
+            <button
+              key={item}
+              type="button"
+              className="ask-chip"
+              onClick={() => onSuggestionClick(item)}
+            >
+              {item}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 const Ask = () => {
   const [query, setQuery] = useState('');
-  const [response, setResponse] = useState(null);
+  const [messages, setMessages] = useState([initialAssistantMessage]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [pdfBlobUrl, setPdfBlobUrl] = useState('');
-  const [pdfLoading, setPdfLoading] = useState(false);
+  const [composerError, setComposerError] = useState('');
   const mountedRef = useRef(true);
+  const threadRef = useRef(null);
+  const blobUrlsRef = useRef(new Set());
 
   useEffect(() => {
     trackFeatureVisit('ask');
+    const blobUrls = blobUrlsRef.current;
     return () => {
       mountedRef.current = false;
+      blobUrls.forEach((blobUrl) => {
+        URL.revokeObjectURL(blobUrl);
+      });
+      blobUrls.clear();
     };
   }, []);
 
   useEffect(() => {
-    return () => {
-      if (pdfBlobUrl) {
-        URL.revokeObjectURL(pdfBlobUrl);
-      }
-    };
-  }, [pdfBlobUrl]);
+    const frame = window.requestAnimationFrame(() => {
+      threadRef.current?.scrollTo({
+        top: threadRef.current.scrollHeight,
+        behavior: 'smooth',
+      });
+    });
 
-  const loadPdf = async (token) => {
-    if (!token) return;
+    return () => window.cancelAnimationFrame(frame);
+  }, [messages.length]);
 
-    setPdfLoading(true);
+  const updateMessage = (messageId, updater) => {
+    setMessages((current) =>
+      current.map((message) => (
+        message.id === messageId
+          ? { ...message, ...updater(message) }
+          : message
+      ))
+    );
+  };
+
+  const loadPdfIntoMessage = async (messageId, token, fileName) => {
+    updateMessage(messageId, (message) => ({
+      data: {
+        ...message.data,
+        pdfLoading: true,
+      },
+    }));
+
     try {
       const result = await api.get(`/ask/pdf/${encodeURIComponent(token)}`, {
         responseType: 'blob',
       });
 
-      const nextUrl = URL.createObjectURL(result.data);
-      setPdfBlobUrl((current) => {
-        if (current) {
-          URL.revokeObjectURL(current);
+      const blobUrl = URL.createObjectURL(result.data);
+      blobUrlsRef.current.add(blobUrl);
+      updateMessage(messageId, (message) => {
+        if (message?.data?.pdfBlobUrl) {
+          URL.revokeObjectURL(message.data.pdfBlobUrl);
+          blobUrlsRef.current.delete(message.data.pdfBlobUrl);
         }
-        return nextUrl;
+
+        return {
+          data: {
+            ...message.data,
+            pdf: {
+              ...message.data?.pdf,
+              fileName,
+            },
+            pdfBlobUrl: blobUrl,
+            pdfLoading: false,
+          },
+        };
       });
     } catch (requestError) {
-      setError(requestError.response?.data?.message || 'Unable to open the PDF right now.');
-    } finally {
-      if (mountedRef.current) {
-        setPdfLoading(false);
-      }
+      updateMessage(messageId, (message) => ({
+        data: {
+          ...message.data,
+          pdfLoading: false,
+          answer: requestError.response?.data?.message || 'The result was found, but the PDF could not be opened right now.',
+        },
+      }));
     }
   };
 
   const submitQuery = async (value) => {
     const trimmed = String(value || query).trim();
-    if (!trimmed) {
-      setError('Enter what you want Ask to find.');
+    if (!trimmed || loading) {
+      if (!trimmed) setComposerError('Enter what you want Ask to find.');
       return;
     }
 
+    const userMessage = {
+      id: makeId(),
+      role: 'user',
+      text: trimmed,
+    };
+
+    const placeholderId = makeId();
+    const placeholderMessage = {
+      id: placeholderId,
+      role: 'assistant',
+      kind: 'response',
+      loading: true,
+      data: null,
+    };
+
     setLoading(true);
-    setError('');
-    setResponse(null);
-    if (pdfBlobUrl) {
-      URL.revokeObjectURL(pdfBlobUrl);
-      setPdfBlobUrl('');
-    }
+    setComposerError('');
+    setQuery('');
+    setMessages((current) => [...current, userMessage, placeholderMessage]);
 
     try {
       const result = await api.post('/ask/query', { query: trimmed });
       const payload = result.data?.data || null;
-      setResponse(payload);
+
+      updateMessage(placeholderId, () => ({
+        loading: false,
+        error: '',
+        data: payload,
+      }));
 
       if (payload?.type === 'past_question_pdf' && payload?.pdf?.token) {
-        await loadPdf(payload.pdf.token);
+        await loadPdfIntoMessage(placeholderId, payload.pdf.token, payload.pdf.fileName);
       }
     } catch (requestError) {
-      setError(requestError.response?.data?.message || 'Ask could not process that request.');
+      updateMessage(placeholderId, () => ({
+        loading: false,
+        error: requestError.response?.data?.message || 'Ask could not process that request.',
+        data: null,
+      }));
     } finally {
       if (mountedRef.current) {
         setLoading(false);
@@ -102,164 +304,109 @@ const Ask = () => {
         keywords="NOUN ask, NOUN past question finder, NOUN timetable, NOUN matriculation, NOUN TMA"
         robots="noindex, nofollow"
       />
+
       <div className="container">
-        <section className="ask-hero">
-          <div className="ask-hero-copy">
+        <section className="ask-shell">
+          <div className="ask-sidebar">
             <p className="ask-kicker">Ask</p>
-            <h1>NOUN answers without sending students away.</h1>
+            <h1>NOUN research in a chat thread.</h1>
             <p className="ask-lead">
-              Ask searches the web in the background for NOUN-related answers, then brings back a clean result.
-              Past questions open as PDFs here. Timetable, matriculation, and TMA answers show as readable cards.
+              Ask researches the web with Gemini, replies in chat format, and opens past-question PDFs inline.
             </p>
-          </div>
-          <div className="ask-hero-card">
-            <div className="ask-hero-card-row">
-              <FiSearch />
-              <span>Web lookup happens on the server</span>
-            </div>
-            <div className="ask-hero-card-row">
-              <FiFileText />
-              <span>PDFs render here without source links</span>
-            </div>
-            <div className="ask-hero-card-row">
-              <FiMessageSquare />
-              <span>Designed for NOUN student questions</span>
-            </div>
-          </div>
-        </section>
-
-        <section className="ask-console">
-          <div className="ask-console-header">
-            <div>
-              <p className="ask-console-kicker">Prompt Ask</p>
-              <h2>What do you want to find?</h2>
-            </div>
-            {loading && (
-              <div className="ask-loading-pill">
-                <FiLoader className="spin" />
-                Searching
+            <div className="ask-sidebar-points">
+              <div className="ask-hero-card-row">
+                <FiSearch />
+                <span>Gemini researches NOUN-related web results</span>
               </div>
-            )}
-          </div>
-
-          <div className="ask-form">
-            <textarea
-              className="ask-input"
-              placeholder="Try: GST 105 past question, NOUN matriculation requirements, or latest NOUN timetable"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              rows={4}
-            />
-            <button
-              type="button"
-              className="ask-submit"
-              onClick={() => submitQuery()}
-              disabled={loading}
-            >
-              <FiSend />
-              Ask
-            </button>
-          </div>
-
-          <div className="ask-example-row">
-            {ASK_EXAMPLES.map((example) => (
-              <button
-                key={example}
-                type="button"
-                className="ask-chip"
-                onClick={() => {
-                  setQuery(example);
-                  submitQuery(example);
-                }}
-                disabled={loading}
-              >
-                {example}
-              </button>
-            ))}
-          </div>
-
-          {error && <div className="ask-error">{error}</div>}
-        </section>
-
-        {response && (
-          <section className="ask-response-shell">
-            <div className="ask-response-header">
-              <div>
-                <p className="ask-console-kicker">Result</p>
-                <h2>{response.title || 'Ask response'}</h2>
+              <div className="ask-hero-card-row">
+                <FiFileText />
+                <span>Past questions open in the thread and can be downloaded</span>
               </div>
-              <div className="ask-response-tag">
-                {response.intent ? response.intent.replace(/_/g, ' ') : 'NOUN'}
+              <div className="ask-hero-card-row">
+                <FiArrowDownCircle />
+                <span>For past questions, include course code and year</span>
               </div>
             </div>
+            <div className="ask-example-stack">
+              {ASK_EXAMPLES.map((example) => (
+                <button
+                  key={example}
+                  type="button"
+                  className="ask-chip ask-chip-block"
+                  onClick={() => submitQuery(example)}
+                  disabled={loading}
+                >
+                  {example}
+                </button>
+              ))}
+            </div>
+          </div>
 
-            {response.answer && <p className="ask-response-summary">{response.answer}</p>}
-            {response.followUpQuestion && (
-              <div className="ask-followup-box">
-                <FiHelpCircle />
-                <span>{response.followUpQuestion}</span>
-              </div>
-            )}
-
-            {Array.isArray(response.sections) && response.sections.length > 0 && (
-              <div className="ask-section-grid">
-                {response.sections.map((section) => (
-                  <article className="ask-section-card" key={section.title}>
-                    <h3>{section.title}</h3>
-                    <ul>
-                      {(section.items || []).map((item, index) => (
-                        <li key={`${section.title}-${index}`}>{item}</li>
-                      ))}
-                    </ul>
-                  </article>
-                ))}
-              </div>
-            )}
-
-            {Array.isArray(response.suggestions) && response.suggestions.length > 0 && (
-              <div className="ask-suggestion-row">
-                {response.suggestions.map((item) => (
-                  <button
-                    key={item}
-                    type="button"
-                    className="ask-chip"
-                    onClick={() => {
-                      setQuery(item);
-                      submitQuery(item);
-                    }}
-                    disabled={loading}
-                  >
-                    {item}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {response.type === 'past_question_pdf' && (
-              <div className="ask-pdf-panel">
-                <div className="ask-pdf-meta">
-                  <div>
-                    <p className="ask-console-kicker">Past Question PDF</p>
-                    <h3>{response.pdf?.fileName || 'NOUN past question'}</h3>
+          <section className="ask-thread-shell">
+            <div className="ask-thread" ref={threadRef}>
+              {messages.map((message) => (
+                <div
+                  key={message.id}
+                  className={`ask-message ask-message-${message.role}`}
+                >
+                  <div className={`ask-avatar ask-avatar-${message.role}`}>
+                    {message.role === 'assistant' ? <FiMessageSquare /> : <FiUser />}
                   </div>
-                  {pdfLoading && (
-                    <div className="ask-loading-pill">
-                      <FiLoader className="spin" />
-                      Loading PDF
-                    </div>
-                  )}
+                  <div className="ask-bubble">
+                    {message.role === 'user' ? (
+                      <p className="ask-user-text">{message.text}</p>
+                    ) : (
+                      <ResponseCard
+                        message={message}
+                        onSuggestionClick={submitQuery}
+                      />
+                    )}
+                  </div>
                 </div>
-                {pdfBlobUrl && (
-                  <iframe
-                    title="Ask PDF Viewer"
-                    src={pdfBlobUrl}
-                    className="ask-pdf-frame"
-                  />
+              ))}
+            </div>
+
+            <div className="ask-composer">
+              <div className="ask-composer-header">
+                <div>
+                  <p className="ask-console-kicker">Prompt Ask</p>
+                  <h2>Ask in plain language</h2>
+                </div>
+                {loading && (
+                  <div className="ask-loading-pill">
+                    <FiLoader className="spin" />
+                    Working
+                  </div>
                 )}
               </div>
-            )}
+              <div className="ask-form">
+                <textarea
+                  className="ask-input"
+                  placeholder="Try: GST 105 past question 2023, NOUN matriculation requirements, or latest NOUN timetable"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' && !event.shiftKey) {
+                      event.preventDefault();
+                      submitQuery();
+                    }
+                  }}
+                  rows={3}
+                />
+                <button
+                  type="button"
+                  className="ask-submit"
+                  onClick={() => submitQuery()}
+                  disabled={loading}
+                >
+                  <FiSend />
+                  Send
+                </button>
+              </div>
+              {composerError && <div className="ask-error">{composerError}</div>}
+            </div>
           </section>
-        )}
+        </section>
       </div>
     </div>
   );
