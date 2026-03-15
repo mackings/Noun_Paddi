@@ -133,14 +133,24 @@ function buildClarification(intent, query) {
 }
 
 async function searchDuckDuckGo(query) {
-  const response = await axios.get(ASK_SEARCH_ENDPOINT, {
-    params: { q: query },
-    headers: {
-      'User-Agent': USER_AGENT,
-      Accept: 'text/html,application/xhtml+xml',
-    },
-    timeout: 15000,
-  });
+  let response;
+  try {
+    response = await axios.get(ASK_SEARCH_ENDPOINT, {
+      params: { q: query },
+      headers: {
+        'User-Agent': USER_AGENT,
+        Accept: 'text/html,application/xhtml+xml',
+        'Accept-Language': 'en-US,en;q=0.9',
+        Referer: 'https://duckduckgo.com/',
+      },
+      timeout: 15000,
+    });
+  } catch (error) {
+    if (error.response?.status === 403) {
+      throw new Error('Search provider blocked this request. Please try again in a moment.');
+    }
+    throw new Error('Unable to search the web right now.');
+  }
 
   const html = String(response.data || '');
   const resultRegex = /<a[^>]*class="result__a"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi;
@@ -199,6 +209,7 @@ async function fetchPageText(url) {
     headers: {
       'User-Agent': USER_AGENT,
       Accept: 'text/html,application/xhtml+xml',
+      'Accept-Language': 'en-US,en;q=0.9',
     },
     timeout: 15000,
   });
@@ -359,7 +370,38 @@ async function answerAskQuery(query) {
   }
 
   const searchQuery = buildSearchQuery(cleanQuery, intent);
-  const results = await searchDuckDuckGo(searchQuery);
+  let results = [];
+  try {
+    results = await searchDuckDuckGo(searchQuery);
+  } catch (error) {
+    if (intent === 'past_question') {
+      return {
+        type: 'information',
+        intent,
+        title: 'Search is temporarily unavailable',
+        answer: 'Ask could not reach the web search provider right now. Please try again shortly or add the exact course code and year.',
+        sections: [],
+        suggestions: [
+          `${cleanQuery} 2023`,
+          `${cleanQuery} first semester`,
+          `${cleanQuery} pdf`,
+        ],
+      };
+    }
+
+    return {
+      type: 'information',
+      intent,
+      title: 'Search is temporarily unavailable',
+      answer: 'Ask could not reach the web search provider right now. Please try again shortly.',
+      sections: [],
+      suggestions: [
+        'NOUN matriculation requirements',
+        'NOUN exam timetable',
+        'NOUN TMA guide',
+      ],
+    };
+  }
 
   if (intent === 'past_question') {
     const bestPdf = [...results]

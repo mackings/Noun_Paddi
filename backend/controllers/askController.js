@@ -45,9 +45,14 @@ exports.askQuestion = async (req, res) => {
       data: responseData,
     });
   } catch (error) {
+    const status = error.response?.status;
+    const message = status === 403
+      ? 'Ask could not reach an external source right now. Please try again shortly.'
+      : (error.message || 'Failed to process Ask request.');
+
     return res.status(500).json({
       success: false,
-      message: error.message || 'Failed to process Ask request.',
+      message,
     });
   }
 };
@@ -99,9 +104,14 @@ exports.streamAskPdf = async (req, res) => {
 
     response.data.pipe(res);
   } catch (error) {
+    const status = error.response?.status;
+    const message = status === 403
+      ? 'This PDF source blocked access right now. Try another prompt or try again later.'
+      : 'Failed to open PDF.';
+
     return res.status(500).json({
       success: false,
-      message: 'Failed to open PDF.',
+      message,
     });
   }
 };
