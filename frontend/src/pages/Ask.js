@@ -264,17 +264,6 @@ const Ask = () => {
     };
   }, []);
 
-  useEffect(() => {
-    const frame = window.requestAnimationFrame(() => {
-      threadRef.current?.scrollTo({
-        top: threadRef.current.scrollHeight,
-        behavior: 'smooth',
-      });
-    });
-
-    return () => window.cancelAnimationFrame(frame);
-  }, [messages.length]);
-
   const scrollToResults = () => {
     window.requestAnimationFrame(() => {
       threadShellRef.current?.scrollIntoView({
@@ -285,6 +274,21 @@ const Ask = () => {
         top: threadRef.current.scrollHeight,
         behavior: 'smooth',
       });
+    });
+  };
+
+  const scrollToMessage = (messageId) => {
+    window.requestAnimationFrame(() => {
+      const target = document.getElementById(`ask-message-${messageId}`);
+      if (target) {
+        target.scrollIntoView({
+          behavior: 'smooth',
+          block: 'end',
+        });
+        return;
+      }
+
+      scrollToResults();
     });
   };
 
@@ -440,7 +444,7 @@ const Ask = () => {
     setComposerError('');
     setQuery('');
     setMessages((current) => [...current, userMessage, placeholderMessage]);
-    scrollToResults();
+    scrollToMessage(placeholderId);
 
     try {
       const result = await api.post('/ask/query', { query: trimmed });
@@ -454,6 +458,7 @@ const Ask = () => {
         error: '',
         data: payload,
       }));
+      scrollToMessage(placeholderId);
 
       if (payload?.type === 'past_question_pdf' && payload?.pdf?.token) {
         await loadPdfIntoMessage(placeholderId, payload.pdf.token, payload.pdf.fileName);
@@ -523,6 +528,7 @@ const Ask = () => {
               {messages.map((message) => (
                 <div
                   key={message.id}
+                  id={`ask-message-${message.id}`}
                   className={`ask-message ask-message-${message.role}`}
                 >
                   <div className={`ask-avatar ask-avatar-${message.role}`}>

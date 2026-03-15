@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import api from '../utils/api';
 import { trackFeatureVisit } from '../utils/featureTracking';
 import SEO from '../components/SEO';
-import { FiSearch, FiBook, FiArrowRight, FiAward, FiUpload } from 'react-icons/fi';
+import { FiSearch, FiBook, FiArrowRight, FiAward, FiUpload, FiMessageCircle } from 'react-icons/fi';
 import './Explore.css';
 
 const normalizeSearchValue = (value) => String(value || '').toLowerCase().trim();
@@ -340,6 +340,11 @@ const Explore = () => {
             </div>
           )}
         </div>
+
+        <Link to="/ask" className="explore-ask-bubble" aria-label="Open Ask Paddi">
+          <FiMessageCircle />
+          <span>Ask Paddi</span>
+        </Link>
       </div>
     </div>
   );
