@@ -28,7 +28,7 @@ exports.askQuestion = async (req, res) => {
     const result = await answerAskQuery(query);
     const responseData = { ...result };
 
-    if (result.type === 'past_question_pdf' && result.pdfUrl) {
+    if (result.pdfUrl) {
       responseData.pdf = {
         token: issuePdfToken({
           url: result.pdfUrl,

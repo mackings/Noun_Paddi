@@ -7,6 +7,7 @@ import {
   FiMessageSquare,
   FiSearch,
   FiSend,
+  FiUsers,
   FiUser,
 } from 'react-icons/fi';
 import api from '../utils/api';
@@ -102,12 +103,12 @@ function ResponseCard({ message, onSuggestionClick }) {
         </div>
       )}
 
-      {data.type === 'past_question_pdf' && (
+      {(data.type === 'past_question_pdf' || data.type === 'timetable_pdf') && (
         <div className="ask-pdf-panel">
           <div className="ask-pdf-meta">
             <div>
-              <p className="ask-console-kicker">Past Question PDF</p>
-              <h4>{data.pdf?.fileName || 'NOUN past question'}</h4>
+              <p className="ask-console-kicker">{data.type === 'timetable_pdf' ? 'Timetable File' : 'Past Question PDF'}</p>
+              <h4>{data.pdf?.fileName || (data.type === 'timetable_pdf' ? 'NOUN timetable' : 'NOUN past question')}</h4>
             </div>
             <div className="ask-pdf-actions">
               {data.pdfLoading && (
@@ -135,6 +136,25 @@ function ResponseCard({ message, onSuggestionClick }) {
               className="ask-pdf-frame"
             />
           )}
+        </div>
+      )}
+
+      {data.whatsappGroup?.url && (
+        <div className="ask-community-card">
+          <div>
+            <p className="ask-console-kicker">Community</p>
+            <h4>Need updates from other NOUN students?</h4>
+            <p className="ask-card-summary">Join the WhatsApp group from here for shared updates and discussion.</p>
+          </div>
+          <a
+            href={data.whatsappGroup.url}
+            target="_blank"
+            rel="noreferrer"
+            className="ask-whatsapp-btn"
+          >
+            <FiUsers />
+            {data.whatsappGroup.label || 'Join WhatsApp Group'}
+          </a>
         </div>
       )}
 

@@ -270,6 +270,19 @@
   color: #fff;
 }
 
+.ask-whatsapp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #16a34a, #15803d);
+  color: #fff;
+  text-decoration: none;
+  font-weight: 700;
+}
+
 .ask-suggestion-row {
   display: flex;
   flex-wrap: wrap;
@@ -303,6 +316,16 @@
   margin-top: 18px;
   padding-top: 18px;
   border-top: 1px solid var(--ask-line);
+}
+
+.ask-community-card {
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid var(--ask-line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
 }
 
 .ask-pdf-meta {

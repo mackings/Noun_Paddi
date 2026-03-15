@@ -5,6 +5,7 @@ const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models
 const USER_AGENT = 'Mozilla/5.0 (compatible; NounPaddiAsk/1.0; +https://paddi.com.ng)';
 const MAX_PAGE_SCAN_COUNT = 3;
 const MAX_FILE_CANDIDATES_TO_VERIFY = 8;
+const WHATSAPP_GROUP_URL = 'https://chat.whatsapp.com/Ezx0OmcT1bs1BSymYT1f4G';
 
 function normalizeWhitespace(value) {
   return String(value || '').replace(/\s+/g, ' ').trim();
@@ -116,6 +117,16 @@ function buildClarification(intent, query) {
       'BIO 101 past question 2022',
       'CSC 202 past question 2023',
     ],
+  };
+}
+
+function withWhatsAppGroup(payload = {}) {
+  return {
+    ...payload,
+    whatsappGroup: {
+      label: 'Join NOUN WhatsApp Group',
+      url: WHATSAPP_GROUP_URL,
+    },
   };
 }
 
@@ -410,7 +421,7 @@ async function verifyPdfCandidate(candidate) {
   }
 }
 
-function scorePdfCandidate(candidate, query) {
+function scorePdfCandidate(candidate, query, intent = 'past_question') {
   const haystack = `${candidate.title || ''} ${candidate.url || ''}`.toLowerCase();
   const courseCode = extractCourseCode(query);
   const year = extractYear(query);
@@ -418,7 +429,8 @@ function scorePdfCandidate(candidate, query) {
 
   if (isPdfUrl(candidate.url)) score += 5;
   if (isLikelyDownloadUrl(candidate.url)) score += 2;
-  if (haystack.includes('past question')) score += 3;
+  if (intent === 'past_question' && haystack.includes('past question')) score += 3;
+  if (intent === 'timetable' && (haystack.includes('timetable') || haystack.includes('schedule'))) score += 4;
   if (haystack.includes('noun')) score += 2;
   if (haystack.includes('exam')) score += 1;
   if (courseCode && haystack.includes(courseCode.toLowerCase())) score += 3;
@@ -426,11 +438,12 @@ function scorePdfCandidate(candidate, query) {
   if (year && haystack.includes(year)) score += 2;
   if (haystack.includes('first semester')) score += 1;
   if (haystack.includes('second semester')) score += 1;
+  if (haystack.includes('2025') || haystack.includes('2026')) score += intent === 'timetable' ? 1 : 0;
 
   return score;
 }
 
-async function findBestPastQuestionPdf(query, sources) {
+async function findBestPdfFile(query, sources, intent = 'past_question') {
   const directCandidates = sources
     .filter((source) => isLikelyDownloadUrl(source.url))
     .map((source) => ({
@@ -481,7 +494,7 @@ async function findBestPastQuestionPdf(query, sources) {
   }
 
   const ranked = uniqueCandidates
-    .sort((a, b) => scorePdfCandidate(b, query) - scorePdfCandidate(a, query))
+    .sort((a, b) => scorePdfCandidate(b, query, intent) - scorePdfCandidate(a, query, intent))
     .slice(0, MAX_FILE_CANDIDATES_TO_VERIFY);
 
   for (const candidate of ranked) {
@@ -522,6 +535,10 @@ function buildPastQuestionCandidateList(grounded) {
   }
 
   return unique;
+}
+
+function buildFileCandidateList(grounded) {
+  return buildPastQuestionCandidateList(grounded);
 }
 
 function buildSuggestions(intent, query) {
@@ -567,13 +584,13 @@ function buildSuggestions(intent, query) {
 async function buildPastQuestionResponse(query, grounded) {
   const parsed = grounded.parsed || {};
   const candidatePool = [
-    ...buildPastQuestionCandidateList(grounded),
+    ...buildFileCandidateList(grounded),
     ...(grounded.sources || []),
   ];
-  const bestPdf = await findBestPastQuestionPdf(query, candidatePool);
+  const bestPdf = await findBestPdfFile(query, candidatePool, 'past_question');
 
   if (!bestPdf) {
-    return {
+    return withWhatsAppGroup({
       type: 'information',
       intent: 'past_question',
       title: parsed.title || 'No past question PDF found',
@@ -589,10 +606,10 @@ async function buildPastQuestionResponse(query, grounded) {
         },
       ],
       suggestions: buildSuggestions('past_question', query),
-    };
+    });
   }
 
-  return {
+  return withWhatsAppGroup({
     type: 'past_question_pdf',
     intent: 'past_question',
     title: parsed.title || bestPdf.title || 'NOUN past question',
@@ -604,29 +621,76 @@ async function buildPastQuestionResponse(query, grounded) {
       'Look for first semester version',
       'Search a different NOUN course past question',
     ],
-  };
+  });
 }
 
 function buildInfoFallback(query, intent) {
-  return {
+  return withWhatsAppGroup({
     type: 'information',
     intent,
     title: 'No grounded NOUN answer found',
     answer: `Gemini could not produce a grounded NOUN-specific answer for "${query}" right now.`,
     sections: [],
     suggestions: buildSuggestions(intent, query),
-  };
+  });
+}
+
+async function buildTimetableResponse(query, grounded) {
+  const parsed = grounded.parsed || {};
+  const candidatePool = [
+    ...buildFileCandidateList(grounded),
+    ...(grounded.sources || []),
+  ];
+  const bestPdf = await findBestPdfFile(query, candidatePool, 'timetable');
+
+  if (!bestPdf) {
+    return withWhatsAppGroup({
+      type: 'information',
+      intent: 'timetable',
+      title: parsed.title || 'Timetable update',
+      answer: parsed.answer || 'I found timetable information, but I could not verify a downloadable timetable file right now.',
+      sections: Array.isArray(parsed.sections) ? parsed.sections : [
+        {
+          title: 'Timetable note',
+          items: [
+            'If the newest timetable is not publicly downloadable yet, Ask can still show older verified timetable files when available.',
+            'Try adding a semester, session, or exam type to narrow the result.',
+          ],
+        },
+      ],
+      suggestions: Array.isArray(parsed.suggestions) && parsed.suggestions.length > 0
+        ? parsed.suggestions
+        : buildSuggestions('timetable', query),
+    });
+  }
+
+  return withWhatsAppGroup({
+    type: 'timetable_pdf',
+    intent: 'timetable',
+    title: parsed.title || bestPdf.title || 'NOUN timetable',
+    answer: parsed.answer || 'I found a downloadable timetable document. If a newer one is not public yet, this may be the latest verified file I could open.',
+    sections: Array.isArray(parsed.sections) ? parsed.sections : [],
+    pdfUrl: bestPdf.url,
+    fileName: (bestPdf.title || 'noun-timetable').replace(/[^\w\s.-]/g, '').trim() || 'noun-timetable.pdf',
+    suggestions: Array.isArray(parsed.suggestions) && parsed.suggestions.length > 0
+      ? parsed.suggestions
+      : buildSuggestions('timetable', query),
+  });
 }
 
 async function buildInformationResponse(query, intent, grounded) {
+  if (intent === 'timetable') {
+    return buildTimetableResponse(query, grounded);
+  }
+
   const parsed = grounded.parsed;
   if (parsed && parsed.type === 'information') {
-    return {
+    return withWhatsAppGroup({
       ...parsed,
       suggestions: Array.isArray(parsed.suggestions) && parsed.suggestions.length > 0
         ? parsed.suggestions
         : buildSuggestions(intent, query),
-    };
+    });
   }
 
   return buildInfoFallback(query, intent);
@@ -654,6 +718,30 @@ Rules:
 - Do not include links, URLs, source names, or citations in the answer.
 - If you do not find a reliable match, make that clear in the answer.
 - Keep the response compact and useful for a student.`;
+  }
+
+  if (intent === 'timetable') {
+    return `Use Google Search grounding to answer this NOUN timetable request: "${query}".
+
+Return ONLY valid JSON in this exact shape:
+{
+  "type": "information",
+  "intent": "timetable",
+  "title": "short title",
+  "answer": "short summary paragraph",
+  "sections": [
+    { "title": "section title", "items": ["bullet 1", "bullet 2"] }
+  ],
+  "candidateUrls": ["https://example.com/timetable.pdf", "https://example.com/page-with-timetable-file"],
+  "suggestions": ["follow up 1", "follow up 2", "follow up 3"]
+}
+
+Rules:
+- Focus only on National Open University of Nigeria (NOUN).
+- Prefer the latest timetable information, but if no new downloadable file is found, include candidate URLs for older verified timetable documents.
+- Use exact dates when grounded results mention dates.
+- Do not include links, URLs, source names, or citations in the answer.
+- Keep it student-friendly and ready for UI presentation.`;
   }
 
   return `Use Google Search grounding to answer this NOUN student request: "${query}".
