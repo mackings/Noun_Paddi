@@ -523,7 +523,7 @@ const Ask = () => {
         title="Ask Paddi: NOUN Past Questions, Timetable, Matriculation and TMA Help"
         description="Ask Paddi helps NOUN students find past questions, timetable updates, matriculation information, TMA help, and NOUN study files in one place."
         url="/ask"
-        keywords="Ask Paddi, NOUN past questions, NOUN timetable, NOUN matriculation, NOUN TMA, NounGeeks alternative, BBCNOUN alternative, Puredu alternative, NOUN study help"
+        keywords="Ask Paddi, NOUN past questions, NOUN timetable, NOUN matriculation, NOUN TMA, NOUN study help, NOUN student support"
         robots="index, follow"
         structuredData={askStructuredData}
       />
@@ -550,9 +550,6 @@ const Ask = () => {
                 <span>For past questions, the course code is enough to list available files</span>
               </div>
             </div>
-            <p className="ask-lead">
-              Students often search across NOUN sources like NounGeeks, BBCNOUN, and Puredu. Ask Paddi is built to help them find those NOUN study resources faster in one focused interface.
-            </p>
             <div className="ask-example-stack">
               {ASK_EXAMPLES.map((example) => (
                 <button
