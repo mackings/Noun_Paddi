@@ -139,6 +139,27 @@ function ResponseCard({ message, onSuggestionClick }) {
         </div>
       )}
 
+      {Array.isArray(data.files) && data.files.length > 0 && (
+        <div className="ask-file-list">
+          {data.files.map((file) => (
+            <div className="ask-file-row" key={`${file.fileName}-${file.token}`}>
+              <div>
+                <h4>{file.label || file.fileName}</h4>
+                <p className="ask-file-meta">{file.fileName}</p>
+              </div>
+              <button
+                type="button"
+                className="ask-download-btn ask-download-btn-button"
+                onClick={() => data.onOpenFile?.(file)}
+              >
+                <FiDownload />
+                Open File
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
       {data.whatsappGroup?.url && (
         <div className="ask-community-card">
           <div>
@@ -262,6 +283,50 @@ const Ask = () => {
     }
   };
 
+  const loadListedFileIntoMessage = async (messageId, file) => {
+    updateMessage(messageId, (message) => ({
+      data: {
+        ...message.data,
+        pdfLoading: true,
+      },
+    }));
+
+    try {
+      const result = await api.get(`/ask/pdf/${encodeURIComponent(file.token)}`, {
+        responseType: 'blob',
+      });
+
+      const blobUrl = URL.createObjectURL(result.data);
+      blobUrlsRef.current.add(blobUrl);
+      updateMessage(messageId, (message) => {
+        if (message?.data?.pdfBlobUrl) {
+          URL.revokeObjectURL(message.data.pdfBlobUrl);
+          blobUrlsRef.current.delete(message.data.pdfBlobUrl);
+        }
+
+        return {
+          data: {
+            ...message.data,
+            pdf: {
+              fileName: file.fileName,
+            },
+            pdfBlobUrl: blobUrl,
+            pdfLoading: false,
+            type: file.extension === 'pdf' ? 'past_question_pdf' : message.data.type,
+          },
+        };
+      });
+    } catch (requestError) {
+      updateMessage(messageId, (message) => ({
+        data: {
+          ...message.data,
+          pdfLoading: false,
+          answer: requestError.response?.data?.message || 'That file could not be opened right now.',
+        },
+      }));
+    }
+  };
+
   const submitQuery = async (value) => {
     const trimmed = String(value || query).trim();
     if (!trimmed || loading) {
@@ -292,6 +357,9 @@ const Ask = () => {
     try {
       const result = await api.post('/ask/query', { query: trimmed });
       const payload = result.data?.data || null;
+      if (payload && Array.isArray(payload.files) && payload.files.length > 0) {
+        payload.onOpenFile = (file) => loadListedFileIntoMessage(placeholderId, file);
+      }
 
       updateMessage(placeholderId, () => ({
         loading: false,
@@ -344,7 +412,7 @@ const Ask = () => {
               </div>
               <div className="ask-hero-card-row">
                 <FiArrowDownCircle />
-                <span>For past questions, include course code and year</span>
+                <span>For past questions, the course code is enough to list available files</span>
               </div>
             </div>
             <div className="ask-example-stack">
@@ -402,7 +470,7 @@ const Ask = () => {
               <div className="ask-form">
                 <textarea
                   className="ask-input"
-                  placeholder="Try: GST 105 past question 2023, NOUN matriculation requirements, or latest NOUN timetable"
+                  placeholder="Try: GST 105 past question, GST 105 TMA, NOUN matriculation requirements, or latest NOUN timetable"
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                   onKeyDown={(event) => {

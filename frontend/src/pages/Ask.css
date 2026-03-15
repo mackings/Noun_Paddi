@@ -328,6 +328,39 @@
   gap: 16px;
 }
 
+.ask-file-list {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ask-file-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--ask-line);
+  border-radius: 18px;
+  background: rgba(15, 118, 110, 0.04);
+}
+
+.ask-file-row h4 {
+  margin: 0 0 4px;
+}
+
+.ask-file-meta {
+  margin: 0;
+  color: var(--ask-mute);
+  font-size: 14px;
+}
+
+.ask-download-btn-button {
+  border: none;
+  cursor: pointer;
+}
+
 .ask-pdf-meta {
   display: flex;
   align-items: flex-start;

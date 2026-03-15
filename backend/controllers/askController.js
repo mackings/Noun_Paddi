@@ -15,6 +15,17 @@ function issuePdfToken({ url, fileName, userId }) {
   );
 }
 
+function attachFileTokens(files = [], userId) {
+  return files.map((file) => ({
+    ...file,
+    token: issuePdfToken({
+      url: file.url,
+      fileName: file.fileName,
+      userId,
+    }),
+  }));
+}
+
 exports.askQuestion = async (req, res) => {
   try {
     const query = String(req.body?.query || '').trim();
@@ -38,6 +49,15 @@ exports.askQuestion = async (req, res) => {
         fileName: result.fileName,
       };
       delete responseData.pdfUrl;
+    }
+
+    if (Array.isArray(result.files) && result.files.length > 0) {
+      responseData.files = attachFileTokens(result.files, req.user?._id).map((file) => ({
+        label: file.label,
+        fileName: file.fileName,
+        extension: file.extension,
+        token: file.token,
+      }));
     }
 
     return res.status(200).json({

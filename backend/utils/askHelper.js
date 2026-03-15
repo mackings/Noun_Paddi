@@ -6,6 +6,8 @@ const USER_AGENT = 'Mozilla/5.0 (compatible; NounPaddiAsk/1.0; +https://paddi.co
 const MAX_PAGE_SCAN_COUNT = 3;
 const MAX_FILE_CANDIDATES_TO_VERIFY = 8;
 const WHATSAPP_GROUP_URL = 'https://chat.whatsapp.com/Ezx0OmcT1bs1BSymYT1f4G';
+const PUREDU_PAST_QUESTIONS_ENDPOINT = 'https://puredu.net/Past-Questions.php';
+const PUREDU_TMA_ENDPOINT = 'https://puredu.net/TMAs.php';
 const PRIORITY_DOMAINS = ['noungeeks.com', 'puredu.net', 'bbcnoun.com.ng'];
 const SITE_SEED_URLS = {
   past_question: [
@@ -60,6 +62,24 @@ function extractYear(query) {
   return match ? match[1] : null;
 }
 
+function extractFileExtension(url = '') {
+  const match = String(url || '').toLowerCase().match(/\.([a-z0-9]{2,5})(?:[\?#]|$)/);
+  return match ? match[1] : '';
+}
+
+function buildSafeFileName(url = '', fallback = 'noun-file') {
+  try {
+    const pathname = new URL(url).pathname;
+    const raw = decodeURIComponent(pathname.split('/').pop() || '').trim();
+    const cleaned = raw.replace(/[^\w.\- ]/g, '').trim();
+    if (cleaned) return cleaned;
+  } catch (error) {
+    // Ignore parsing issues.
+  }
+
+  return fallback;
+}
+
 function classifyIntent(query) {
   const normalized = String(query || '').toLowerCase();
 
@@ -83,65 +103,18 @@ function buildClarification(intent, query) {
   if (intent !== 'past_question') return null;
 
   const courseCode = extractCourseCode(query);
-  const year = extractYear(query);
-
-  if (courseCode && year) return null;
-
-  if (!courseCode && !year) {
-    return {
-      type: 'clarification',
-      intent,
-      title: 'I need the course code and year',
-      answer: 'To find the right NOUN past question, send the course code and the year you want.',
-      followUpQuestion: 'Reply with something like "GST 105 past question 2023" or "BIO 101 past question 2022".',
-      suggestions: [
-        'GST 105 past question 2023',
-        'BIO 101 past question 2022',
-        'CSC 202 past question 2021',
-      ],
-    };
-  }
-
-  if (!courseCode) {
-    return {
-      type: 'clarification',
-      intent,
-      title: 'I still need the course code',
-      answer: 'Add the exact NOUN course code so I can search for the correct past question PDF.',
-      followUpQuestion: `Include the course code with the year, for example "${year || '2023'}".`,
-      suggestions: [
-        `GST 105 past question ${year || '2023'}`,
-        `BIO 101 past question ${year || '2023'}`,
-        `CSC 202 past question ${year || '2023'}`,
-      ],
-    };
-  }
-
-  if (!year) {
-    return {
-      type: 'clarification',
-      intent,
-      title: 'I still need the year',
-      answer: `I have the course code ${courseCode}. Now send the year so I can search for the right past question.`,
-      followUpQuestion: `Reply with something like "${courseCode} past question 2023".`,
-      suggestions: [
-        `${courseCode} past question 2023`,
-        `${courseCode} past question 2022`,
-        `${courseCode} past question 2021`,
-      ],
-    };
-  }
+  if (courseCode) return null;
 
   return {
     type: 'clarification',
     intent,
-    title: 'I need the course code and year',
-    answer: 'Send the exact course code and year so I can find the correct NOUN past question PDF.',
-    followUpQuestion: 'Reply with something like "GST 105 past question 2023".',
+    title: 'I need the course code',
+    answer: 'Send the exact course code so I can search the available past-question files for that course.',
+    followUpQuestion: 'Reply with something like "GST 105 past question" or "BIO 101 past question".',
     suggestions: [
-      'GST 105 past question 2023',
-      'BIO 101 past question 2022',
-      'CSC 202 past question 2023',
+      'GST 105 past question',
+      'BIO 101 past question',
+      'CSC 202 past question',
     ],
   };
 }
@@ -154,6 +127,72 @@ function withWhatsAppGroup(payload = {}) {
       url: WHATSAPP_GROUP_URL,
     },
   };
+}
+
+async function searchPureduFiles(endpoint, courseCode) {
+  const normalizedCode = String(courseCode || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (!normalizedCode) return [];
+
+  try {
+    const response = await axios.post(
+      endpoint,
+      new URLSearchParams({ input: normalizedCode }).toString(),
+      {
+        headers: {
+          'User-Agent': USER_AGENT,
+          'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+          'X-Requested-With': 'XMLHttpRequest',
+          Origin: 'https://puredu.net',
+          Referer: 'https://puredu.net/noun-past-questions',
+        },
+        timeout: 20000,
+      }
+    );
+
+    const html = String(response.data || '');
+    const rowRegex = /<tr>([\s\S]*?)<\/tr>/gi;
+    const rows = [];
+    let rowMatch;
+
+    while ((rowMatch = rowRegex.exec(html)) !== null) {
+      const rowHtml = rowMatch[1];
+      const cells = [...rowHtml.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map((match) =>
+        normalizeWhitespace(decodeHtmlEntities(String(match[1] || '').replace(/<[^>]+>/g, ' ')))
+      );
+      const hrefMatch = rowHtml.match(/href="([^"]+)"/i);
+      if (!hrefMatch?.[1] || cells.length < 2) continue;
+
+      const absoluteUrl = normalizePotentialFileUrl(new URL(hrefMatch[1], 'https://puredu.net/').toString());
+      const label = cells[1] || normalizedCode;
+      const extension = extractFileExtension(absoluteUrl);
+
+      rows.push({
+        label,
+        url: absoluteUrl,
+        fileName: buildSafeFileName(absoluteUrl, `${label}.${extension || 'file'}`),
+        extension,
+      });
+    }
+
+    return rows;
+  } catch (error) {
+    return [];
+  }
+}
+
+async function getDirectSiteFiles(query, intent) {
+  const courseCode = extractCourseCode(query);
+  if (!courseCode) return [];
+
+  if (intent === 'past_question') {
+    return searchPureduFiles(PUREDU_PAST_QUESTIONS_ENDPOINT, courseCode);
+  }
+
+  if (intent === 'tma') {
+    return searchPureduFiles(PUREDU_TMA_ENDPOINT, courseCode);
+  }
+
+  return [];
 }
 
 function isPdfUrl(url = '') {
@@ -581,9 +620,9 @@ function buildFileCandidateList(grounded) {
 function buildSuggestions(intent, query) {
   if (intent === 'past_question') {
     return [
-      `${query} 2023`,
-      `${query} first semester`,
-      `${query} pdf`,
+      `${extractCourseCode(query) || 'GST 105'} past question`,
+      `${extractCourseCode(query) || 'GST 105'} first semester past question`,
+      `${extractCourseCode(query) || 'GST 105'} TMA`,
     ];
   }
 
@@ -605,9 +644,9 @@ function buildSuggestions(intent, query) {
 
   if (intent === 'tma') {
     return [
-      'How to submit NOUN TMA',
-      'NOUN TMA deadline',
-      'How NOUN TMA is graded',
+      `${extractCourseCode(query) || 'GST 105'} TMA`,
+      `${extractCourseCode(query) || 'GST 105'} TMA 1`,
+      `${extractCourseCode(query) || 'GST 105'} TMA answers`,
     ];
   }
 
@@ -619,6 +658,18 @@ function buildSuggestions(intent, query) {
 }
 
 async function buildPastQuestionResponse(query, grounded) {
+  const directFiles = await getDirectSiteFiles(query, 'past_question');
+  if (directFiles.length > 0) {
+    return withWhatsAppGroup({
+      type: 'file_list',
+      intent: 'past_question',
+      title: `Found ${directFiles.length} file${directFiles.length === 1 ? '' : 's'} for ${extractCourseCode(query) || 'this course'}`,
+      answer: 'I found matching past-question and related files. Open or download any one below.',
+      files: directFiles,
+      suggestions: buildSuggestions('past_question', query),
+    });
+  }
+
   const parsed = grounded.parsed || {};
   const candidatePool = [
     ...buildFileCandidateList(grounded),
@@ -716,6 +767,20 @@ async function buildTimetableResponse(query, grounded) {
 }
 
 async function buildInformationResponse(query, intent, grounded) {
+  if (intent === 'tma') {
+    const directFiles = await getDirectSiteFiles(query, 'tma');
+    if (directFiles.length > 0) {
+      return withWhatsAppGroup({
+        type: 'file_list',
+        intent: 'tma',
+        title: `Found ${directFiles.length} TMA file${directFiles.length === 1 ? '' : 's'}`,
+        answer: 'I found matching TMA files for this course. Open or download any one below.',
+        files: directFiles,
+        suggestions: buildSuggestions('tma', query),
+      });
+    }
+  }
+
   if (intent === 'timetable') {
     return buildTimetableResponse(query, grounded);
   }
