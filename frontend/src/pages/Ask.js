@@ -16,7 +16,7 @@ import SEO from '../components/SEO';
 import './Ask.css';
 
 const ASK_EXAMPLES = [
-  'GST 105 past question 2023',
+  'GST 105 past question',
   'What do I need for NOUN matriculation?',
   'Show the latest NOUN timetable',
   'Explain NOUN TMA submission',
@@ -24,24 +24,33 @@ const ASK_EXAMPLES = [
 
 const makeId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
+const extractCourseCode = (value) => {
+  const match = String(value || '').toUpperCase().match(/\b([A-Z]{3})\s*[-/]?\s*(\d{3})\b/);
+  return match ? `${match[1]} ${match[2]}` : '';
+};
+
+const buildLoadingTitle = (value) => {
+  const trimmed = String(value || '').trim();
+  const courseCode = extractCourseCode(trimmed);
+  if (courseCode) {
+    return `Loading Your ${courseCode}`;
+  }
+
+  if (!trimmed) {
+    return 'Loading Your Request';
+  }
+
+  return `Loading Your ${trimmed.slice(0, 36)}`;
+};
+
 const initialAssistantMessage = {
   id: makeId(),
   role: 'assistant',
   kind: 'response',
   data: {
     title: 'Ask anything about NOUN',
-    answer: 'Ask works like a chat thread. For past questions, include the course code and year so I can search, open the PDF here, and let you download it.',
+    answer: 'Ask works like a chat thread. For past questions, send the course code and I will list the files I find, open them here when possible, and let you download them.',
     suggestions: ASK_EXAMPLES,
-    sections: [
-      {
-        title: 'Good prompts',
-        items: [
-          'Use exact course codes for past questions.',
-          'Add the year when you want a specific paper.',
-          'Ask matriculation, timetable, and TMA questions in plain language.',
-        ],
-      },
-    ],
   },
 };
 
@@ -53,8 +62,8 @@ function ResponseCard({ message, onSuggestionClick }) {
       <div className="ask-card ask-card-loading">
         <FiLoader className="spin" />
         <div>
-          <h3>Researching your request</h3>
-          <p>Searching and preparing the result.</p>
+          <h3>{data?.loadingTitle || 'Loading Your Request'}</h3>
+          <p>{data?.loadingMessage || 'Searching and preparing the result.'}</p>
         </div>
       </div>
     );
@@ -304,6 +313,15 @@ const Ask = () => {
           blobUrlsRef.current.delete(message.data.pdfBlobUrl);
         }
 
+        if (file.extension !== 'pdf') {
+          const anchor = document.createElement('a');
+          anchor.href = blobUrl;
+          anchor.download = file.fileName || 'noun-file';
+          document.body.appendChild(anchor);
+          anchor.click();
+          document.body.removeChild(anchor);
+        }
+
         return {
           data: {
             ...message.data,
@@ -313,6 +331,9 @@ const Ask = () => {
             pdfBlobUrl: blobUrl,
             pdfLoading: false,
             type: file.extension === 'pdf' ? 'past_question_pdf' : message.data.type,
+            answer: file.extension === 'pdf'
+              ? message.data.answer
+              : 'The file is ready. Your download should start automatically, and you can download it again below if needed.',
           },
         };
       });
@@ -346,7 +367,10 @@ const Ask = () => {
       role: 'assistant',
       kind: 'response',
       loading: true,
-      data: null,
+      data: {
+        loadingTitle: buildLoadingTitle(trimmed),
+        loadingMessage: 'Searching and preparing the result.',
+      },
     };
 
     setLoading(true);

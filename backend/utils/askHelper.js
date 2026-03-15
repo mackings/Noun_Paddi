@@ -8,6 +8,8 @@ const MAX_FILE_CANDIDATES_TO_VERIFY = 8;
 const WHATSAPP_GROUP_URL = 'https://chat.whatsapp.com/Ezx0OmcT1bs1BSymYT1f4G';
 const PUREDU_PAST_QUESTIONS_ENDPOINT = 'https://puredu.net/Past-Questions.php';
 const PUREDU_TMA_ENDPOINT = 'https://puredu.net/TMAs.php';
+const BBCNOUN_PAST_QUESTIONS_ENDPOINT = 'https://bbcnoun.com.ng/wp-admin/admin-ajax.php';
+const BBCNOUN_PAST_QUESTIONS_NONCE = '3c02b73c95';
 const PRIORITY_DOMAINS = ['noungeeks.com', 'puredu.net', 'bbcnoun.com.ng'];
 const SITE_SEED_URLS = {
   past_question: [
@@ -78,6 +80,17 @@ function buildSafeFileName(url = '', fallback = 'noun-file') {
   }
 
   return fallback;
+}
+
+function buildCourseCodeVariants(courseCode = '') {
+  const compact = String(courseCode || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (!compact) return [];
+
+  const alpha = compact.replace(/\d+/g, '');
+  const digits = compact.replace(/[A-Z]+/g, '');
+  const spaced = alpha && digits ? `${alpha} ${digits}` : compact;
+
+  return [compact, spaced].filter(Boolean);
 }
 
 function classifyIntent(query) {
@@ -180,12 +193,93 @@ async function searchPureduFiles(endpoint, courseCode) {
   }
 }
 
+async function searchBbcnounFiles(courseCode) {
+  const variants = buildCourseCodeVariants(courseCode);
+  const compactCode = variants[0] || '';
+  if (!compactCode) return [];
+
+  try {
+    const response = await axios.post(
+      BBCNOUN_PAST_QUESTIONS_ENDPOINT,
+      new URLSearchParams({
+        action: 'dlp_folder_search',
+        nonce: BBCNOUN_PAST_QUESTIONS_NONCE,
+        search: compactCode,
+      }).toString(),
+      {
+        headers: {
+          'User-Agent': USER_AGENT,
+          'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+          'X-Requested-With': 'XMLHttpRequest',
+          Origin: 'https://bbcnoun.com.ng',
+          Referer: 'https://bbcnoun.com.ng/noun-past-questions/',
+        },
+        timeout: 25000,
+      }
+    );
+
+    const payload = response.data;
+    const html = typeof payload === 'string'
+      ? payload
+      : String(payload?.html || '');
+
+    const rowRegex = /<tr[^>]*>([\s\S]*?)<\/tr>/gi;
+    const rows = [];
+    let rowMatch;
+
+    while ((rowMatch = rowRegex.exec(html)) !== null) {
+      const rowHtml = rowMatch[1];
+      const cells = [...rowHtml.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map((match) =>
+        normalizeWhitespace(decodeHtmlEntities(String(match[1] || '').replace(/<[^>]+>/g, ' ')))
+      );
+      const hrefMatch = rowHtml.match(/href="([^"]+)"/i);
+      if (!hrefMatch?.[1] || cells.length < 3) continue;
+
+      const codeCell = cells[0] || '';
+      const normalizedCell = codeCell.toUpperCase().replace(/[^A-Z0-9]/g, '');
+      const isMatch = variants.some((variant) => normalizedCell.includes(variant.replace(/[^A-Z0-9]/g, '')));
+      if (!isMatch) continue;
+
+      const absoluteUrl = normalizePotentialFileUrl(new URL(hrefMatch[1], 'https://bbcnoun.com.ng/').toString());
+      const extension = extractFileExtension(absoluteUrl);
+      const semester = cells[2] || '';
+      const label = semester ? `${codeCell} - ${semester}` : codeCell;
+
+      rows.push({
+        label,
+        url: absoluteUrl,
+        fileName: buildSafeFileName(absoluteUrl, `${codeCell}.${extension || 'file'}`),
+        extension,
+      });
+    }
+
+    return rows;
+  } catch (error) {
+    return [];
+  }
+}
+
 async function getDirectSiteFiles(query, intent) {
   const courseCode = extractCourseCode(query);
   if (!courseCode) return [];
 
   if (intent === 'past_question') {
-    return searchPureduFiles(PUREDU_PAST_QUESTIONS_ENDPOINT, courseCode);
+    const [pureduFiles, bbcnounFiles] = await Promise.all([
+      searchPureduFiles(PUREDU_PAST_QUESTIONS_ENDPOINT, courseCode),
+      searchBbcnounFiles(courseCode),
+    ]);
+
+    const deduped = [];
+    const seen = new Set();
+
+    for (const file of [...pureduFiles, ...bbcnounFiles]) {
+      const key = String(file.url || '').toLowerCase();
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      deduped.push(file);
+    }
+
+    return deduped;
   }
 
   if (intent === 'tma') {

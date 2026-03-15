@@ -8,7 +8,7 @@ function issuePdfToken({ url, fileName, userId }) {
       url,
       fileName,
       userId: String(userId || ''),
-      type: 'ask-pdf',
+      type: 'ask-file',
     },
     process.env.JWT_SECRET,
     { expiresIn: '20m' }
@@ -83,15 +83,15 @@ exports.streamAskPdf = async (req, res) => {
     if (!token) {
       return res.status(400).json({
         success: false,
-        message: 'Missing PDF token.',
+        message: 'Missing file token.',
       });
     }
 
     const payload = jwt.verify(token, process.env.JWT_SECRET);
-    if (payload.type !== 'ask-pdf') {
+    if (payload.type !== 'ask-file') {
       return res.status(401).json({
         success: false,
-        message: 'Invalid PDF token.',
+        message: 'Invalid file token.',
       });
     }
 
@@ -108,28 +108,35 @@ exports.streamAskPdf = async (req, res) => {
       maxRedirects: 5,
       headers: {
         'User-Agent': 'Mozilla/5.0 (compatible; NounPaddiAsk/1.0; +https://paddi.com.ng)',
-        Accept: 'application/pdf,application/octet-stream,text/html;q=0.8,*/*;q=0.5',
+        Accept: 'application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/octet-stream,text/html;q=0.8,*/*;q=0.5',
       },
     });
 
     const upstreamType = String(response.headers['content-type'] || '').toLowerCase();
     const upstreamDisposition = String(response.headers['content-disposition'] || '');
-    const isPdf =
+    const lowerUrl = String(payload.url || '').toLowerCase();
+    const isAllowedFile =
       upstreamType.includes('application/pdf') ||
-      (upstreamType.includes('application/octet-stream') && upstreamDisposition.toLowerCase().includes('.pdf')) ||
+      upstreamType.includes('application/msword') ||
+      upstreamType.includes('application/vnd.openxmlformats-officedocument.wordprocessingml.document') ||
+      upstreamType.includes('application/octet-stream') ||
       upstreamDisposition.toLowerCase().includes('.pdf') ||
-      String(payload.url || '').toLowerCase().includes('.pdf');
+      upstreamDisposition.toLowerCase().includes('.doc') ||
+      upstreamDisposition.toLowerCase().includes('.docx') ||
+      lowerUrl.includes('.pdf') ||
+      lowerUrl.includes('.doc') ||
+      lowerUrl.includes('.docx');
 
-    if (!isPdf) {
+    if (!isAllowedFile) {
       response.data.destroy();
       return res.status(502).json({
         success: false,
-        message: 'The located file is not a usable PDF.',
+        message: 'The located file could not be prepared for download.',
       });
     }
 
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `inline; filename="${String(payload.fileName || 'noun-past-question.pdf').replace(/"/g, '')}"`);
+    res.setHeader('Content-Type', upstreamType || 'application/octet-stream');
+    res.setHeader('Content-Disposition', `inline; filename="${String(payload.fileName || 'noun-file').replace(/"/g, '')}"`);
     res.setHeader('Cache-Control', 'private, max-age=300');
 
     response.data.on('error', () => {
@@ -144,8 +151,8 @@ exports.streamAskPdf = async (req, res) => {
   } catch (error) {
     const status = error.response?.status;
     const message = status === 403
-      ? 'This PDF source blocked access right now. Try another prompt or try again later.'
-      : 'Failed to open PDF.';
+      ? 'This file source blocked access right now. Try another prompt or try again later.'
+      : 'Failed to open file.';
 
     return res.status(500).json({
       success: false,
