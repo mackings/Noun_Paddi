@@ -258,7 +258,7 @@ const GlobalAskBubble = () => {
   const location = useLocation();
 
   if (loading || !user || user.role === 'admin') return null;
-  if (location.pathname.startsWith('/admin')) return null;
+  if (location.pathname.startsWith('/admin') || location.pathname === '/ask') return null;
 
   return (
     <Link to="/ask" className="global-ask-bubble" aria-label="Open Ask Paddi">
