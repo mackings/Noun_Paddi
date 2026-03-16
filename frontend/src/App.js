@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, Link } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
-import { FiBriefcase, FiCheckCircle, FiGrid, FiShield, FiUserPlus, FiBell } from 'react-icons/fi';
+import { FiBriefcase, FiCheckCircle, FiGrid, FiShield, FiUserPlus, FiBell, FiMessageCircle, FiX } from 'react-icons/fi';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import Navbar from './components/Navbar';
@@ -253,6 +253,98 @@ const ITPlacementRoute = () => {
   return user ? <ITPlacement /> : <PublicSiwesLanding />;
 };
 
+const GlobalAskBubble = () => {
+  const { user, loading } = useAuth();
+  const location = useLocation();
+
+  if (loading || !user || user.role === 'admin') return null;
+  if (location.pathname.startsWith('/admin')) return null;
+
+  return (
+    <Link to="/ask" className="global-ask-bubble" aria-label="Open Ask Paddi">
+      <FiMessageCircle />
+      <span>Ask Paddi</span>
+    </Link>
+  );
+};
+
+const PAST_QUESTION_SHEET_KEY = 'np_past_questions_sheet_hidden';
+
+const PastQuestionBottomSheet = () => {
+  const { user, loading } = useAuth();
+  const location = useLocation();
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (loading || !user || user.role === 'admin') {
+      setOpen(false);
+      return;
+    }
+
+    if (location.pathname.startsWith('/admin') || location.pathname === '/ask') {
+      setOpen(false);
+      return;
+    }
+
+    const userKey = `${PAST_QUESTION_SHEET_KEY}:${String(user._id || user.email || user.id || 'user')}`;
+    let shouldHide = false;
+
+    try {
+      shouldHide = localStorage.getItem(userKey) === '1';
+    } catch (error) {
+      shouldHide = false;
+    }
+
+    setOpen(!shouldHide);
+  }, [loading, user, location.pathname]);
+
+  const dismiss = (persist = false) => {
+    if (persist && user) {
+      const userKey = `${PAST_QUESTION_SHEET_KEY}:${String(user._id || user.email || user.id || 'user')}`;
+      try {
+        localStorage.setItem(userKey, '1');
+      } catch (error) {
+        // Ignore storage failures.
+      }
+    }
+    setOpen(false);
+  };
+
+  if (!open) return null;
+
+  return (
+    <div className="np-bottom-sheet-overlay" role="presentation">
+      <div className="np-bottom-sheet" role="dialog" aria-modal="true" aria-labelledby="np-bottom-sheet-title">
+        <button
+          type="button"
+          className="np-bottom-sheet-close"
+          aria-label="Close past questions notice"
+          onClick={() => dismiss(false)}
+        >
+          <FiX />
+        </button>
+        <p className="np-bottom-sheet-kicker">New</p>
+        <h3 id="np-bottom-sheet-title">Past Questions is now available</h3>
+        <p>
+          You can now find NOUN past questions and related files faster from Ask Paddi.
+        </p>
+        <div className="np-bottom-sheet-actions">
+          <Link to="/ask" className="btn btn-primary" onClick={() => setOpen(false)}>
+            Go to Ask
+          </Link>
+          <button
+            type="button"
+            className="np-bottom-sheet-dismiss"
+            onClick={() => dismiss(true)}
+          >
+            Don&apos;t show this dialog again
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const AppLayout = () => {
   const location = useLocation();
   const hideFooterRoutes = ['/login', '/signup', '/forgot-password', '/reset-password'];
@@ -266,6 +358,8 @@ const AppLayout = () => {
         <div className="App">
           <Navbar />
           <NotificationPermissionBar />
+          <PastQuestionBottomSheet />
+          <GlobalAskBubble />
           <Routes>
                 <Route path="/" element={<Home />} />
                 <Route path="/signup" element={<Signup />} />

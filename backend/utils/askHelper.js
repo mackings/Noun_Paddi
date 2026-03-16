@@ -95,6 +95,7 @@ function buildCourseCodeVariants(courseCode = '') {
 
 function classifyIntent(query) {
   const normalized = String(query || '').toLowerCase();
+  const courseCode = extractCourseCode(query);
 
   if (/\bpast\s*question|\bpast\s*questions|\bexam\s*question|\bexam\s*paper|\bqp\b/.test(normalized)) {
     return 'past_question';
@@ -107,6 +108,9 @@ function classifyIntent(query) {
   }
   if (/\btimetable\b|\btime\s*table\b|\bexam schedule\b|\bexam timetable\b/.test(normalized)) {
     return 'timetable';
+  }
+  if (courseCode) {
+    return 'past_question';
   }
 
   return 'general';
