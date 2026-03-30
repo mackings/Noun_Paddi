@@ -256,9 +256,10 @@ const ITPlacementRoute = () => {
 const GlobalAskBubble = () => {
   const { user, loading } = useAuth();
   const location = useLocation();
+  const allowedRoutes = ['/explore', '/dashboard'];
 
   if (loading || !user || user.role === 'admin') return null;
-  if (location.pathname.startsWith('/admin') || location.pathname === '/ask') return null;
+  if (!allowedRoutes.includes(location.pathname)) return null;
 
   return (
     <Link to="/ask" className="global-ask-bubble" aria-label="Open Ask Paddi">
