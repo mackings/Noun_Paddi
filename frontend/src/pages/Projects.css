@@ -69,6 +69,12 @@
   border: 1px solid rgba(15, 118, 110, 0.2);
 }
 
+.projects-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
 .hero-card-header {
   display: flex;
   gap: 16px;
@@ -220,5 +226,10 @@
   .hero-card-header {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .projects-hero-actions .btn {
+    width: 100%;
+    justify-content: center;
   }
 }

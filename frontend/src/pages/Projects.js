@@ -71,9 +71,14 @@ const Projects = () => {
                 <p>Check originality, citation quality, and structure before submission.</p>
               </div>
             </div>
-            <Link to="/plagiarism" className="btn btn-primary">
-              Upload Project
-            </Link>
+            <div className="projects-hero-actions">
+              <Link to="/plagiarism" className="btn btn-primary">
+                Upload Project
+              </Link>
+              <Link to="/projects/my-fees" className="btn btn-outline">
+                My fees
+              </Link>
+            </div>
           </div>
         </div>
 

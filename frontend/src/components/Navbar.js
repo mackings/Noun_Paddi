@@ -77,6 +77,13 @@ const Navbar = () => {
                         >
                           Consultation
                         </Link>
+                        <Link
+                          to="/projects/my-fees"
+                          className="nav-dropdown-link"
+                          onClick={() => setProjectsMenuOpen(false)}
+                        >
+                          My fees
+                        </Link>
                       </div>
                     </div>
                   </>
@@ -217,6 +224,9 @@ const Navbar = () => {
                       </Link>
                       <Link to="/projects/consultation" className="mobile-submenu-link" onClick={() => setMobileMenuOpen(false)}>
                         Consultation
+                      </Link>
+                      <Link to="/projects/my-fees" className="mobile-submenu-link" onClick={() => setMobileMenuOpen(false)}>
+                        My fees
                       </Link>
                     </div>
                   </>

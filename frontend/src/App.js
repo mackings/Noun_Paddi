@@ -26,6 +26,7 @@ import ITPlacement from './pages/ITPlacement';
 import Reminders from './pages/Reminders';
 import PlagiarismChecker from './pages/PlagiarismChecker';
 import Projects from './pages/Projects';
+import MyFees from './pages/MyFees';
 import ConsultationTerms from './pages/ConsultationTerms';
 import ProjectConsultation from './pages/ProjectConsultation';
 import ShareRedirect from './pages/ShareRedirect';
@@ -451,6 +452,14 @@ const AppLayout = () => {
                   element={
                     <ProtectedRoute>
                       <ProjectConsultation />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/projects/my-fees"
+                  element={
+                    <ProtectedRoute>
+                      <MyFees />
                     </ProtectedRoute>
                   }
                 />
