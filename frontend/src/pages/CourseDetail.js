@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
 import api from '../utils/api';
 import { formatDate } from '../utils/dateHelper';
@@ -40,12 +40,6 @@ const CourseDetail = () => {
   const summaryContentRef = useRef(null);
   const sectionRefs = useRef([]);
   const readingSessionRef = useRef(null);
-
-  useEffect(() => {
-    fetchCourseDetails();
-    fetchCourseMaterials();
-    trackFeatureVisit('summary');
-  }, [courseId]);
 
   useEffect(() => {
     document.body.classList.add('disable-course-print');
@@ -296,16 +290,16 @@ const CourseDetail = () => {
     }
   };
 
-  const fetchCourseDetails = async () => {
+  const fetchCourseDetails = useCallback(async () => {
     try {
       const response = await api.get(`/courses/${courseId}`);
       setCourse(response.data.data);
     } catch (error) {
       console.error('Error fetching course details:', error);
     }
-  };
+  }, [courseId]);
 
-  const fetchCourseMaterials = async () => {
+  const fetchCourseMaterials = useCallback(async () => {
     try {
       setLoading(true);
       const response = await api.get(`/materials/course/${courseId}`);
@@ -326,7 +320,13 @@ const CourseDetail = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [courseId, location.search]);
+
+  useEffect(() => {
+    fetchCourseDetails();
+    fetchCourseMaterials();
+    trackFeatureVisit('summary');
+  }, [fetchCourseDetails, fetchCourseMaterials]);
 
   const handleSharePdf = async () => {
     if (!selectedMaterial?._id) return;
@@ -601,7 +601,7 @@ const CourseDetail = () => {
 
                                   // Check if line is a bullet point
                                   if (trimmedLine.startsWith('•') || trimmedLine.startsWith('-') || trimmedLine.startsWith('*')) {
-                                    const cleanedText = formatLine(trimmedLine.replace(/^[•\-\*]\s*/, ''));
+                                    const cleanedText = formatLine(trimmedLine.replace(/^[-•*]\s*/, ''));
                                     if (!cleanedText || cleanedText === '-' || cleanedText === '--') {
                                       return null;
                                     }

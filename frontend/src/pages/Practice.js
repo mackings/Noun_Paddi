@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import SEO from '../components/SEO';
@@ -38,8 +38,6 @@ const Practice = () => {
   const [selectedDuration, setSelectedDuration] = useState(60); // in minutes
   const [timeRemaining, setTimeRemaining] = useState(null); // in seconds
   const [timerActive, setTimerActive] = useState(false);
-  const [startTime, setStartTime] = useState(null);
-  const [endTime, setEndTime] = useState(null);
 
   useEffect(() => {
     trackFeatureVisit('exams');
@@ -76,25 +74,6 @@ const Practice = () => {
       }
     };
   }, []);
-
-  // Timer countdown effect
-  useEffect(() => {
-    if (timerActive && timeRemaining > 0) {
-      const timer = setInterval(() => {
-        setTimeRemaining(prev => {
-          if (prev <= 1) {
-            setTimerActive(false);
-            // Auto-submit exam when time runs out
-            handleTimeUp();
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-
-      return () => clearInterval(timer);
-    }
-  }, [timerActive, timeRemaining]);
 
   const fetchCourses = async () => {
     try {
@@ -182,8 +161,6 @@ const Practice = () => {
       setPopLoading(true);
       setTimeRemaining(null);
       setTimerActive(false);
-      setStartTime(null);
-      setEndTime(null);
       setCurrentQuestionIndex(0);
       setScore(0);
       setAnswers([]);
@@ -222,8 +199,6 @@ const Practice = () => {
     const durationInSeconds = selectedDuration * 60;
     setTimeRemaining(durationInSeconds);
     setTimerActive(true);
-    setStartTime(Date.now());
-    setEndTime(Date.now() + durationInSeconds * 1000);
     setShowTimerSetup(false);
     setCurrentQuestionIndex(0);
     setScore(0);
@@ -243,16 +218,30 @@ const Practice = () => {
     }
   };
 
-  const handleTimeUp = async () => {
-    // Auto-complete the exam when time runs out
-    setExamComplete(true);
-    setTimerActive(false);
-    if (examMode === 'e-exam') {
-      await submitExamResults();
-    }
-  };
+  const fetchLeaderboard = useCallback(async () => {
+    try {
+      const token = localStorage.getItem('token');
 
-  const submitExamResults = async () => {
+      // Fetch leaderboard (public endpoint)
+      const leaderboardRes = await api.get(`/leaderboard/course/${selectedCourse}?limit=10`);
+      setLeaderboard(leaderboardRes.data.data);
+
+      // Only fetch rank if logged in
+      if (token) {
+        try {
+          const rankRes = await api.get(`/leaderboard/my-rank/${selectedCourse}`);
+          setMyRank(rankRes.data.data);
+        } catch (rankError) {
+          console.log('Could not fetch rank:', rankError);
+          setMyRank(null);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching leaderboard:', error);
+    }
+  }, [selectedCourse]);
+
+  const submitExamResults = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
       const timeTaken = selectedDuration * 60 - (timeRemaining || 0); // Actual time taken in seconds
@@ -281,30 +270,35 @@ const Practice = () => {
       // Still fetch leaderboard even if submission fails
       await fetchLeaderboard();
     }
-  };
+  }, [answers, examMode, fetchLeaderboard, questions.length, score, selectedCourse, selectedDuration, timeRemaining]);
 
-  const fetchLeaderboard = async () => {
-    try {
-      const token = localStorage.getItem('token');
-
-      // Fetch leaderboard (public endpoint)
-      const leaderboardRes = await api.get(`/leaderboard/course/${selectedCourse}?limit=10`);
-      setLeaderboard(leaderboardRes.data.data);
-
-      // Only fetch rank if logged in
-      if (token) {
-        try {
-          const rankRes = await api.get(`/leaderboard/my-rank/${selectedCourse}`);
-          setMyRank(rankRes.data.data);
-        } catch (rankError) {
-          console.log('Could not fetch rank:', rankError);
-          setMyRank(null);
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching leaderboard:', error);
+  const handleTimeUp = useCallback(async () => {
+    // Auto-complete the exam when time runs out
+    setExamComplete(true);
+    setTimerActive(false);
+    if (examMode === 'e-exam') {
+      await submitExamResults();
     }
-  };
+  }, [examMode, submitExamResults]);
+
+  // Timer countdown effect
+  useEffect(() => {
+    if (timerActive && timeRemaining > 0) {
+      const timer = setInterval(() => {
+        setTimeRemaining((prev) => {
+          if (prev <= 1) {
+            setTimerActive(false);
+            // Auto-submit exam when time runs out
+            handleTimeUp();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      return () => clearInterval(timer);
+    }
+  }, [handleTimeUp, timerActive, timeRemaining]);
 
   const formatTime = (seconds) => {
     const hours = Math.floor(seconds / 3600);

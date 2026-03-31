@@ -1,6 +1,158 @@
 const axios = require('axios');
 const { generateProjectTopics } = require('../utils/aiHelper');
 
+const FEE_CHECKER_FIREBASE_PROJECT_ID = 'noun-summary';
+const FEE_CHECKER_AUTH_URL = 'https://identitytoolkit.googleapis.com/v1/accounts:signUp';
+const FEE_CHECKER_FIRESTORE_BASE_URL = `https://firestore.googleapis.com/v1/projects/${FEE_CHECKER_FIREBASE_PROJECT_ID}/databases/(default)/documents`;
+
+let feeCheckerAuthState = null;
+
+function getFeeCheckerApiKey() {
+  return String(process.env.FEE_CHECKER_FIREBASE_API_KEY || '').trim();
+}
+
+function getNumericValue(value) {
+  const numeric = Number(String(value || '').replace(/[^\d.-]/g, ''));
+  return Number.isFinite(numeric) ? numeric : 0;
+}
+
+function parseFirestoreValue(value) {
+  if (!value || typeof value !== 'object') return value;
+  if (Object.prototype.hasOwnProperty.call(value, 'stringValue')) return value.stringValue;
+  if (Object.prototype.hasOwnProperty.call(value, 'integerValue')) return Number(value.integerValue);
+  if (Object.prototype.hasOwnProperty.call(value, 'doubleValue')) return Number(value.doubleValue);
+  if (Object.prototype.hasOwnProperty.call(value, 'booleanValue')) return Boolean(value.booleanValue);
+  if (Object.prototype.hasOwnProperty.call(value, 'timestampValue')) return value.timestampValue;
+  if (Object.prototype.hasOwnProperty.call(value, 'nullValue')) return null;
+
+  if (value.arrayValue) {
+    return Array.isArray(value.arrayValue.values)
+      ? value.arrayValue.values.map(parseFirestoreValue)
+      : [];
+  }
+
+  if (value.mapValue) {
+    return Object.entries(value.mapValue.fields || {}).reduce((result, [key, nestedValue]) => {
+      result[key] = parseFirestoreValue(nestedValue);
+      return result;
+    }, {});
+  }
+
+  return value;
+}
+
+function parseFirestoreDocument(document) {
+  const fields = parseFirestoreValue({ mapValue: { fields: document.fields || {} } }) || {};
+  const pathSegments = String(document.name || '').split('/');
+
+  return {
+    id: pathSegments[pathSegments.length - 1],
+    name: document.name,
+    createTime: document.createTime,
+    updateTime: document.updateTime,
+    ...fields,
+  };
+}
+
+async function authenticateFeeChecker(forceRefresh = false) {
+  const apiKey = getFeeCheckerApiKey();
+  if (!apiKey) {
+    throw new Error('Fee checker is not configured on the server.');
+  }
+
+  if (
+    !forceRefresh &&
+    feeCheckerAuthState?.idToken &&
+    feeCheckerAuthState.expiresAt > Date.now() + 60_000
+  ) {
+    return feeCheckerAuthState.idToken;
+  }
+
+  const response = await axios.post(
+    `${FEE_CHECKER_AUTH_URL}?key=${apiKey}`,
+    { returnSecureToken: true },
+    {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      timeout: 15000,
+    }
+  );
+
+  const payload = response.data || {};
+  if (!payload.idToken) {
+    throw new Error('Fee checker authentication failed.');
+  }
+
+  feeCheckerAuthState = {
+    idToken: payload.idToken,
+    expiresAt: Date.now() + Number(payload.expiresIn || 3600) * 1000,
+  };
+
+  return feeCheckerAuthState.idToken;
+}
+
+async function fetchFeeCheckerCollection(path, retry = true) {
+  const token = await authenticateFeeChecker();
+
+  try {
+    const response = await axios.get(`${FEE_CHECKER_FIRESTORE_BASE_URL}/${path}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      timeout: 20000,
+    });
+
+    return Array.isArray(response.data?.documents)
+      ? response.data.documents.map(parseFirestoreDocument)
+      : [];
+  } catch (error) {
+    if (retry && [401, 403].includes(error.response?.status)) {
+      feeCheckerAuthState = null;
+      return fetchFeeCheckerCollection(path, false);
+    }
+
+    const upstreamMessage = error.response?.data?.error?.message;
+    throw new Error(upstreamMessage || 'Failed to load fee checker data.');
+  }
+}
+
+function sortByName(a, b) {
+  return String(a.name || '').localeCompare(String(b.name || ''));
+}
+
+function sortLevels(a, b) {
+  return Number(a.name || 0) - Number(b.name || 0);
+}
+
+function sortSemesters(a, b) {
+  return Number(a.id || a.name || 0) - Number(b.id || b.name || 0);
+}
+
+function normalizeSemesterPayload(semester) {
+  const normalized = { ...semester };
+
+  Object.keys(normalized).forEach((key) => {
+    if (!/^\d+$/.test(key) || !normalized[key] || typeof normalized[key] !== 'object') return;
+
+    normalized[key] = {
+      ...normalized[key],
+      code: String(normalized[key].code || '').replace(/\s+/g, ' ').trim(),
+      title: String(normalized[key].title || '').replace(/\s+/g, ' ').trim(),
+      status: String(normalized[key].status || '').trim().toUpperCase(),
+      unit: Number(normalized[key].unit || 0),
+      courseFee: getNumericValue(normalized[key].courseFee),
+      examFee: getNumericValue(normalized[key].examFee),
+      link: String(normalized[key].link || '').trim(),
+    };
+  });
+
+  normalized.fees = getNumericValue(normalized.fees);
+  normalized.bottomText = String(normalized.bottomText || '').trim();
+
+  return normalized;
+}
+
 // @desc    Generate project topics for a course and keywords
 // @route   POST /api/projects/topics
 // @access  Private
@@ -43,6 +195,115 @@ exports.generateTopics = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: error.message || 'Failed to generate project topics',
+    });
+  }
+};
+
+// @desc    Get fee checker faculties
+// @route   GET /api/projects/fees/faculties
+// @access  Private
+exports.getFeeCheckerFaculties = async (req, res) => {
+  try {
+    const documents = await fetchFeeCheckerCollection('faculty?pageSize=50');
+
+    return res.status(200).json({
+      success: true,
+      data: [...documents].sort(sortByName).map(({ id, name }) => ({ id, name })),
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to load fee checker faculties.',
+    });
+  }
+};
+
+// @desc    Get fee checker programs
+// @route   GET /api/projects/fees/programs?facultyId=...
+// @access  Private
+exports.getFeeCheckerPrograms = async (req, res) => {
+  try {
+    const facultyId = String(req.query?.facultyId || '').trim();
+    if (!facultyId) {
+      return res.status(400).json({
+        success: false,
+        message: 'facultyId is required.',
+      });
+    }
+
+    const documents = await fetchFeeCheckerCollection(`faculty/${facultyId}/programs?pageSize=100`);
+
+    return res.status(200).json({
+      success: true,
+      data: [...documents].sort(sortByName).map(({ id, name }) => ({ id, name })),
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to load fee checker programmes.',
+    });
+  }
+};
+
+// @desc    Get fee checker levels
+// @route   GET /api/projects/fees/levels?facultyId=...&programId=...
+// @access  Private
+exports.getFeeCheckerLevels = async (req, res) => {
+  try {
+    const facultyId = String(req.query?.facultyId || '').trim();
+    const programId = String(req.query?.programId || '').trim();
+
+    if (!facultyId || !programId) {
+      return res.status(400).json({
+        success: false,
+        message: 'facultyId and programId are required.',
+      });
+    }
+
+    const documents = await fetchFeeCheckerCollection(
+      `faculty/${facultyId}/programs/${programId}/levels?pageSize=30`
+    );
+
+    return res.status(200).json({
+      success: true,
+      data: [...documents].sort(sortLevels).map(({ id, name }) => ({ id, name })),
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to load fee checker levels.',
+    });
+  }
+};
+
+// @desc    Get fee checker semesters
+// @route   GET /api/projects/fees/semesters?facultyId=...&programId=...&levelId=...
+// @access  Private
+exports.getFeeCheckerSemesters = async (req, res) => {
+  try {
+    const facultyId = String(req.query?.facultyId || '').trim();
+    const programId = String(req.query?.programId || '').trim();
+    const levelId = String(req.query?.levelId || '').trim();
+
+    if (!facultyId || !programId || !levelId) {
+      return res.status(400).json({
+        success: false,
+        message: 'facultyId, programId, and levelId are required.',
+      });
+    }
+
+    const documents = await fetchFeeCheckerCollection(
+      `faculty/${facultyId}/programs/${programId}/levels/${levelId}/semesters?pageSize=10`
+    );
+
+    return res.status(200).json({
+      success: true,
+      data: [...documents].sort(sortSemesters).map(normalizeSemesterPayload),
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to load fee checker semesters.',
     });
   }
 };

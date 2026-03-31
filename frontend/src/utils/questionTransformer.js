@@ -106,7 +106,6 @@ export const transformQuestions = (questions) => {
   // Calculate how many of each type we want
   const numTrueFalse = Math.floor(totalQuestions * 0.3); // 30%
   const numMultiSelect = Math.floor(totalQuestions * 0.1); // 10%
-  const numMultipleChoice = totalQuestions - numTrueFalse - numMultiSelect; // Remaining
 
   // Create indices array and shuffle it
   const indices = Array.from({ length: totalQuestions }, (_, i) => i);

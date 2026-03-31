@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import api from '../utils/api';
 import { formatDate } from '../utils/dateHelper';
@@ -29,6 +29,9 @@ const PDF_COMPRESS_SITES = [
   { label: 'iLovePDF', url: 'https://www.ilovepdf.com/compress_pdf' },
   { label: 'Smallpdf', url: 'https://smallpdf.com/compress-pdf' },
 ];
+const CACHE_TTL_MS = 12 * 60 * 60 * 1000;
+const FACULTY_CACHE_KEY = 'np_faculties_cache_v1';
+const DEPT_CACHE_PREFIX = 'np_departments_cache_v1:';
 
 const formatBytes = (bytes) => {
   const n = Number(bytes || 0);
@@ -38,6 +41,27 @@ const formatBytes = (bytes) => {
   const v = n / Math.pow(1024, i);
   const digits = i === 0 ? 0 : (i === 1 ? 0 : 1);
   return `${v.toFixed(digits)} ${units[i]}`;
+};
+
+const readCache = (key) => {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || !parsed.ts) return null;
+    if (Date.now() - parsed.ts > CACHE_TTL_MS) return null;
+    return parsed.data;
+  } catch (error) {
+    return null;
+  }
+};
+
+const writeCache = (key, data) => {
+  try {
+    localStorage.setItem(key, JSON.stringify({ ts: Date.now(), data }));
+  } catch (error) {
+    // Ignore cache write failures (e.g., private mode)
+  }
 };
 
 const StudentDashboard = () => {
@@ -54,7 +78,6 @@ const StudentDashboard = () => {
     file: null
   });
   const [uploading, setUploading] = useState(false);
-  const [uploadSuccess, setUploadSuccess] = useState(null);
   const [uploadError, setUploadError] = useState(null);
   const [faculties, setFaculties] = useState([]);
   const [departments, setDepartments] = useState([]);
@@ -88,45 +111,12 @@ const StudentDashboard = () => {
   const location = useLocation();
 
   useEffect(() => {
-    fetchStats();
-    fetchGamificationDashboard();
-    fetchFaculties();
-    fetchUploadStats();
-    trackFeatureVisit('dashboard');
-  }, []);
-
-  useEffect(() => {
     const params = new URLSearchParams(location.search);
     if (params.get('upload') === '1') {
       setShowUploadModal(true);
       setUploadStep(1);
     }
   }, [location.search]);
-
-  const CACHE_TTL_MS = 12 * 60 * 60 * 1000;
-  const FACULTY_CACHE_KEY = 'np_faculties_cache_v1';
-  const DEPT_CACHE_PREFIX = 'np_departments_cache_v1:';
-
-  const readCache = (key) => {
-    try {
-      const raw = localStorage.getItem(key);
-      if (!raw) return null;
-      const parsed = JSON.parse(raw);
-      if (!parsed || !parsed.ts) return null;
-      if (Date.now() - parsed.ts > CACHE_TTL_MS) return null;
-      return parsed.data;
-    } catch (error) {
-      return null;
-    }
-  };
-
-  const writeCache = (key, data) => {
-    try {
-      localStorage.setItem(key, JSON.stringify({ ts: Date.now(), data }));
-    } catch (error) {
-      // Ignore cache write failures (e.g., private mode)
-    }
-  };
 
   const normalizeCourseCode = (value) => {
     const raw = String(value || '').trim().toUpperCase();
@@ -178,7 +168,7 @@ const StudentDashboard = () => {
     }
   };
 
-  const fetchFaculties = async () => {
+  const fetchFaculties = useCallback(async () => {
     const cached = readCache(FACULTY_CACHE_KEY);
     if (cached) {
       setFaculties(cached);
@@ -192,7 +182,7 @@ const StudentDashboard = () => {
     } catch (error) {
       console.error('Error fetching faculties:', error);
     }
-  };
+  }, []);
 
   const fetchDepartments = async (facultyId) => {
     const cacheKey = `${DEPT_CACHE_PREFIX}${facultyId}`;
@@ -221,6 +211,14 @@ const StudentDashboard = () => {
       console.error('Error fetching upload stats:', error);
     }
   };
+
+  useEffect(() => {
+    fetchStats();
+    fetchGamificationDashboard();
+    fetchFaculties();
+    fetchUploadStats();
+    trackFeatureVisit('dashboard');
+  }, [fetchFaculties]);
 
   const handleFacultySelect = async (facultyId) => {
     setUploadForm({ ...uploadForm, facultyId, departmentId: '', courseId: '' });
@@ -632,7 +630,6 @@ const StudentDashboard = () => {
     setUploading(true);
     autoNavigateRef.current = false;
     setUploadError(null);
-    setUploadSuccess(null);
 
     // Move to processing step
     setUploadStep(5);
@@ -794,7 +791,6 @@ const StudentDashboard = () => {
     setUploadStep(1);
     setUploadForm({ title: '', facultyId: '', departmentId: '', courseId: '', file: null });
     setUploadError(null);
-    setUploadSuccess(null);
     setProcessingStatus({ stage: '', progress: 0, message: '' });
     setNewCourse({ courseCode: '', courseName: '', creditUnits: 3 });
     setCompletedCourseId(null);

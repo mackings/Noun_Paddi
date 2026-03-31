@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '../contexts/AuthContext';
 import api from '../utils/api';
 import SEO from '../components/SEO';
 import { trackFeatureVisit } from '../utils/featureTracking';
@@ -7,12 +6,11 @@ import {
   FiUpload, FiFileText, FiCheckCircle, FiAlertTriangle,
   FiAlertCircle, FiClock, FiTrash2, FiEye, FiX,
   FiExternalLink, FiRefreshCw, FiInfo, FiChevronDown,
-  FiChevronUp, FiDownload
+  FiChevronUp
 } from 'react-icons/fi';
 import './PlagiarismChecker.css';
 
 const PlagiarismChecker = () => {
-  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('upload');
   const [file, setFile] = useState(null);
   const [dragActive, setDragActive] = useState(false);
