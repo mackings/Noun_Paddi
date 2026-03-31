@@ -77,13 +77,6 @@ const Navbar = () => {
                         >
                           Consultation
                         </Link>
-                        <Link
-                          to="/projects/my-fees"
-                          className="nav-dropdown-link"
-                          onClick={() => setProjectsMenuOpen(false)}
-                        >
-                          My fees
-                        </Link>
                       </div>
                     </div>
                   </>
@@ -132,6 +125,15 @@ const Navbar = () => {
                         onClick={() => setProfileMenuOpen(false)}
                       >
                         <FiBell size={16} /> Alarms
+                      </Link>
+                    )}
+                    {user.role === 'student' && (
+                      <Link
+                        to="/projects/my-fees"
+                        className="nav-dropdown-link"
+                        onClick={() => setProfileMenuOpen(false)}
+                      >
+                        <FiUser size={16} /> My fees
                       </Link>
                     )}
                   </div>
@@ -214,6 +216,9 @@ const Navbar = () => {
                       <Link to="/reminders" className="mobile-submenu-link" onClick={() => setMobileMenuOpen(false)}>
                         <FiBell size={16} /> Alarms
                       </Link>
+                      <Link to="/projects/my-fees" className="mobile-submenu-link" onClick={() => setMobileMenuOpen(false)}>
+                        <FiUser size={16} /> My fees
+                      </Link>
                     </div>
                     <div className="mobile-submenu">
                       <div className="mobile-nav-link mobile-submenu-title">
@@ -224,9 +229,6 @@ const Navbar = () => {
                       </Link>
                       <Link to="/projects/consultation" className="mobile-submenu-link" onClick={() => setMobileMenuOpen(false)}>
                         Consultation
-                      </Link>
-                      <Link to="/projects/my-fees" className="mobile-submenu-link" onClick={() => setMobileMenuOpen(false)}>
-                        My fees
                       </Link>
                     </div>
                   </>
