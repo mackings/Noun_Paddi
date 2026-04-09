@@ -48,6 +48,7 @@ const Practice = () => {
   const [myRank, setMyRank] = useState(null);
   const questionPollRef = useRef(null);
   const questionPollDelayRef = useRef(3000);
+  const startExamButtonRef = useRef(null);
   const location = useLocation();
   const autoSelectRef = useRef(false);
   const navigate = useNavigate();
@@ -216,6 +217,17 @@ const Practice = () => {
       }
       scheduleQuestionRefresh(selectedCourse);
     }
+  };
+
+  const handleSelectDuration = (duration) => {
+    setSelectedDuration(duration);
+
+    window.requestAnimationFrame(() => {
+      startExamButtonRef.current?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      });
+    });
   };
 
   const fetchLeaderboard = useCallback(async () => {
@@ -825,7 +837,7 @@ const Practice = () => {
                 <div
                   key={option.value}
                   className={`timer-option-card ${selectedDuration === option.value ? 'selected' : ''}`}
-                  onClick={() => setSelectedDuration(option.value)}
+                  onClick={() => handleSelectDuration(option.value)}
                 >
                   <div className="timer-option-value">{option.label}</div>
                   <div className="timer-option-desc">{option.description}</div>
@@ -837,7 +849,7 @@ const Practice = () => {
             </div>
 
             <div className="timer-setup-info">
-              <p><strong>{questions.length} questions</strong> available for this exam</p>
+              <p><strong>Several questions</strong> available for this exam</p>
               <p>Time per question: ~{Math.max(1, Math.floor((selectedDuration * 60) / Math.max(questions.length, 1)))} seconds</p>
               {!isLoggedIn && (
                 <p className="timer-setup-note">
@@ -849,7 +861,7 @@ const Practice = () => {
               )}
             </div>
 
-            <div className="timer-setup-actions">
+            <div className="timer-setup-actions" ref={startExamButtonRef}>
               <button onClick={() => { setShowTimerSetup(false); setSelectedCourse(null); setQuestions([]); }} className="btn btn-secondary">
                 Cancel
               </button>

@@ -216,6 +216,25 @@
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
 
+.detail-tab-practice {
+  animation: detailTabBlink 0.45s ease-in-out 2;
+}
+
+@keyframes detailTabBlink {
+  0%,
+  100% {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    box-shadow: none;
+  }
+
+  50% {
+    background: white;
+    color: #667eea;
+    box-shadow: 0 0 0 6px rgba(102, 126, 234, 0.18);
+  }
+}
+
 .summaries-content {
   background: white;
   border-radius: 16px;

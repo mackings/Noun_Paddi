@@ -38,6 +38,7 @@ const CourseDetail = () => {
   const [shareState, setShareState] = useState({ loading: false, message: '', type: '' });
   const [readingStatus, setReadingStatus] = useState('');
   const summaryContentRef = useRef(null);
+  const summaryTabsRef = useRef(null);
   const sectionRefs = useRef([]);
   const readingSessionRef = useRef(null);
 
@@ -80,6 +81,7 @@ const CourseDetail = () => {
     }
     return splitSummaryIntoSections(selectedMaterial.summary);
   }, [selectedMaterial?.hasSummary, selectedMaterial?.summary]);
+  const selectedMaterialId = selectedMaterial?._id || null;
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -328,6 +330,21 @@ const CourseDetail = () => {
     trackFeatureVisit('summary');
   }, [fetchCourseDetails, fetchCourseMaterials]);
 
+  useEffect(() => {
+    if (activeTab !== 'summaries' || !selectedMaterialId) return;
+
+    window.requestAnimationFrame(() => {
+      summaryTabsRef.current?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
+
+      if (summaryContentRef.current) {
+        summaryContentRef.current.scrollTop = 0;
+      }
+    });
+  }, [activeTab, selectedMaterialId]);
+
   const handleSharePdf = async () => {
     if (!selectedMaterial?._id) return;
 
@@ -440,7 +457,7 @@ const CourseDetail = () => {
         )}
 
         {/* Tabs */}
-        <div className="detail-tabs">
+        <div className="detail-tabs" ref={summaryTabsRef}>
           <button
             className={`detail-tab ${activeTab === 'summaries' ? 'active' : ''}`}
             onClick={() => setActiveTab('summaries')}
@@ -448,9 +465,9 @@ const CourseDetail = () => {
             <FiFileText />
             Study Summaries
           </button>
-          <Link to={`/practice?courseId=${courseId}`} className="detail-tab">
+          <Link to={`/practice?courseId=${courseId}`} className="detail-tab detail-tab-practice">
             <FiGrid />
-            Practice Questions
+            Practice Exam
           </Link>
         </div>
 
