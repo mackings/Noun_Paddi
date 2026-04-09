@@ -68,28 +68,85 @@
 }
 
 .ask-example-stack {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
   margin-top: 18px;
+}
+
+.ask-example-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  border: 1px solid var(--ask-line);
+  border-radius: 22px;
+  padding: 18px;
+  background: var(--ask-surface-strong);
+  color: var(--ask-ink);
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.05);
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+
+.ask-example-card:hover:not(:disabled) {
+  transform: translateY(-2px);
+  border-color: #bfd0de;
+  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.08);
+}
+
+.ask-example-card:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.ask-example-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #edf4f8;
+  color: #305f8c;
+  flex-shrink: 0;
+}
+
+.ask-example-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ask-example-content strong {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ask-ink);
+}
+
+.ask-example-content span {
+  font-size: 0.88rem;
+  color: var(--ask-mute);
+}
+
+[data-theme="dark"] .ask-example-card {
+  background: #142030;
+  border-color: #273447;
+  box-shadow: 0 12px 24px rgba(2, 6, 23, 0.28);
+}
+
+[data-theme="dark"] .ask-example-card:hover:not(:disabled) {
+  border-color: #35506a;
+}
+
+[data-theme="dark"] .ask-example-icon {
+  background: #1b2b3f;
+  color: #9fc3e4;
 }
 
 .ask-thread-shell {
   overflow: hidden;
-}
-
-.ask-thread-intro {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 24px 24px 0;
-}
-
-.ask-thread-intro h2 {
-  margin: 0;
-  color: var(--ask-ink);
-  font-size: clamp(1.35rem, 2vw, 1.9rem);
 }
 
 .ask-thread-stage {
@@ -528,14 +585,12 @@
     padding: 18px;
   }
 
-  .ask-thread-intro {
-    padding: 18px 18px 0;
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
   .ask-message {
     grid-template-columns: 38px minmax(0, 1fr);
+  }
+
+  .ask-example-stack {
+    grid-template-columns: 1fr;
   }
 
   .ask-avatar {

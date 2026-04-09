@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
   HiOutlineArrowDownTray,
   HiOutlineChatBubbleLeftRight,
-  HiOutlineDocumentText,
+  HiOutlineMagnifyingGlass,
   HiOutlinePaperAirplane,
   HiOutlineUserCircle,
   HiOutlineUsers,
@@ -14,10 +14,9 @@ import SEO from '../components/SEO';
 import './Ask.css';
 
 const ASK_EXAMPLES = [
-  'GST 105 past question',
-  'ECO 202 past questions',
-  'Show me past questions for MAC 211',
-  'What do I need for NOUN matriculation?',
+  'GST 105',
+  'ECO 202',
+  'MAC 211',
 ];
 
 const makeId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -61,7 +60,7 @@ const initialAssistantMessage = {
   kind: 'response',
   data: {
     title: 'Find NOUN past questions faster',
-    answer: 'Type a course code, course title, or a simple request. I will search for matching past questions, open files here when possible, and let you download them.',
+    answer: 'Enter your course code and I will search for matching past questions, open files here when possible, and let you download them.',
     suggestions: ASK_EXAMPLES,
   },
 };
@@ -182,17 +181,6 @@ function ResponseCard({ message, onSuggestionClick }) {
                   Preparing file
                 </div>
               )}
-              {data.pdfBlobUrl && data.pdfCanPreview === false && (
-                <a
-                  href={data.pdfBlobUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="ask-download-btn"
-                >
-                  <HiOutlineDocumentText />
-                  Open File
-                </a>
-              )}
               {data.pdfBlobUrl && (
                 <a
                   href={data.pdfBlobUrl}
@@ -214,7 +202,7 @@ function ResponseCard({ message, onSuggestionClick }) {
           )}
           {data.pdfBlobUrl && data.pdfCanPreview === false && (
             <div className="ask-mobile-file-note">
-              PDF preview is limited on this device. Use Open File or Download above.
+              PDF preview is limited on this device. Download above.
             </div>
           )}
         </div>
@@ -234,7 +222,7 @@ function ResponseCard({ message, onSuggestionClick }) {
                 onClick={() => data.onOpenFile?.(file)}
               >
                 <HiOutlineArrowDownTray />
-                Open File
+                Download
               </button>
             </div>
           ))}
@@ -373,7 +361,7 @@ const Ask = () => {
             pdfCanPreview: !mobileClient,
             pdfLoading: false,
             fileStatus: mobileClient
-              ? 'Your file is ready. Use Open File or Download below.'
+              ? 'Your file is ready. Download below.'
               : 'Your file is ready below.',
           },
         };
@@ -415,9 +403,10 @@ const Ask = () => {
           blobUrlsRef.current.delete(message.data.pdfBlobUrl);
         }
 
-        if (file.extension !== 'pdf') {
-          triggerDownload(blobUrl, file.fileName || 'noun-file');
-        }
+        triggerDownload(
+          blobUrl,
+          file.fileName || (file.extension === 'pdf' ? 'noun-past-question.pdf' : 'noun-file'),
+        );
 
         return {
           data: {
@@ -430,10 +419,10 @@ const Ask = () => {
             pdfLoading: false,
             type: file.extension === 'pdf' ? 'past_question_pdf' : message.data.type,
             answer: file.extension === 'pdf'
-              ? message.data.answer
+              ? 'Your download has started. You can download it again below if needed.'
               : 'The file is ready. The download has started, and you can download it again below if needed.',
             fileStatus: file.extension === 'pdf'
-              ? (mobileClient ? 'Your PDF is ready. Use Open File or Download below.' : 'Your PDF is ready below.')
+              ? (mobileClient ? 'Your PDF is ready. Download below.' : 'Your PDF has started downloading. You can download it again below if needed.')
               : `${file.fileName || 'Your file'} is downloading.`,
           },
         };
@@ -536,11 +525,17 @@ const Ask = () => {
                 <button
                   key={example}
                   type="button"
-                  className="ask-chip"
+                  className="ask-example-card"
                   onClick={() => submitQuery(example)}
                   disabled={loading}
                 >
-                  {example}
+                  <div className="ask-example-icon">
+                    <HiOutlineMagnifyingGlass />
+                  </div>
+                  <div className="ask-example-content">
+                    <strong>{example}</strong>
+                    <span>Tap to search past questions</span>
+                  </div>
                 </button>
               ))}
             </div>
@@ -548,19 +543,6 @@ const Ask = () => {
         </section>
 
         <section className="ask-thread-shell" ref={threadShellRef}>
-          <div className="ask-thread-intro">
-            <div>
-              <p className="ask-console-kicker">Simple chat</p>
-              <h2>Type one question and get the file or answer here.</h2>
-            </div>
-            {loading && (
-              <div className="ask-loading-pill">
-                <FiLoader className="spin" />
-                Searching
-              </div>
-            )}
-          </div>
-
           <section className="ask-thread-stage">
             <div className="ask-thread" ref={threadRef}>
               {messages.map((message) => (
@@ -594,13 +576,13 @@ const Ask = () => {
               }}
             >
               <label className="ask-composer-label" htmlFor="ask-input">
-                Type your request
+                Enter your course code
               </label>
               <div className="ask-form">
                 <textarea
                   id="ask-input"
                   className="ask-input"
-                  placeholder="Enter a course code like GST 101 or ask a simple NOUN question"
+                  placeholder="Example: GST 101"
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                   onKeyDown={(event) => {
@@ -612,7 +594,7 @@ const Ask = () => {
                   rows={1}
                 />
                 <p className="ask-composer-hint">
-                  Examples: GST 101, ECO 202 past questions, MAC 211 past question.
+                  Examples: GST 101, ECO 202, MAC 211.
                 </p>
                 <button
                   type="submit"

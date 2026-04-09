@@ -391,7 +391,7 @@ p {
   gap: 10px;
   padding: 14px 18px;
   border-radius: 999px;
-  background: #234f8a;
+  background: #2563eb;
   border: 1px solid rgba(255, 255, 255, 0.14);
   color: #fff;
   text-decoration: none;
@@ -402,6 +402,7 @@ p {
 
 .global-ask-bubble:hover {
   transform: translateY(-2px);
+  background: #1d4ed8;
   box-shadow: 0 16px 30px rgba(15, 23, 42, 0.22);
 }
 
