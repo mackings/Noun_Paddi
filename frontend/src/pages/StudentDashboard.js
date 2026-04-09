@@ -4,6 +4,7 @@ import api from '../utils/api';
 import { formatDate } from '../utils/dateHelper';
 import { trackFeatureVisit } from '../utils/featureTracking';
 import SEO from '../components/SEO';
+import { useAuth } from '../contexts/AuthContext';
 import {
   FiBook,
   FiFileText,
@@ -17,7 +18,6 @@ import {
   FiArrowLeft,
   FiUser,
   FiLoader,
-  FiPlus
 } from 'react-icons/fi';
 import './StudentDashboard.css';
 
@@ -32,6 +32,12 @@ const PDF_COMPRESS_SITES = [
 const CACHE_TTL_MS = 12 * 60 * 60 * 1000;
 const FACULTY_CACHE_KEY = 'np_faculties_cache_v1';
 const DEPT_CACHE_PREFIX = 'np_departments_cache_v1:';
+const normalizeProfileText = (value) =>
+  String(value || '')
+    .replace(/<[^>]*>/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
 
 const formatBytes = (bytes) => {
   const n = Number(bytes || 0);
@@ -65,13 +71,13 @@ const writeCache = (key, data) => {
 };
 
 const StudentDashboard = () => {
+  const { user } = useAuth();
   const [stats, setStats] = useState(null);
   const [gamificationData, setGamificationData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showUploadModal, setShowUploadModal] = useState(false);
-  const [uploadStep, setUploadStep] = useState(1); // 1: Faculty, 2: Department, 3: Course, 4: Material, 5: Processing
+  const [uploadStep, setUploadStep] = useState(4); // 4: Course + Material, 5: Processing
   const [uploadForm, setUploadForm] = useState({
-    title: '',
     facultyId: '',
     departmentId: '',
     courseId: '',
@@ -80,12 +86,9 @@ const StudentDashboard = () => {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState(null);
   const [faculties, setFaculties] = useState([]);
-  const [departments, setDepartments] = useState([]);
   const [uploadStats, setUploadStats] = useState(null);
   const [completedCourseId, setCompletedCourseId] = useState(null);
   const [completedMaterialId, setCompletedMaterialId] = useState(null);
-  const [createdCourseId, setCreatedCourseId] = useState(null);
-  const [pendingCourse, setPendingCourse] = useState(null);
   const [duplicateInfo, setDuplicateInfo] = useState(null);
 
   // New course form state
@@ -114,7 +117,7 @@ const StudentDashboard = () => {
     const params = new URLSearchParams(location.search);
     if (params.get('upload') === '1') {
       setShowUploadModal(true);
-      setUploadStep(1);
+      setUploadStep(4);
     }
   }, [location.search]);
 
@@ -188,17 +191,16 @@ const StudentDashboard = () => {
     const cacheKey = `${DEPT_CACHE_PREFIX}${facultyId}`;
     const cached = readCache(cacheKey);
     if (cached) {
-      setDepartments(cached);
-      return;
+      return cached;
     }
     try {
       const response = await api.get(`/faculties/${facultyId}/departments`);
       const data = response.data.data || [];
-      setDepartments(data);
       writeCache(cacheKey, data);
+      return data;
     } catch (error) {
       console.error('Error fetching departments:', error);
-      setDepartments([]);
+      return [];
     }
   };
 
@@ -220,74 +222,56 @@ const StudentDashboard = () => {
     trackFeatureVisit('dashboard');
   }, [fetchFaculties]);
 
-  const handleFacultySelect = async (facultyId) => {
-    setUploadForm({ ...uploadForm, facultyId, departmentId: '', courseId: '' });
-    setUploadError(null);
-    if (facultyId) {
-      await fetchDepartments(facultyId);
-      setUploadStep(2);
-    }
-  };
+  const resolveProfileUploadContext = useCallback(async () => {
+    const facultyLabel = normalizeProfileText(user?.faculty);
+    const departmentLabel = normalizeProfileText(user?.department);
 
-  const handleDepartmentSelect = async (departmentId) => {
-    setUploadForm({ ...uploadForm, departmentId, courseId: '' });
-    setUploadError(null);
-    if (departmentId) {
-      setUploadStep(3);
-    }
-  };
-
-  const handleCourseSelect = (courseId) => {
-    setUploadForm({ ...uploadForm, courseId });
-    setUploadError(null);
-    if (courseId && courseId !== 'new') {
-      setUploadStep(4);
-    }
-  };
-
-  const createCourse = async () => {
-    const normalizedCode = normalizeCourseCode(newCourse.courseCode);
-    const parsedCreditUnits = Number(newCourse.creditUnits);
-    const normalizedCreditUnits =
-      Number.isFinite(parsedCreditUnits) && parsedCreditUnits >= 1 && parsedCreditUnits <= 6
-        ? parsedCreditUnits
-        : 3;
-    if (!normalizedCode) {
-      setUploadError('Course code must be 3 letters and 3 numbers (e.g., BIO 101)');
-      return;
-    }
-    if (!newCourse.courseName.trim()) {
-      setUploadError('Please enter course name');
+    if (!facultyLabel || !departmentLabel || faculties.length === 0) {
       return;
     }
 
-    const existingCourse = await checkCourseExists({
-      normalizedCode,
-      courseName: newCourse.courseName,
-      departmentId: uploadForm.departmentId,
-      creditUnits: normalizedCreditUnits,
+    const matchedFaculty = faculties.find((faculty) => {
+      const name = normalizeProfileText(faculty?.name);
+      const code = normalizeProfileText(faculty?.code);
+      return name === facultyLabel || (code && code === facultyLabel);
     });
-    if (existingCourse) {
-      setDuplicateInfo({
-        kind: 'course',
-        courseId: existingCourse._id,
-        title: existingCourse.courseCode,
-        name: existingCourse.courseName,
-      });
-      setPendingCourse(null);
-      setUploadForm({ ...uploadForm, courseId: '' });
+
+    if (!matchedFaculty?._id) {
+      setUploadError('We could not match your faculty from your profile. Please update your profile and try again.');
       return;
     }
 
-    setPendingCourse({
-      ...newCourse,
-      courseCode: normalizedCode,
-      creditUnits: normalizedCreditUnits,
+    const nextDepartments = await fetchDepartments(matchedFaculty._id);
+    const matchedDepartment = nextDepartments.find((department) => {
+      const name = normalizeProfileText(department?.name);
+      const code = normalizeProfileText(department?.code);
+      return name === departmentLabel || (code && code === departmentLabel);
     });
-    setUploadForm({ ...uploadForm, courseId: 'new' });
+
+    if (!matchedDepartment?._id) {
+      setUploadForm((current) => ({
+        ...current,
+        facultyId: matchedFaculty._id,
+        departmentId: '',
+        courseId: '',
+      }));
+      setUploadError('We could not match your department from your profile. Please update your profile and try again.');
+      return;
+    }
+
+    setUploadForm((current) => ({
+      ...current,
+      facultyId: matchedFaculty._id,
+      departmentId: matchedDepartment._id,
+      courseId: '',
+    }));
     setUploadError(null);
-    setUploadStep(4);
-  };
+  }, [faculties, user]);
+
+  useEffect(() => {
+    if (!showUploadModal) return;
+    resolveProfileUploadContext();
+  }, [showUploadModal, resolveProfileUploadContext]);
 
   const closeStatusStream = () => {
     if (sseRef.current) {
@@ -562,8 +546,24 @@ const StudentDashboard = () => {
 
   const handleUploadSubmit = async (e) => {
     e.preventDefault();
-    if (!uploadForm.courseId) {
-      setUploadError('Please select a course');
+    const normalizedCode = normalizeCourseCode(newCourse.courseCode);
+    const safeCourseName = String(newCourse.courseName || '').trim();
+    const parsedCreditUnits = Number(newCourse.creditUnits);
+    const normalizedCreditUnits =
+      Number.isFinite(parsedCreditUnits) && parsedCreditUnits >= 1 && parsedCreditUnits <= 6
+        ? parsedCreditUnits
+        : 3;
+
+    if (!uploadForm.departmentId) {
+      setUploadError('We could not match your faculty and department from your profile. Update your profile and try again.');
+      return;
+    }
+    if (!normalizedCode) {
+      setUploadError('Course code must be 3 letters and 3 numbers (e.g., BIO 101)');
+      return;
+    }
+    if (!safeCourseName) {
+      setUploadError('Please enter course name');
       return;
     }
     if (!uploadForm.file) {
@@ -591,42 +591,6 @@ const StudentDashboard = () => {
       return;
     }
 
-    const needsTitle = createdCourseId !== uploadForm.courseId;
-    const fallbackTitle = uploadForm.file.name.replace(/\.[^/.]+$/, '');
-    const resolvedTitle = needsTitle
-      ? (uploadForm.title || fallbackTitle)
-      : fallbackTitle;
-    if (needsTitle && !resolvedTitle.trim()) {
-      setUploadError('Please enter a material title');
-      return;
-    }
-
-    if (uploadForm.courseId === 'new' && !pendingCourse) {
-      setUploadError('Please enter course details before uploading');
-      setUploadStep(3);
-      return;
-    }
-
-    if (uploadForm.courseId === 'new' && pendingCourse) {
-      const existingCourse = await checkCourseExists({
-        normalizedCode: pendingCourse.courseCode,
-        courseName: pendingCourse.courseName,
-        departmentId: uploadForm.departmentId,
-        creditUnits: pendingCourse.creditUnits,
-      });
-      if (existingCourse) {
-        setDuplicateInfo({
-          kind: 'course',
-          courseId: existingCourse._id,
-          title: existingCourse.courseCode,
-          name: existingCourse.courseName,
-        });
-        setPendingCourse(null);
-        setUploadForm({ ...uploadForm, courseId: '' });
-        return;
-      }
-    }
-
     setUploading(true);
     autoNavigateRef.current = false;
     setUploadError(null);
@@ -643,18 +607,26 @@ const StudentDashboard = () => {
 
     try {
       // On Vercel we can't send large files to the API (body limits). Upload to storage first, then notify the API.
+      const existingCourse = await checkCourseExists({
+        normalizedCode,
+        courseName: safeCourseName,
+        departmentId: uploadForm.departmentId,
+        creditUnits: normalizedCreditUnits,
+      });
 
-      if (resolvedCourseId === 'new') {
+      if (existingCourse?._id) {
+        resolvedCourseId = existingCourse._id;
+      } else {
         const response = await api.post('/courses', {
-          ...pendingCourse,
-          departmentId: uploadForm.departmentId
+          courseCode: normalizedCode,
+          courseName: safeCourseName,
+          creditUnits: normalizedCreditUnits,
+          departmentId: uploadForm.departmentId,
         });
         resolvedCourseId = response.data.data._id;
-        setCreatedCourseId(resolvedCourseId);
-        setUploadForm((prev) => ({ ...prev, courseId: resolvedCourseId }));
-        setPendingCourse(null);
-        setNewCourse({ courseCode: '', courseName: '', creditUnits: 3 });
       }
+
+      setUploadForm((prev) => ({ ...prev, courseId: resolvedCourseId }));
 
       // Hash the uploaded PDF for duplicate detection.
       const fileHash = await computeFileHash(uploadForm.file);
@@ -698,7 +670,7 @@ const StudentDashboard = () => {
       }
 
       const response = await api.post('/materials/student-upload', {
-        title: resolvedTitle,
+        title: safeCourseName,
         courseId: resolvedCourseId,
         cloudinaryUrl,
         cloudinaryPublicId,
@@ -741,17 +713,16 @@ const StudentDashboard = () => {
             title: existingCourse.courseCode,
             name: existingCourse.courseName,
           });
-          setPendingCourse(null);
-          setUploadForm({ ...uploadForm, courseId: '' });
+          setUploadForm((current) => ({ ...current, courseId: existingCourse._id }));
           setProcessingStatus({ stage: '', progress: 0, message: '' });
-          setUploadStep(3);
+          setUploadStep(4);
           return;
         }
 
         const existing = error.response?.data?.existingMaterial || {};
-        setDuplicateInfo({
+      setDuplicateInfo({
           kind: 'material',
-          courseId: resolvedCourseId !== 'new' ? resolvedCourseId : uploadForm.courseId,
+          courseId: resolvedCourseId || uploadForm.courseId,
           title: existing.title,
           uploadedBy: existing.uploadedBy?.name || existing.uploadedBy || 'another student',
           uploadDate: existing.uploadDate
@@ -788,16 +759,14 @@ const StudentDashboard = () => {
       pollingTimeoutRef.current = null;
     }
     closeStatusStream();
-    setUploadStep(1);
-    setUploadForm({ title: '', facultyId: '', departmentId: '', courseId: '', file: null });
+    setUploadStep(4);
+    setUploadForm({ facultyId: '', departmentId: '', courseId: '', file: null });
     setUploadError(null);
     setProcessingStatus({ stage: '', progress: 0, message: '' });
     setNewCourse({ courseCode: '', courseName: '', creditUnits: 3 });
     setCompletedCourseId(null);
     setCompletedMaterialId(null);
     uploadTargetRef.current = { courseId: null, materialId: null };
-    setCreatedCourseId(null);
-    setPendingCourse(null);
     setDuplicateInfo(null);
     completionBeepedRef.current = false;
     autoNavigateRef.current = false;
@@ -818,6 +787,12 @@ const StudentDashboard = () => {
         navigate(`/course/${courseId}`);
       }
     }
+  };
+
+  const openUploadModal = () => {
+    resetUploadState();
+    setShowUploadModal(true);
+    setUploadStep(4);
   };
 
   const describeActivity = (activity) => {
@@ -884,10 +859,7 @@ const StudentDashboard = () => {
             </div>
             <button
               className="summary-cta-button"
-              onClick={() => {
-                setShowUploadModal(true);
-                setUploadStep(1);
-              }}
+              onClick={openUploadModal}
             >
               <FiUpload size={18} />
               Get Course Summary
@@ -1108,7 +1080,7 @@ const StudentDashboard = () => {
                 <FiFileText size={48} />
                 <h3>No materials available yet</h3>
                 <p>Be the first to upload study materials!</p>
-                <button onClick={() => setShowUploadModal(true)} className="empty-state-button">
+                <button onClick={openUploadModal} className="empty-state-button">
                   <FiUpload size={18} />
                   Upload Material
                 </button>
@@ -1215,7 +1187,7 @@ const StudentDashboard = () => {
           <div className="modal-overlay" onClick={closeUploadModal}>
             <div className="modal-content upload-wizard" onClick={(e) => e.stopPropagation()}>
               <div className="modal-header">
-                <h2>{uploadStep === 5 ? 'Processing Material' : `Upload Material - Step ${uploadStep}/4`}</h2>
+                <h2>{uploadStep === 5 ? 'Processing Material' : 'Upload Material'}</h2>
                 <button
                   type="button"
                   onClick={closeUploadModal}
@@ -1226,200 +1198,83 @@ const StudentDashboard = () => {
                 </button>
               </div>
 
-              {/* Progress Steps */}
-              {uploadStep !== 5 && (
-                <div className="upload-steps">
-                  <div className={`step ${uploadStep >= 1 ? 'active' : ''}`}>Faculty</div>
-                  <div className={`step ${uploadStep >= 2 ? 'active' : ''}`}>Department</div>
-                  <div className={`step ${uploadStep >= 3 ? 'active' : ''}`}>Course</div>
-                  <div className={`step ${uploadStep >= 4 ? 'active' : ''}`}>Material</div>
-                </div>
-              )}
-
               <div className="upload-form">
-                {/* Step 1: Faculty Selection */}
-                {uploadStep === 1 && (
-                  <div className="step-content">
-                    <h3>Select Faculty</h3>
-                    <p className="step-description">Choose the faculty for your material</p>
-
-                    <div className="selection-grid">
-                      {faculties.map((faculty) => (
-                        <button
-                          key={faculty._id}
-                          type="button"
-                          className={`selection-card ${uploadForm.facultyId === faculty._id ? 'selected' : ''}`}
-                          onClick={() => handleFacultySelect(faculty._id)}
-                        >
-                          <FiBook size={24} />
-                          <span>{faculty.name}</span>
-                        </button>
-                      ))}
-                    </div>
-
-                    {faculties.length === 0 && (
-                      <div className="empty-message">
-                        <FiBook size={48} />
-                        <p>No faculties available. Please contact an administrator to add faculties.</p>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Step 2: Department Selection */}
-                {uploadStep === 2 && (
-                  <div className="step-content">
-                    <h3>Select Department</h3>
-                    <p className="step-description">Choose the department for your material</p>
-
-                    <div className="selection-grid">
-                      {departments.map((dept) => (
-                        <button
-                          key={dept._id}
-                          type="button"
-                          className={`selection-card ${uploadForm.departmentId === dept._id ? 'selected' : ''}`}
-                          onClick={() => handleDepartmentSelect(dept._id)}
-                        >
-                          <FiBook size={24} />
-                          <span>{dept.name}</span>
-                          <small>{dept.code}</small>
-                        </button>
-                      ))}
-                    </div>
-
-                    {departments.length === 0 && (
-                      <div className="empty-message">
-                        <FiBook size={48} />
-                        <p>No departments in this faculty. Please contact an administrator to add departments.</p>
-                      </div>
-                    )}
-
-                    <button type="button" onClick={() => setUploadStep(1)} className="btn btn-secondary btn-back">
-                      <FiArrowLeft size={16} /> Back to Faculty
-                    </button>
-                  </div>
-                )}
-
-                {/* Step 3: Course Creation */}
-                {uploadStep === 3 && (
-                  <div className="step-content">
-                    <h3>Create Course</h3>
-                    <p className="step-description">Add a new course for this department</p>
-
-                    <div className="selection-grid create-only">
-                      <button
-                        type="button"
-                        className={`selection-card create-new ${uploadForm.courseId === 'new' ? 'selected' : ''}`}
-                        onClick={() => handleCourseSelect('new')}
-                      >
-                        <FiPlus size={24} />
-                        <span>Create New Course</span>
-                      </button>
-                    </div>
-
-                    {uploadForm.courseId === 'new' && (
-                      <div className="create-form">
-                        <h4>Create New Course</h4>
-                        <input
-                          type="text"
-                          value={newCourse.courseCode}
-                          onChange={(e) => setNewCourse({ ...newCourse, courseCode: e.target.value.toUpperCase() })}
-                          placeholder="Course code (e.g., BIO101)"
-                          className="form-input"
-                        />
-                        <input
-                          type="text"
-                          value={newCourse.courseName}
-                          onChange={(e) => setNewCourse({ ...newCourse, courseName: e.target.value })}
-                          placeholder="Course name (e.g., Introduction to Biology)"
-                          className="form-input"
-                        />
-                        <input
-                          type="number"
-                          value={newCourse.creditUnits}
-                          onChange={(e) => {
-                            const nextValue = e.target.value;
-                            if (nextValue === '') {
-                              setNewCourse({ ...newCourse, creditUnits: '' });
-                              return;
-                            }
-                            setNewCourse({ ...newCourse, creditUnits: nextValue });
-                          }}
-                          placeholder="Credit units"
-                          className="form-input"
-                          min="1"
-                          max="6"
-                          step="1"
-                        />
-                        <div className="form-actions">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setUploadForm({ ...uploadForm, courseId: '' });
-                              setPendingCourse(null);
-                            }}
-                            className="btn btn-secondary"
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            type="button"
-                            onClick={createCourse}
-                            className="btn btn-primary"
-                            disabled={!newCourse.courseCode.trim() || !newCourse.courseName.trim()}
-                          >
-                            Continue to Upload
-                          </button>
-                        </div>
-                      </div>
-                    )}
-
-                    {uploadForm.courseId && uploadForm.courseId !== 'new' && (
-                      <div className="empty-message">
-                        <FiBook size={48} />
-                        <p>Course created for this department. Click "Create New Course" to add another.</p>
-                      </div>
-                    )}
-
-                    <button type="button" onClick={() => setUploadStep(2)} className="btn btn-secondary btn-back">
-                      <FiArrowLeft size={16} /> Back to Department
-                    </button>
-                  </div>
-                )}
-
-                {/* Step 4: Material Upload */}
                 {uploadStep === 4 && (
                   <form onSubmit={handleUploadSubmit} className="step-content">
-                    <h3>Upload Course Material</h3>
+                    <h3>Course Details and Material</h3>
+                    <p className="step-description">Your faculty and department are already set from your profile. Enter the course details once and attach the PDF on this page.</p>
 
-                    {createdCourseId !== uploadForm.courseId && (
-                      <div className="form-group">
-                        <label>Material Title</label>
-                        <input
-                          type="text"
-                          value={uploadForm.title}
-                          onChange={(e) => setUploadForm({ ...uploadForm, title: e.target.value })}
-                          placeholder="e.g., Biology 101 - Chapter 1 Notes"
-                          className="form-input"
-                          required
-                        />
+                    <div className="profile-context-card">
+                      <div>
+                        <span className="profile-context-label">Faculty</span>
+                        <strong>{user?.faculty || 'Not available'}</strong>
                       </div>
-                    )}
+                      <div>
+                        <span className="profile-context-label">Department</span>
+                        <strong>{user?.department || 'Not available'}</strong>
+                      </div>
+                    </div>
 
                     <div className="form-group">
-                      <label>PDF File</label>
+                      <label>Course Code</label>
+                      <input
+                        type="text"
+                        value={newCourse.courseCode}
+                        onChange={(e) => setNewCourse({ ...newCourse, courseCode: e.target.value.toUpperCase() })}
+                        placeholder="e.g., GST 105"
+                        className="form-input"
+                        required
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label>Course Name</label>
+                      <input
+                        type="text"
+                        value={newCourse.courseName}
+                        onChange={(e) => setNewCourse({ ...newCourse, courseName: e.target.value })}
+                        placeholder="e.g., Use of English and Communication Skills"
+                        className="form-input"
+                        required
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label>Course Unit</label>
+                      <input
+                        type="number"
+                        value={newCourse.creditUnits}
+                        onChange={(e) => {
+                          const nextValue = e.target.value;
+                          if (nextValue === '') {
+                            setNewCourse({ ...newCourse, creditUnits: '' });
+                            return;
+                          }
+                          setNewCourse({ ...newCourse, creditUnits: nextValue });
+                        }}
+                        placeholder="e.g., 2"
+                        className="form-input"
+                        min="1"
+                        max="6"
+                        step="1"
+                        required
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label>Attach Material</label>
                       <input
                         type="file"
                         accept=".pdf"
                         onChange={(e) => {
                           const file = e.target.files && e.target.files[0];
                           if (!file) {
-                            setUploadForm({ ...uploadForm, file: null });
+                            setUploadForm((current) => ({ ...current, file: null }));
                             return;
                           }
                           if (file.type !== 'application/pdf') {
                             setUploadError('Only PDF files are allowed');
-                            setUploadForm({ ...uploadForm, file: null });
+                            setUploadForm((current) => ({ ...current, file: null }));
                             e.target.value = '';
                             return;
                           }
@@ -1436,13 +1291,13 @@ const StudentDashboard = () => {
                                 .
                               </span>
                             );
-                            setUploadForm({ ...uploadForm, file: null });
+                            setUploadForm((current) => ({ ...current, file: null }));
                             e.target.value = '';
                             return;
                           }
                           // Cloudinary raw upload limit is 10MB on the current plan.
                           setUploadError(null);
-                          setUploadForm({ ...uploadForm, file });
+                          setUploadForm((current) => ({ ...current, file }));
                         }}
                         required
                       />
@@ -1450,12 +1305,6 @@ const StudentDashboard = () => {
                         <p className="file-selected">{uploadForm.file.name}</p>
                       )}
                     </div>
-
-                    {createdCourseId === uploadForm.courseId && (
-                      <div className="upload-info">
-                        <p><strong>Note:</strong> Your material title will be set from the file name.</p>
-                      </div>
-                    )}
 
                     {uploadError && (
                       <div className="upload-error">
@@ -1466,26 +1315,23 @@ const StudentDashboard = () => {
                     <div className="modal-actions">
                       <button
                         type="button"
-                        onClick={() => setUploadStep(3)}
+                        onClick={closeUploadModal}
                         className="btn btn-secondary"
                         disabled={uploading}
                       >
-                        Back to Course
+                        Cancel
                       </button>
                       <button
                         type="submit"
                         className="btn btn-primary"
-                        disabled={
-                          uploading ||
-                          !uploadForm.file ||
-                          (createdCourseId !== uploadForm.courseId && !uploadForm.title)
-                        }
+                        disabled={uploading || !uploadForm.file || !newCourse.courseCode.trim() || !newCourse.courseName.trim()}
                       >
                         {uploading ? 'Uploading...' : 'Upload Material'}
                       </button>
                     </div>
 
                     <div className="upload-info">
+                      <p><strong>Note:</strong> Material title will be taken from the course name you enter.</p>
                       <p><strong>Note:</strong> Our system will generate summaries and practice questions automatically. You'll earn 10 points!</p>
                       <p>
                         <strong>Tip:</strong> Keep your PDF under {formatBytes(MAX_CLOUDINARY_RAW_UPLOAD_BYTES)}. If it is larger, compress it and re-upload using:{' '}
@@ -1577,12 +1423,6 @@ const StudentDashboard = () => {
                         <p className="processing-note">Please wait while our system processes your material. This may take a few minutes.</p>
                       )}
                     </div>
-                  </div>
-                )}
-
-                {uploadError && uploadStep < 4 && (
-                  <div className="upload-error">
-                    <FiX /> {uploadError}
                   </div>
                 )}
               </div>

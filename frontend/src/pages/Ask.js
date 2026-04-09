@@ -15,8 +15,6 @@ import './Ask.css';
 
 const ASK_EXAMPLES = [
   'GST 105',
-  'ECO 202',
-  'MAC 211',
 ];
 
 const makeId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -59,7 +57,6 @@ const initialAssistantMessage = {
   role: 'assistant',
   kind: 'response',
   data: {
-    title: 'Find NOUN past questions faster',
     answer: 'Enter your course code and I will search for matching past questions, open files here when possible, and let you download them.',
     suggestions: ASK_EXAMPLES,
   },
