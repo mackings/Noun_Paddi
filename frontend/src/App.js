@@ -263,9 +263,9 @@ const GlobalAskBubble = () => {
   if (!allowedRoutes.includes(location.pathname)) return null;
 
   return (
-    <Link to="/ask" className="global-ask-bubble" aria-label="Open Ask Paddi">
+    <Link to="/ask" className="global-ask-bubble" aria-label="Open Past Questions">
       <FiMessageCircle />
-      <span>Ask Paddi</span>
+      <span>Past Questions</span>
     </Link>
   );
 };
@@ -328,11 +328,11 @@ const PastQuestionBottomSheet = () => {
         <p className="np-bottom-sheet-kicker">New</p>
         <h3 id="np-bottom-sheet-title">Past Questions is now available</h3>
         <p>
-          You can now find NOUN past questions and related files faster from Ask Paddi.
+          You can now find NOUN past questions and related files faster from Past Questions.
         </p>
         <div className="np-bottom-sheet-actions">
           <Link to="/ask" className="btn btn-primary" onClick={() => setOpen(false)}>
-            Go to Ask
+            Open Past Questions
           </Link>
           <button
             type="button"

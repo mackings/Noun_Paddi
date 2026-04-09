@@ -1,11 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  FiArrowDownCircle,
   FiDownload,
   FiFileText,
   FiLoader,
   FiMessageSquare,
-  FiSearch,
   FiSend,
   FiUsers,
   FiUser,
@@ -17,9 +15,9 @@ import './Ask.css';
 
 const ASK_EXAMPLES = [
   'GST 105 past question',
+  'ECO 202 past questions',
+  'Show me past questions for MAC 211',
   'What do I need for NOUN matriculation?',
-  'Show the latest NOUN timetable',
-  'Explain NOUN TMA submission',
 ];
 
 const makeId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -33,14 +31,14 @@ const buildLoadingTitle = (value) => {
   const trimmed = String(value || '').trim();
   const courseCode = extractCourseCode(trimmed);
   if (courseCode) {
-    return `Loading Your ${courseCode}`;
+    return `Finding ${courseCode}`;
   }
 
   if (!trimmed) {
-    return 'Loading Your Request';
+    return 'Finding your result';
   }
 
-  return `Loading Your ${trimmed.slice(0, 36)}`;
+  return `Finding ${trimmed.slice(0, 36)}`;
 };
 
 const isMobileClient = () => {
@@ -62,8 +60,8 @@ const initialAssistantMessage = {
   role: 'assistant',
   kind: 'response',
   data: {
-    title: 'Ask anything about NOUN',
-    answer: 'Ask works like a chat thread. For past questions, send the course code and I will list the files I find, open them here when possible, and let you download them.',
+    title: 'Find NOUN past questions faster',
+    answer: 'Type a course code, course title, or a simple request. I will search for matching past questions, open files here when possible, and let you download them.',
     suggestions: ASK_EXAMPLES,
   },
 };
@@ -73,9 +71,9 @@ const askStructuredData = {
   '@graph': [
     {
       '@type': 'WebPage',
-      name: 'Ask NOUN Questions and Past Questions',
+      name: 'Past Questions and NOUN Help',
       url: 'https://paddi.com.ng/ask',
-      description: 'Find NOUN past questions, timetable updates, matriculation information, TMA help, and NOUN study files on Ask Paddi.',
+      description: 'Find NOUN past questions, timetable updates, matriculation information, TMA help, and NOUN study files in Past Questions.',
       isPartOf: {
         '@type': 'WebSite',
         name: 'NounPaddi',
@@ -87,18 +85,18 @@ const askStructuredData = {
       mainEntity: [
         {
           '@type': 'Question',
-          name: 'Can Ask Paddi find NOUN past questions?',
+          name: 'Can Past Questions find NOUN past questions?',
           acceptedAnswer: {
             '@type': 'Answer',
-            text: 'Ask Paddi helps students find NOUN past questions and related study files by course code, then opens or prepares those files for download inside the app when possible.',
+            text: 'Past Questions helps students find NOUN past questions and related study files by course code, then opens or prepares those files for download inside the app when possible.',
           },
         },
         {
           '@type': 'Question',
-          name: 'Can Ask Paddi show NOUN timetable, matriculation, and TMA information?',
+          name: 'Can Past Questions show NOUN timetable, matriculation, and TMA information?',
           acceptedAnswer: {
             '@type': 'Answer',
-            text: 'Yes. Ask Paddi is designed for NOUN timetable updates, matriculation information, TMA guidance, and other NOUN student questions in a chat-style interface.',
+            text: 'Yes. Past Questions is designed for NOUN timetable updates, matriculation information, TMA guidance, and other NOUN student questions in a simple chat-style interface.',
           },
         },
       ],
@@ -124,7 +122,7 @@ function ResponseCard({ message, onSuggestionClick }) {
   if (error) {
     return (
       <div className="ask-card ask-card-error">
-        <h3>Ask could not complete that request</h3>
+        <h3>Past Questions could not complete that request</h3>
         <p>{error}</p>
       </div>
     );
@@ -209,7 +207,7 @@ function ResponseCard({ message, onSuggestionClick }) {
           </div>
           {data.pdfBlobUrl && data.pdfCanPreview !== false && (
             <iframe
-              title={data.pdf?.fileName || 'Ask PDF Viewer'}
+              title={data.pdf?.fileName || 'Past Questions PDF Viewer'}
               src={data.pdfBlobUrl}
               className="ask-pdf-frame"
             />
@@ -456,7 +454,7 @@ const Ask = () => {
   const submitQuery = async (value) => {
     const trimmed = String(value || query).trim();
     if (!trimmed || loading) {
-      if (!trimmed) setComposerError('Enter what you want Ask to find.');
+      if (!trimmed) setComposerError('Type what you want to find first.');
       return;
     }
 
@@ -506,8 +504,8 @@ const Ask = () => {
       updateMessage(placeholderId, () => ({
         loading: false,
         error: status === 401
-          ? 'Sign in to use Ask and open NOUN files.'
-          : (requestError.response?.data?.message || 'Ask could not process that request.'),
+          ? 'Sign in to use Past Questions and open NOUN files.'
+          : (requestError.response?.data?.message || 'Past Questions could not process that request.'),
         data: null,
       }));
     } finally {
@@ -520,34 +518,29 @@ const Ask = () => {
   return (
     <div className="ask-page">
       <SEO
-        title="Ask Paddi: NOUN Past Questions, Timetable, Matriculation and TMA Help"
-        description="Ask Paddi helps NOUN students find past questions, timetable updates, matriculation information, TMA help, and NOUN study files in one place."
+        title="Past Questions: NOUN Past Questions, Timetable, Matriculation and TMA Help"
+        description="Past Questions helps NOUN students find past questions, timetable updates, matriculation information, TMA help, and NOUN study files in one place."
         url="/ask"
-        keywords="Ask Paddi, NOUN past questions, NOUN timetable, NOUN matriculation, NOUN TMA, NOUN study help, NOUN student support"
+        keywords="Past Questions, NOUN past questions, NOUN timetable, NOUN matriculation, NOUN TMA, NOUN study help, NOUN student support"
         robots="index, follow"
         structuredData={askStructuredData}
       />
 
-      <div className="container">
-        <section className="ask-shell">
-          <div className="ask-sidebar">
-            <p className="ask-kicker">Ask</p>
-            <h1>NOUN help in a chat thread.</h1>
+      <div className="container ask-page-container">
+        <section className="ask-hero">
+          <div className="ask-hero-copy">
+            <p className="ask-kicker">Past Questions</p>
+            <h1>Find NOUN past questions without guessing what to type.</h1>
             <p className="ask-lead">
-              Ask Paddi helps NOUN students find past questions, timetable updates, matriculation information, TMA guidance, and study files in one place.
+              Type a course code, course title, or a simple request. You can also ask about matriculation, timetable updates, and TMA guidance in plain language.
             </p>
-            <div className="ask-sidebar-points">
-              <div className="ask-hero-card-row">
-                <FiSearch />
-                <span>Search NOUN-related results and present them clearly</span>
-              </div>
-              <div className="ask-hero-card-row">
-                <FiFileText />
-                <span>Past questions open in the thread and can be downloaded</span>
-              </div>
-              <div className="ask-hero-card-row">
-                <FiArrowDownCircle />
-                <span>For past questions, the course code is enough to list available files</span>
+          </div>
+          <div className="ask-hero-panel">
+            <div className="ask-hero-tip">
+              <FiFileText />
+              <div>
+                <strong>How to use it</strong>
+                <p>Try something simple like a course code and the words &quot;past question&quot;.</p>
               </div>
             </div>
             <div className="ask-example-stack">
@@ -555,7 +548,7 @@ const Ask = () => {
                 <button
                   key={example}
                   type="button"
-                  className="ask-chip ask-chip-block"
+                  className="ask-chip"
                   onClick={() => submitQuery(example)}
                   disabled={loading}
                 >
@@ -564,8 +557,23 @@ const Ask = () => {
               ))}
             </div>
           </div>
+        </section>
 
-          <section className="ask-thread-shell" ref={threadShellRef}>
+        <section className="ask-thread-shell" ref={threadShellRef}>
+          <div className="ask-thread-intro">
+            <div>
+              <p className="ask-console-kicker">Simple chat</p>
+              <h2>Type one question and get the file or answer here.</h2>
+            </div>
+            {loading && (
+              <div className="ask-loading-pill">
+                <FiLoader className="spin" />
+                Searching
+              </div>
+            )}
+          </div>
+
+          <section className="ask-thread-stage">
             <div className="ask-thread" ref={threadRef}>
               {messages.map((message) => (
                 <div
@@ -590,23 +598,21 @@ const Ask = () => {
               ))}
             </div>
 
-            <div className="ask-composer">
-              <div className="ask-composer-header">
-                <div>
-                  <p className="ask-console-kicker">Prompt Ask</p>
-                  <h2>Ask in plain language</h2>
-                </div>
-                {loading && (
-                  <div className="ask-loading-pill">
-                    <FiLoader className="spin" />
-                    Working
-                  </div>
-                )}
-              </div>
+            <form
+              className="ask-composer"
+              onSubmit={(event) => {
+                event.preventDefault();
+                submitQuery();
+              }}
+            >
+              <label className="ask-composer-label" htmlFor="ask-input">
+                Type your request
+              </label>
               <div className="ask-form">
                 <textarea
+                  id="ask-input"
                   className="ask-input"
-                  placeholder="Try: GST 105 past question, GST 105 TMA, NOUN matriculation requirements, or latest NOUN timetable"
+                  placeholder="Example: GST 105 past question, show me past questions for MAC 211, or what do I need for NOUN matriculation?"
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                   onKeyDown={(event) => {
@@ -615,20 +621,23 @@ const Ask = () => {
                       submitQuery();
                     }
                   }}
-                  rows={3}
+                  rows={1}
                 />
                 <button
-                  type="button"
+                  type="submit"
                   className="ask-submit"
-                  onClick={() => submitQuery()}
                   disabled={loading}
+                  aria-label="Send request"
+                  title="Send request"
                 >
-                  <FiSend />
-                  Send
+                  {loading ? <FiLoader className="spin" /> : <FiSend />}
                 </button>
               </div>
+              <p className="ask-composer-hint">
+                Press Enter to send. Use Shift + Enter for a new line.
+              </p>
               {composerError && <div className="ask-error">{composerError}</div>}
-            </div>
+            </form>
           </section>
         </section>
       </div>
