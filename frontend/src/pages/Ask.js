@@ -1,13 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  FiDownload,
-  FiFileText,
-  FiLoader,
-  FiMessageSquare,
-  FiSend,
-  FiUsers,
-  FiUser,
-} from 'react-icons/fi';
+  HiOutlineArrowDownTray,
+  HiOutlineChatBubbleLeftRight,
+  HiOutlineDocumentText,
+  HiOutlinePaperAirplane,
+  HiOutlineUserCircle,
+  HiOutlineUsers,
+} from 'react-icons/hi2';
+import { FiLoader } from 'react-icons/fi';
 import api from '../utils/api';
 import { trackFeatureVisit } from '../utils/featureTracking';
 import SEO from '../components/SEO';
@@ -142,13 +142,13 @@ function ResponseCard({ message, onSuggestionClick }) {
       {data.answer && <p className="ask-card-summary">{data.answer}</p>}
       {data.fileStatus && (
         <div className="ask-file-status">
-          <FiDownload />
+          <HiOutlineArrowDownTray />
           <span>{data.fileStatus}</span>
         </div>
       )}
       {data.followUpQuestion && (
         <div className="ask-followup-box">
-          <FiMessageSquare />
+          <HiOutlineChatBubbleLeftRight />
           <span>{data.followUpQuestion}</span>
         </div>
       )}
@@ -189,7 +189,7 @@ function ResponseCard({ message, onSuggestionClick }) {
                   rel="noreferrer"
                   className="ask-download-btn"
                 >
-                  <FiFileText />
+                  <HiOutlineDocumentText />
                   Open File
                 </a>
               )}
@@ -199,7 +199,7 @@ function ResponseCard({ message, onSuggestionClick }) {
                   download={data.pdf?.fileName || 'noun-past-question.pdf'}
                   className="ask-download-btn"
                 >
-                  <FiDownload />
+                  <HiOutlineArrowDownTray />
                   Download
                 </a>
               )}
@@ -233,7 +233,7 @@ function ResponseCard({ message, onSuggestionClick }) {
                 className="ask-download-btn ask-download-btn-button"
                 onClick={() => data.onOpenFile?.(file)}
               >
-                <FiDownload />
+                <HiOutlineArrowDownTray />
                 Open File
               </button>
             </div>
@@ -254,7 +254,7 @@ function ResponseCard({ message, onSuggestionClick }) {
             rel="noreferrer"
             className="ask-whatsapp-btn"
           >
-            <FiUsers />
+            <HiOutlineUsers />
             {data.whatsappGroup.label || 'Join WhatsApp Group'}
           </a>
         </div>
@@ -530,19 +530,7 @@ const Ask = () => {
         <section className="ask-hero">
           <div className="ask-hero-copy">
             <p className="ask-kicker">Past Questions</p>
-            <h1>Find NOUN past questions without guessing what to type.</h1>
-            <p className="ask-lead">
-              Type a course code, course title, or a simple request. You can also ask about matriculation, timetable updates, and TMA guidance in plain language.
-            </p>
-          </div>
-          <div className="ask-hero-panel">
-            <div className="ask-hero-tip">
-              <FiFileText />
-              <div>
-                <strong>How to use it</strong>
-                <p>Try something simple like a course code and the words &quot;past question&quot;.</p>
-              </div>
-            </div>
+            <h1>Find NOUN past questions with just course codes like GST 101.</h1>
             <div className="ask-example-stack">
               {ASK_EXAMPLES.map((example) => (
                 <button
@@ -582,7 +570,7 @@ const Ask = () => {
                   className={`ask-message ask-message-${message.role}`}
                 >
                   <div className={`ask-avatar ask-avatar-${message.role}`}>
-                    {message.role === 'assistant' ? <FiMessageSquare /> : <FiUser />}
+                    {message.role === 'assistant' ? <HiOutlineChatBubbleLeftRight /> : <HiOutlineUserCircle />}
                   </div>
                   <div className="ask-bubble">
                     {message.role === 'user' ? (
@@ -612,7 +600,7 @@ const Ask = () => {
                 <textarea
                   id="ask-input"
                   className="ask-input"
-                  placeholder="Example: GST 105 past question, show me past questions for MAC 211, or what do I need for NOUN matriculation?"
+                  placeholder="Enter a course code like GST 101 or ask a simple NOUN question"
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                   onKeyDown={(event) => {
@@ -623,19 +611,20 @@ const Ask = () => {
                   }}
                   rows={1}
                 />
+                <p className="ask-composer-hint">
+                  Examples: GST 101, ECO 202 past questions, MAC 211 past question.
+                </p>
                 <button
                   type="submit"
                   className="ask-submit"
                   disabled={loading}
-                  aria-label="Send request"
-                  title="Send request"
+                  aria-label="Search Past Questions"
+                  title="Search Past Questions"
                 >
-                  {loading ? <FiLoader className="spin" /> : <FiSend />}
+                  {loading ? <FiLoader className="spin" /> : <HiOutlinePaperAirplane />}
+                  <span>{loading ? 'Searching...' : 'Search Past Questions'}</span>
                 </button>
               </div>
-              <p className="ask-composer-hint">
-                Press Enter to send. Use Shift + Enter for a new line.
-              </p>
               {composerError && <div className="ask-error">{composerError}</div>}
             </form>
           </section>
