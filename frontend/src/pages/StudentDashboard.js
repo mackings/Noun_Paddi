@@ -86,6 +86,7 @@ const StudentDashboard = () => {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState(null);
   const [faculties, setFaculties] = useState([]);
+  const [uploadContext, setUploadContext] = useState({ facultyName: '', departmentName: '' });
   const [uploadStats, setUploadStats] = useState(null);
   const [completedCourseId, setCompletedCourseId] = useState(null);
   const [completedMaterialId, setCompletedMaterialId] = useState(null);
@@ -226,45 +227,73 @@ const StudentDashboard = () => {
     const facultyLabel = normalizeProfileText(user?.faculty);
     const departmentLabel = normalizeProfileText(user?.department);
 
-    if (!facultyLabel || !departmentLabel || faculties.length === 0) {
+    setUploadContext({
+      facultyName: user?.faculty || '',
+      departmentName: user?.department || '',
+    });
+
+    if (!departmentLabel || faculties.length === 0) {
       return;
     }
 
-    const matchedFaculty = faculties.find((faculty) => {
+    let matchedFaculty = faculties.find((faculty) => {
       const name = normalizeProfileText(faculty?.name);
       const code = normalizeProfileText(faculty?.code);
       return name === facultyLabel || (code && code === facultyLabel);
     });
 
-    if (!matchedFaculty?._id) {
-      setUploadError('We could not match your faculty from your profile. Please update your profile and try again.');
-      return;
+    let matchedDepartment = null;
+
+    if (matchedFaculty?._id) {
+      const nextDepartments = await fetchDepartments(matchedFaculty._id);
+      matchedDepartment = nextDepartments.find((department) => {
+        const name = normalizeProfileText(department?.name);
+        const code = normalizeProfileText(department?.code);
+        return name === departmentLabel || (code && code === departmentLabel);
+      });
     }
 
-    const nextDepartments = await fetchDepartments(matchedFaculty._id);
-    const matchedDepartment = nextDepartments.find((department) => {
-      const name = normalizeProfileText(department?.name);
-      const code = normalizeProfileText(department?.code);
-      return name === departmentLabel || (code && code === departmentLabel);
-    });
+    if (!matchedDepartment?._id) {
+      try {
+        const response = await api.get('/departments');
+        const allDepartments = Array.isArray(response.data?.data) ? response.data.data : [];
+        matchedDepartment = allDepartments.find((department) => {
+          const name = normalizeProfileText(department?.name);
+          const code = normalizeProfileText(department?.code);
+          return name === departmentLabel || (code && code === departmentLabel);
+        }) || null;
+
+        const inferredFaculty = matchedDepartment?.facultyId;
+        if (matchedDepartment?._id && inferredFaculty) {
+          matchedFaculty = typeof inferredFaculty === 'object'
+            ? inferredFaculty
+            : faculties.find((faculty) => faculty._id === inferredFaculty) || matchedFaculty;
+        }
+      } catch (error) {
+        console.error('Error inferring faculty from department:', error);
+      }
+    }
 
     if (!matchedDepartment?._id) {
-      setUploadForm((current) => ({
-        ...current,
-        facultyId: matchedFaculty._id,
-        departmentId: '',
-        courseId: '',
-      }));
+      setUploadForm((current) => ({ ...current, facultyId: '', departmentId: '', courseId: '' }));
+      setUploadContext({
+        facultyName: matchedFaculty?.name || user?.faculty || 'Not available',
+        departmentName: user?.department || 'Not available',
+      });
       setUploadError('We could not match your department from your profile. Please update your profile and try again.');
       return;
     }
 
     setUploadForm((current) => ({
       ...current,
-      facultyId: matchedFaculty._id,
+      facultyId: matchedFaculty?._id || '',
       departmentId: matchedDepartment._id,
       courseId: '',
     }));
+    setUploadContext({
+      facultyName: matchedFaculty?.name || user?.faculty || 'Not available',
+      departmentName: matchedDepartment?.name || user?.department || 'Not available',
+    });
     setUploadError(null);
   }, [faculties, user]);
 
@@ -761,6 +790,7 @@ const StudentDashboard = () => {
     closeStatusStream();
     setUploadStep(4);
     setUploadForm({ facultyId: '', departmentId: '', courseId: '', file: null });
+    setUploadContext({ facultyName: '', departmentName: '' });
     setUploadError(null);
     setProcessingStatus({ stage: '', progress: 0, message: '' });
     setNewCourse({ courseCode: '', courseName: '', creditUnits: 3 });
@@ -1202,16 +1232,15 @@ const StudentDashboard = () => {
                 {uploadStep === 4 && (
                   <form onSubmit={handleUploadSubmit} className="step-content">
                     <h3>Course Details and Material</h3>
-                    <p className="step-description">Your faculty and department are already set from your profile. Enter the course details once and attach the PDF on this page.</p>
 
                     <div className="profile-context-card">
                       <div>
                         <span className="profile-context-label">Faculty</span>
-                        <strong>{user?.faculty || 'Not available'}</strong>
+                        <strong>{uploadContext.facultyName || 'Not available'}</strong>
                       </div>
                       <div>
                         <span className="profile-context-label">Department</span>
-                        <strong>{user?.department || 'Not available'}</strong>
+                        <strong>{uploadContext.departmentName || 'Not available'}</strong>
                       </div>
                     </div>
 
@@ -1331,8 +1360,6 @@ const StudentDashboard = () => {
                     </div>
 
                     <div className="upload-info">
-                      <p><strong>Note:</strong> Material title will be taken from the course name you enter.</p>
-                      <p><strong>Note:</strong> Our system will generate summaries and practice questions automatically. You'll earn 10 points!</p>
                       <p>
                         <strong>Tip:</strong> Keep your PDF under {formatBytes(MAX_CLOUDINARY_RAW_UPLOAD_BYTES)}. If it is larger, compress it and re-upload using:{' '}
                         {PDF_COMPRESS_SITES.map((s, idx) => (

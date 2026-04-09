@@ -52,16 +52,6 @@ const triggerDownload = (blobUrl, fileName) => {
   document.body.removeChild(anchor);
 };
 
-const initialAssistantMessage = {
-  id: makeId(),
-  role: 'assistant',
-  kind: 'response',
-  data: {
-    answer: 'Enter your course code and I will search for matching past questions, open files here when possible, and let you download them.',
-    suggestions: ASK_EXAMPLES,
-  },
-};
-
 const askStructuredData = {
   '@context': 'https://schema.org',
   '@graph': [
@@ -265,7 +255,7 @@ function ResponseCard({ message, onSuggestionClick }) {
 
 const Ask = () => {
   const [query, setQuery] = useState('');
-  const [messages, setMessages] = useState([initialAssistantMessage]);
+  const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [composerError, setComposerError] = useState('');
   const mountedRef = useRef(true);
