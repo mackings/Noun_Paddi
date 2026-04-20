@@ -13,6 +13,7 @@ const {
   validateStrongPassword,
 } = require('../utils/securityValidation');
 const { validateSignupInput } = require('../middleware/requestValidation');
+const { _private: askControllerPrivate } = require('../controllers/askController');
 
 test('sanitizeText strips html tags and compresses whitespace', () => {
   const input = '  <script>alert("x")</script>   Jane   Doe ';
@@ -124,4 +125,23 @@ test('signup middleware blocks incomplete or placeholder profile data', () => {
   validateSignupInput(req, res, next);
   assert.equal(statusCode, 400);
   assert.equal(calledNext, false);
+});
+
+test('Ask file validation allows text past-question files', () => {
+  assert.equal(
+    askControllerPrivate.isAllowedAskFileResponse({
+      contentType: 'text/plain',
+      contentDisposition: '',
+      url: 'https://puredu.net/pqfiles/NSC221%202022_1%20TMA%201.txt',
+    }),
+    true
+  );
+  assert.equal(
+    askControllerPrivate.isAllowedAskFileResponse({
+      contentType: 'text/html; charset=UTF-8',
+      contentDisposition: '',
+      url: 'https://example.com/not-a-file',
+    }),
+    false
+  );
 });

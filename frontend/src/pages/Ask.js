@@ -52,6 +52,22 @@ const triggerDownload = (blobUrl, fileName) => {
   document.body.removeChild(anchor);
 };
 
+const readBlobErrorMessage = async (requestError, fallback) => {
+  const responseData = requestError.response?.data;
+
+  if (typeof Blob !== 'undefined' && responseData instanceof Blob) {
+    try {
+      const text = await responseData.text();
+      const parsed = JSON.parse(text);
+      return parsed?.message || fallback;
+    } catch (error) {
+      return fallback;
+    }
+  }
+
+  return responseData?.message || fallback;
+};
+
 const askStructuredData = {
   '@context': 'https://schema.org',
   '@graph': [
@@ -355,12 +371,16 @@ const Ask = () => {
       });
       scrollToResults();
     } catch (requestError) {
+      const errorMessage = await readBlobErrorMessage(
+        requestError,
+        'The result was found, but the file could not be opened right now.',
+      );
       updateMessage(messageId, (message) => ({
         data: {
           ...message.data,
           pdfLoading: false,
           fileStatus: '',
-          answer: requestError.response?.data?.message || 'The result was found, but the PDF could not be opened right now.',
+          answer: errorMessage,
         },
       }));
     }
@@ -416,12 +436,16 @@ const Ask = () => {
       });
       scrollToResults();
     } catch (requestError) {
+      const errorMessage = await readBlobErrorMessage(
+        requestError,
+        'That file could not be opened right now.',
+      );
       updateMessage(messageId, (message) => ({
         data: {
           ...message.data,
           pdfLoading: false,
           fileStatus: '',
-          answer: requestError.response?.data?.message || 'That file could not be opened right now.',
+          answer: errorMessage,
         },
       }));
     }

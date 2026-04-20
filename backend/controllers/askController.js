@@ -2,6 +2,40 @@ const jwt = require('jsonwebtoken');
 const axios = require('axios');
 const { answerAskQuery } = require('../utils/askHelper');
 
+const ASK_FILE_EXTENSIONS = ['.pdf', '.doc', '.docx', '.txt'];
+const ASK_FILE_CONTENT_TYPES = [
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/octet-stream',
+  'text/plain',
+];
+
+function safeFileName(fileName = 'noun-file') {
+  return String(fileName || 'noun-file').replace(/["\r\n]/g, '').trim() || 'noun-file';
+}
+
+function containsAllowedFileExtension(value = '') {
+  let normalized = String(value || '').toLowerCase();
+  try {
+    normalized = decodeURIComponent(normalized);
+  } catch (error) {
+    // Keep the raw value when an upstream URL has malformed escape sequences.
+  }
+  return ASK_FILE_EXTENSIONS.some((extension) => normalized.includes(extension));
+}
+
+function isAllowedAskFileResponse({ contentType = '', contentDisposition = '', url = '' } = {}) {
+  const normalizedType = String(contentType || '').toLowerCase();
+  const normalizedDisposition = String(contentDisposition || '').toLowerCase();
+
+  return (
+    ASK_FILE_CONTENT_TYPES.some((allowedType) => normalizedType.includes(allowedType)) ||
+    containsAllowedFileExtension(normalizedDisposition) ||
+    containsAllowedFileExtension(url)
+  );
+}
+
 function issuePdfToken({ url, fileName, userId }) {
   return jwt.sign(
     {
@@ -98,7 +132,7 @@ exports.streamAskPdf = async (req, res) => {
     if (String(payload.userId || '') !== String(req.user?._id || '')) {
       return res.status(403).json({
         success: false,
-        message: 'You are not allowed to open this PDF.',
+        message: 'You are not allowed to open this file.',
       });
     }
 
@@ -108,24 +142,17 @@ exports.streamAskPdf = async (req, res) => {
       maxRedirects: 5,
       headers: {
         'User-Agent': 'Mozilla/5.0 (compatible; NounPaddiAsk/1.0; +https://paddi.com.ng)',
-        Accept: 'application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/octet-stream,text/html;q=0.8,*/*;q=0.5',
+        Accept: 'application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,application/octet-stream,text/html;q=0.8,*/*;q=0.5',
       },
     });
 
     const upstreamType = String(response.headers['content-type'] || '').toLowerCase();
     const upstreamDisposition = String(response.headers['content-disposition'] || '');
-    const lowerUrl = String(payload.url || '').toLowerCase();
-    const isAllowedFile =
-      upstreamType.includes('application/pdf') ||
-      upstreamType.includes('application/msword') ||
-      upstreamType.includes('application/vnd.openxmlformats-officedocument.wordprocessingml.document') ||
-      upstreamType.includes('application/octet-stream') ||
-      upstreamDisposition.toLowerCase().includes('.pdf') ||
-      upstreamDisposition.toLowerCase().includes('.doc') ||
-      upstreamDisposition.toLowerCase().includes('.docx') ||
-      lowerUrl.includes('.pdf') ||
-      lowerUrl.includes('.doc') ||
-      lowerUrl.includes('.docx');
+    const isAllowedFile = isAllowedAskFileResponse({
+      contentType: upstreamType,
+      contentDisposition: upstreamDisposition,
+      url: payload.url,
+    });
 
     if (!isAllowedFile) {
       response.data.destroy();
@@ -136,12 +163,12 @@ exports.streamAskPdf = async (req, res) => {
     }
 
     res.setHeader('Content-Type', upstreamType || 'application/octet-stream');
-    res.setHeader('Content-Disposition', `inline; filename="${String(payload.fileName || 'noun-file').replace(/"/g, '')}"`);
+    res.setHeader('Content-Disposition', `inline; filename="${safeFileName(payload.fileName)}"`);
     res.setHeader('Cache-Control', 'private, max-age=300');
 
     response.data.on('error', () => {
       if (!res.headersSent) {
-        res.status(502).end('Failed to stream PDF');
+        res.status(502).end('Failed to stream file');
       } else {
         res.end();
       }
@@ -159,4 +186,10 @@ exports.streamAskPdf = async (req, res) => {
       message,
     });
   }
+};
+
+exports._private = {
+  containsAllowedFileExtension,
+  isAllowedAskFileResponse,
+  safeFileName,
 };
