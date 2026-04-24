@@ -1028,6 +1028,28 @@
   font-size: 15px;
 }
 
+.profile-fallback-callout {
+  margin: -8px 0 24px;
+  padding: 16px 18px;
+  border: 1px solid #cbd5f5;
+  border-radius: 12px;
+  background: #f8faff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.profile-fallback-callout p {
+  margin: 0;
+  color: #334155;
+  font-size: 14px;
+}
+
+.profile-fallback-trigger {
+  flex-shrink: 0;
+}
+
 .form-group input[type="file"] {
   width: 100%;
   padding: 12px;
@@ -1076,6 +1098,74 @@
   display: flex;
   gap: 12px;
   justify-content: flex-end;
+}
+
+.upload-profile-sheet-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2100;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 18px;
+  background: rgba(15, 23, 42, 0.32);
+}
+
+.upload-profile-sheet {
+  position: relative;
+  width: min(100%, 560px);
+  padding: 24px 22px 20px;
+  border-radius: 24px 24px 16px 16px;
+  background: #ffffff;
+  border: 1px solid #d9e2f3;
+  box-shadow: 0 28px 48px rgba(15, 23, 42, 0.22);
+}
+
+.upload-profile-sheet-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 38px;
+  height: 38px;
+  border: 1px solid #d9e2f3;
+  border-radius: 999px;
+  background: #f8fafc;
+  color: #475569;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.upload-profile-sheet-kicker {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #4f46e5;
+}
+
+.upload-profile-sheet h3 {
+  margin: 0 0 8px;
+  color: #0f172a;
+}
+
+.upload-profile-sheet-copy {
+  margin: 0 0 18px;
+  color: #475569;
+}
+
+.upload-profile-sheet-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.upload-profile-sheet-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
 }
 
 .duplicate-dialog-overlay {
@@ -1520,6 +1610,11 @@
     grid-template-columns: 1fr;
   }
 
+  .profile-fallback-callout {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
   .form-actions,
   .modal-actions {
     flex-direction: column-reverse;
@@ -1534,6 +1629,19 @@
 
   .upload-error {
     align-items: flex-start;
+  }
+
+  .upload-profile-sheet-overlay {
+    padding: 12px;
+  }
+
+  .upload-profile-sheet {
+    width: 100%;
+    padding: 22px 18px 18px;
+  }
+
+  .upload-profile-sheet-actions {
+    flex-direction: column-reverse;
   }
 
   .upload-info {

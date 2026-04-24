@@ -71,7 +71,7 @@ const writeCache = (key, data) => {
 };
 
 const StudentDashboard = () => {
-  const { user } = useAuth();
+  const { user, syncUser } = useAuth();
   const [stats, setStats] = useState(null);
   const [gamificationData, setGamificationData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -87,6 +87,12 @@ const StudentDashboard = () => {
   const [uploadError, setUploadError] = useState(null);
   const [faculties, setFaculties] = useState([]);
   const [uploadContext, setUploadContext] = useState({ facultyName: '', departmentName: '' });
+  const [showProfileFallbackSheet, setShowProfileFallbackSheet] = useState(false);
+  const [profileFallbackForm, setProfileFallbackForm] = useState({ facultyId: '', departmentId: '' });
+  const [profileFallbackDepartments, setProfileFallbackDepartments] = useState([]);
+  const [profileFallbackLoading, setProfileFallbackLoading] = useState(false);
+  const [profileFallbackSaving, setProfileFallbackSaving] = useState(false);
+  const [profileFallbackError, setProfileFallbackError] = useState('');
   const [uploadStats, setUploadStats] = useState(null);
   const [completedCourseId, setCompletedCourseId] = useState(null);
   const [completedMaterialId, setCompletedMaterialId] = useState(null);
@@ -188,7 +194,7 @@ const StudentDashboard = () => {
     }
   }, []);
 
-  const fetchDepartments = async (facultyId) => {
+  const fetchDepartments = useCallback(async (facultyId) => {
     const cacheKey = `${DEPT_CACHE_PREFIX}${facultyId}`;
     const cached = readCache(cacheKey);
     if (cached) {
@@ -203,7 +209,7 @@ const StudentDashboard = () => {
       console.error('Error fetching departments:', error);
       return [];
     }
-  };
+  }, []);
 
 
   const fetchUploadStats = async () => {
@@ -223,16 +229,73 @@ const StudentDashboard = () => {
     trackFeatureVisit('dashboard');
   }, [fetchFaculties]);
 
-  const resolveProfileUploadContext = useCallback(async () => {
-    const facultyLabel = normalizeProfileText(user?.faculty);
-    const departmentLabel = normalizeProfileText(user?.department);
+  const loadProfileFallbackDepartments = useCallback(async (facultyId) => {
+    if (!facultyId) {
+      setProfileFallbackDepartments([]);
+      return [];
+    }
 
-    setUploadContext({
-      facultyName: user?.faculty || '',
-      departmentName: user?.department || '',
+    setProfileFallbackLoading(true);
+    try {
+      const departments = await fetchDepartments(facultyId);
+      setProfileFallbackDepartments(departments);
+      return departments;
+    } finally {
+      setProfileFallbackLoading(false);
+    }
+  }, [fetchDepartments]);
+
+  const closeProfileFallbackSheet = useCallback(() => {
+    setShowProfileFallbackSheet(false);
+    setProfileFallbackForm({ facultyId: '', departmentId: '' });
+    setProfileFallbackDepartments([]);
+    setProfileFallbackLoading(false);
+    setProfileFallbackSaving(false);
+    setProfileFallbackError('');
+  }, []);
+
+  const openProfileFallbackSheet = useCallback(async ({
+    matchedFaculty = null,
+    profileOverride = user,
+    errorMessage = 'We could not detect your faculty and department from your profile. Select them below to continue.',
+  } = {}) => {
+    const initialFacultyId = matchedFaculty?._id || '';
+    const departments = await loadProfileFallbackDepartments(initialFacultyId);
+    const departmentLabel = normalizeProfileText(profileOverride?.department);
+    const preselectedDepartment = departments.find((department) => {
+      const name = normalizeProfileText(department?.name);
+      const code = normalizeProfileText(department?.code);
+      return name === departmentLabel || (code && code === departmentLabel);
     });
 
-    if (!departmentLabel || faculties.length === 0) {
+    setProfileFallbackForm({
+      facultyId: initialFacultyId,
+      departmentId: preselectedDepartment?._id || '',
+    });
+    setProfileFallbackError('');
+    setShowProfileFallbackSheet(true);
+    setUploadError(errorMessage);
+  }, [loadProfileFallbackDepartments, user]);
+
+  const resolveProfileUploadContext = useCallback(async (profileOverride = user) => {
+    const facultyLabel = normalizeProfileText(profileOverride?.faculty);
+    const departmentLabel = normalizeProfileText(profileOverride?.department);
+
+    setUploadContext({
+      facultyName: profileOverride?.faculty || '',
+      departmentName: profileOverride?.department || '',
+    });
+
+    if (faculties.length === 0) {
+      return;
+    }
+
+    if (!facultyLabel || !departmentLabel) {
+      setUploadForm((current) => ({ ...current, facultyId: '', departmentId: '', courseId: '' }));
+      await openProfileFallbackSheet({
+        profileOverride,
+        errorMessage: 'We could not detect your faculty and department from your profile. Select them below to continue.',
+      });
       return;
     }
 
@@ -277,10 +340,14 @@ const StudentDashboard = () => {
     if (!matchedDepartment?._id) {
       setUploadForm((current) => ({ ...current, facultyId: '', departmentId: '', courseId: '' }));
       setUploadContext({
-        facultyName: matchedFaculty?.name || user?.faculty || 'Not available',
-        departmentName: user?.department || 'Not available',
+        facultyName: matchedFaculty?.name || profileOverride?.faculty || 'Not available',
+        departmentName: profileOverride?.department || 'Not available',
       });
-      setUploadError('We could not match your department from your profile. Please update your profile and try again.');
+      await openProfileFallbackSheet({
+        matchedFaculty,
+        profileOverride,
+        errorMessage: 'We could not match your department from your profile. Select the correct details below to continue.',
+      });
       return;
     }
 
@@ -291,16 +358,77 @@ const StudentDashboard = () => {
       courseId: '',
     }));
     setUploadContext({
-      facultyName: matchedFaculty?.name || user?.faculty || 'Not available',
-      departmentName: matchedDepartment?.name || user?.department || 'Not available',
+      facultyName: matchedFaculty?.name || profileOverride?.faculty || 'Not available',
+      departmentName: matchedDepartment?.name || profileOverride?.department || 'Not available',
     });
+    closeProfileFallbackSheet();
     setUploadError(null);
-  }, [faculties, user]);
+  }, [closeProfileFallbackSheet, faculties, fetchDepartments, openProfileFallbackSheet, user]);
 
   useEffect(() => {
     if (!showUploadModal) return;
     resolveProfileUploadContext();
   }, [showUploadModal, resolveProfileUploadContext]);
+
+  const handleProfileFallbackFacultyChange = async (event) => {
+    const facultyId = event.target.value;
+    setProfileFallbackForm({ facultyId, departmentId: '' });
+    setProfileFallbackError('');
+    await loadProfileFallbackDepartments(facultyId);
+  };
+
+  const handleProfileFallbackSubmit = async (event) => {
+    event.preventDefault();
+
+    if (!profileFallbackForm.facultyId || !profileFallbackForm.departmentId) {
+      setProfileFallbackError('Select your faculty and department to continue.');
+      return;
+    }
+
+    const selectedFaculty = faculties.find((faculty) => faculty._id === profileFallbackForm.facultyId);
+    const selectedDepartment = profileFallbackDepartments.find(
+      (department) => department._id === profileFallbackForm.departmentId
+    );
+
+    if (!selectedFaculty || !selectedDepartment) {
+      setProfileFallbackError('We could not save your selection. Try choosing the options again.');
+      return;
+    }
+
+    setProfileFallbackSaving(true);
+    setProfileFallbackError('');
+    setUploadError(null);
+    setUploadContext({
+      facultyName: selectedFaculty.name,
+      departmentName: selectedDepartment.name,
+    });
+    setUploadForm((current) => ({
+      ...current,
+      facultyId: selectedFaculty._id,
+      departmentId: selectedDepartment._id,
+      courseId: '',
+    }));
+
+    try {
+      const response = await api.put('/users/profile', {
+        faculty: selectedFaculty.name,
+        department: selectedDepartment.name,
+      });
+      const updatedProfile = response.data?.data || {
+        ...user,
+        faculty: selectedFaculty.name,
+        department: selectedDepartment.name,
+      };
+      syncUser(updatedProfile);
+      await resolveProfileUploadContext(updatedProfile);
+    } catch (error) {
+      setProfileFallbackError(
+        error.response?.data?.message || 'We could not save your faculty and department. Please try again.'
+      );
+    } finally {
+      setProfileFallbackSaving(false);
+    }
+  };
 
   const closeStatusStream = () => {
     if (sseRef.current) {
@@ -584,7 +712,8 @@ const StudentDashboard = () => {
         : 3;
 
     if (!uploadForm.departmentId) {
-      setUploadError('We could not match your faculty and department from your profile. Update your profile and try again.');
+      setUploadError('We could not match your faculty and department from your profile. Select them below to continue.');
+      openProfileFallbackSheet();
       return;
     }
     if (!normalizedCode) {
@@ -791,6 +920,7 @@ const StudentDashboard = () => {
     setUploadStep(4);
     setUploadForm({ facultyId: '', departmentId: '', courseId: '', file: null });
     setUploadContext({ facultyName: '', departmentName: '' });
+    closeProfileFallbackSheet();
     setUploadError(null);
     setProcessingStatus({ stage: '', progress: 0, message: '' });
     setNewCourse({ courseCode: '', courseName: '', creditUnits: 3 });
@@ -1244,6 +1374,20 @@ const StudentDashboard = () => {
                       </div>
                     </div>
 
+                    {!uploadForm.departmentId && (
+                      <div className="profile-fallback-callout">
+                        <p>We could not detect your upload department from your profile.</p>
+                        <button
+                          type="button"
+                          className="btn btn-secondary profile-fallback-trigger"
+                          onClick={() => openProfileFallbackSheet()}
+                          disabled={profileFallbackSaving}
+                        >
+                          Select faculty and department
+                        </button>
+                      </div>
+                    )}
+
                     <div className="form-group">
                       <label>Course Code</label>
                       <input
@@ -1353,7 +1497,13 @@ const StudentDashboard = () => {
                       <button
                         type="submit"
                         className="btn btn-primary"
-                        disabled={uploading || !uploadForm.file || !newCourse.courseCode.trim() || !newCourse.courseName.trim()}
+                        disabled={
+                          uploading ||
+                          !uploadForm.departmentId ||
+                          !uploadForm.file ||
+                          !newCourse.courseCode.trim() ||
+                          !newCourse.courseName.trim()
+                        }
                       >
                         {uploading ? 'Uploading...' : 'Upload Material'}
                       </button>
@@ -1453,6 +1603,112 @@ const StudentDashboard = () => {
                   </div>
                 )}
               </div>
+
+              {showProfileFallbackSheet && (
+                <div
+                  className="upload-profile-sheet-overlay"
+                  role="presentation"
+                  onClick={profileFallbackSaving ? undefined : closeProfileFallbackSheet}
+                >
+                  <div
+                    className="upload-profile-sheet"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="upload-profile-sheet-title"
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    <button
+                      type="button"
+                      className="upload-profile-sheet-close"
+                      onClick={closeProfileFallbackSheet}
+                      aria-label="Close profile selector"
+                      disabled={profileFallbackSaving}
+                    >
+                      <FiX />
+                    </button>
+                    <p className="upload-profile-sheet-kicker">Profile Check</p>
+                    <h3 id="upload-profile-sheet-title">Select your faculty and department</h3>
+                    <p className="upload-profile-sheet-copy">
+                      We will save this to your profile and refresh the upload form in the background so you can continue.
+                    </p>
+
+                    <form onSubmit={handleProfileFallbackSubmit} className="upload-profile-sheet-form">
+                      <div className="form-group">
+                        <label htmlFor="upload-profile-faculty">Faculty</label>
+                        <select
+                          id="upload-profile-faculty"
+                          value={profileFallbackForm.facultyId}
+                          onChange={handleProfileFallbackFacultyChange}
+                          disabled={profileFallbackSaving}
+                          required
+                        >
+                          <option value="">Select faculty</option>
+                          {faculties.map((faculty) => (
+                            <option key={faculty._id} value={faculty._id}>
+                              {faculty.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="form-group">
+                        <label htmlFor="upload-profile-department">Department</label>
+                        <select
+                          id="upload-profile-department"
+                          value={profileFallbackForm.departmentId}
+                          onChange={(event) => {
+                            setProfileFallbackForm((current) => ({
+                              ...current,
+                              departmentId: event.target.value,
+                            }));
+                            setProfileFallbackError('');
+                          }}
+                          disabled={!profileFallbackForm.facultyId || profileFallbackLoading || profileFallbackSaving}
+                          required
+                        >
+                          <option value="">
+                            {profileFallbackForm.facultyId
+                              ? profileFallbackLoading
+                                ? 'Loading departments...'
+                                : 'Select department'
+                              : 'Select faculty first'}
+                          </option>
+                          {profileFallbackDepartments.map((department) => (
+                            <option key={department._id} value={department._id}>
+                              {department.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {profileFallbackError && <div className="upload-error">{profileFallbackError}</div>}
+
+                      <div className="upload-profile-sheet-actions">
+                        <button
+                          type="button"
+                          className="btn btn-secondary"
+                          onClick={closeProfileFallbackSheet}
+                          disabled={profileFallbackSaving}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          className="btn btn-primary"
+                          disabled={
+                            profileFallbackSaving ||
+                            profileFallbackLoading ||
+                            !profileFallbackForm.facultyId ||
+                            !profileFallbackForm.departmentId
+                          }
+                        >
+                          {profileFallbackSaving ? 'Saving...' : 'Save and continue'}
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
 
               {duplicateInfo && (
                 <div className="duplicate-dialog-overlay" onClick={() => setDuplicateInfo(null)}>

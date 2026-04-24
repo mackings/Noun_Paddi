@@ -40,6 +40,18 @@ export const AuthProvider = ({ children }) => {
     if (typeof window === 'undefined' || !('Notification' in window)) return 'unsupported';
     return Notification.permission;
   });
+
+  const syncUser = useCallback((nextUser) => {
+    setUser(nextUser);
+    cacheUser(nextUser);
+  }, []);
+
+  const refreshUser = useCallback(async () => {
+    const response = await api.get('/auth/me');
+    const nextUser = response.data.data;
+    syncUser(nextUser);
+    return nextUser;
+  }, [syncUser]);
   
   const refreshNotificationPermission = useCallback(() => {
     if (typeof window === 'undefined' || !('Notification' in window)) {
@@ -109,30 +121,26 @@ export const AuthProvider = ({ children }) => {
     const loadUser = async () => {
       const token = localStorage.getItem('token');
       try {
-        const response = await api.get('/auth/me');
-        setUser(response.data.data);
-        cacheUser(response.data.data);
+        await refreshUser();
         await ensurePushPermissionForUser({ requestPermission: false });
       } catch (error) {
         const status = error?.response?.status;
         if (status === 401 || status === 403 || token) {
           localStorage.removeItem('token');
         }
-        setUser(null);
-        cacheUser(null);
+        syncUser(null);
       }
       refreshNotificationPermission();
       setLoading(false);
     };
     loadUser();
-  }, [ensurePushPermissionForUser, refreshNotificationPermission]);
+  }, [ensurePushPermissionForUser, refreshNotificationPermission, refreshUser, syncUser]);
 
   const login = async (email, password) => {
     const response = await api.post('/auth/login', { email, password });
     const { token, ...userData } = response.data.data;
     localStorage.setItem('token', token);
-    setUser(userData);
-    cacheUser(userData);
+    syncUser(userData);
     await ensurePushPermissionForUser({ requestPermission: true });
     return response.data;
   };
@@ -141,8 +149,7 @@ export const AuthProvider = ({ children }) => {
     const response = await api.post('/auth/signup', userData);
     const { token, ...user } = response.data.data;
     localStorage.setItem('token', token);
-    setUser(user);
-    cacheUser(user);
+    syncUser(user);
     await ensurePushPermissionForUser({ requestPermission: true });
     return response.data;
   };
@@ -163,14 +170,15 @@ export const AuthProvider = ({ children }) => {
       console.error('Logout endpoint error:', error);
     }
     localStorage.removeItem('token');
-    cacheUser(null);
-    setUser(null);
+    syncUser(null);
     refreshNotificationPermission();
   };
 
   const value = {
     user,
     loading,
+    syncUser,
+    refreshUser,
     notificationPermission,
     enableNotifications,
     login,
