@@ -9,6 +9,25 @@ const APIUsage = require('../models/APIUsage');
 const { cloudinary } = require('../config/cloudinary');
 const { extractTextFromPDF, extractTextFromBuffer } = require('./pdfHelper');
 
+const PDF_DOWNLOAD_TIMEOUT_MS = Number(process.env.PDF_DOWNLOAD_TIMEOUT_MS || 180000);
+const GEMINI_SUMMARY_TIMEOUT_MS = Number(process.env.GEMINI_SUMMARY_TIMEOUT_MS || 300000);
+const GEMINI_QUESTIONS_TIMEOUT_MS = Number(process.env.GEMINI_QUESTIONS_TIMEOUT_MS || 240000);
+const GEMINI_SUMMARY_MODEL = process.env.GEMINI_SUMMARY_MODEL || 'gemini-2.5-pro';
+const GEMINI_QUESTIONS_MODEL = process.env.GEMINI_QUESTIONS_MODEL || 'gemini-2.5-flash';
+
+function withTimeout(promise, timeoutMs, label) {
+  let timeoutId;
+  const timeoutPromise = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(new Error(`${label} timed out after ${Math.round(timeoutMs / 1000)}s`));
+    }, timeoutMs);
+  });
+
+  return Promise.race([promise, timeoutPromise]).finally(() => {
+    clearTimeout(timeoutId);
+  });
+}
+
 
 // ============================================
 // GROQ CLIENT SETUP - COMMENTED OUT
@@ -75,10 +94,16 @@ function getClientCount() {
 // Download PDF once and cache the buffer for reuse
 async function downloadPDFBuffer(pdfUrl) {
   const signedUrl = getCloudinarySignedUrl(pdfUrl);
+  const startedAt = Date.now();
   console.log('Downloading PDF from:', signedUrl);
-  const response = await axios.get(signedUrl, { responseType: 'arraybuffer' });
+  const response = await axios.get(signedUrl, {
+    responseType: 'arraybuffer',
+    timeout: PDF_DOWNLOAD_TIMEOUT_MS,
+    signal: AbortSignal.timeout(PDF_DOWNLOAD_TIMEOUT_MS),
+    maxContentLength: 80 * 1024 * 1024,
+  });
   const buffer = Buffer.from(response.data);
-  console.log('PDF downloaded, size:', buffer.length, 'bytes');
+  console.log(`PDF downloaded, size: ${buffer.length} bytes, elapsed: ${Date.now() - startedAt}ms`);
   return buffer;
 }
 
@@ -96,6 +121,14 @@ function isOverloadedError(error) {
     error?.response?.status === 503 ||
     message.includes('503') ||
     message.toLowerCase().includes('overloaded');
+}
+
+function isRetryableGeminiError(error) {
+  const message = `${error?.message || ''}`.toLowerCase();
+  return isRateLimitError(error) ||
+    isOverloadedError(error) ||
+    message.includes('quota') ||
+    message.includes('rate limit');
 }
 
 function sleep(ms) {
@@ -219,13 +252,13 @@ async function withGeminiClient(fn) {
 }
 
 // Helper function to track API usage
-async function trackAPIUsage(operationType, result, materialId = null, userId = null, success = true, errorMessage = null) {
+async function trackAPIUsage(operationType, result, materialId = null, userId = null, success = true, errorMessage = null, modelName = GEMINI_QUESTIONS_MODEL) {
   try {
     const usageMetadata = result?.response?.usageMetadata || {};
 
     await APIUsage.create({
       operationType,
-      model: 'gemini-2.5-flash',
+      model: modelName,
       materialId,
       userId,
       inputTokens: usageMetadata.promptTokenCount || 0,
@@ -338,7 +371,7 @@ ${wrapUntrustedSourceMaterial(cleanedText, 'COURSE MATERIAL')}
 Please provide a well-structured, comprehensive summary with proper bold headers, effective use of paragraphs and bullet points. Make it detailed and easy to understand:`;
 
     const result = await withGeminiClient(async ({ genAI }) => {
-      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+      const model = genAI.getGenerativeModel({ model: GEMINI_SUMMARY_MODEL });
       return await model.generateContent(prompt);
     });
     const response = result.response;
@@ -348,7 +381,7 @@ Please provide a well-structured, comprehensive summary with proper bold headers
     console.log('Summary length:', summary.length);
 
     // Track API usage
-    await trackAPIUsage('summarize', result, materialId, userId, true);
+    await trackAPIUsage('summarize', result, materialId, userId, true, null, GEMINI_SUMMARY_MODEL);
 
     return summary;
   } catch (error) {
@@ -356,7 +389,7 @@ Please provide a well-structured, comprehensive summary with proper bold headers
     console.error('Error details:', error.message);
 
     // Track failed API usage
-    await trackAPIUsage('summarize', null, materialId, userId, false, error.message);
+    await trackAPIUsage('summarize', null, materialId, userId, false, error.message, GEMINI_SUMMARY_MODEL);
 
     throw new Error(error.message || 'Failed to generate summary');
   }
@@ -396,7 +429,7 @@ async function summarizePDFDirectly(pdfUrl, materialId = null, userId = null) {
       console.log('File uploaded:', uploadResult.file.uri);
 
       // Initialize model
-      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+      const model = genAI.getGenerativeModel({ model: GEMINI_SUMMARY_MODEL });
 
       // Generate summary from PDF
       console.log('Generating summary from PDF...');
@@ -469,7 +502,7 @@ Please provide a well-structured, comprehensive summary with proper bold headers
     console.log('Summary length:', summary.length);
 
     // Track API usage
-    await trackAPIUsage('summarize', result, materialId, userId, true);
+    await trackAPIUsage('summarize', result, materialId, userId, true, null, GEMINI_SUMMARY_MODEL);
 
     // Clean up temp file
     if (tempFilePath && fs.existsSync(tempFilePath)) {
@@ -484,7 +517,7 @@ Please provide a well-structured, comprehensive summary with proper bold headers
     console.error('Error details:', error.message);
 
     // Track failed API usage
-    await trackAPIUsage('summarize', null, materialId, userId, false, error.message);
+    await trackAPIUsage('summarize', null, materialId, userId, false, error.message, GEMINI_SUMMARY_MODEL);
 
     // Clean up temp file on error
     if (tempFilePath && fs.existsSync(tempFilePath)) {
@@ -628,7 +661,7 @@ ${excludeText}
 
 Generate ${counts.total} questions (${counts.mcq} multiple-choice, ${counts.tf} true-false, ${counts.ms} multi-select) with RANDOMIZED and BALANCED correct answers:`;
     const result = await withGeminiClient(async ({ genAI }) => {
-      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+      const model = genAI.getGenerativeModel({ model: GEMINI_QUESTIONS_MODEL });
       return await model.generateContent(prompt);
     });
     const response = result.response;
@@ -637,7 +670,7 @@ Generate ${counts.total} questions (${counts.mcq} multiple-choice, ${counts.tf} 
     console.log('Question generation successful');
 
     // Track API usage
-    await trackAPIUsage('generate_questions', result, materialId, userId, true);
+    await trackAPIUsage('generate_questions', result, materialId, userId, true, null, GEMINI_QUESTIONS_MODEL);
 
     // Return the generated text - it will be parsed by formatQuestionsToMCQ
     return { generated_text: questionsText };
@@ -646,7 +679,7 @@ Generate ${counts.total} questions (${counts.mcq} multiple-choice, ${counts.tf} 
     console.error('Error details:', error.message);
 
     // Track failed API usage
-    await trackAPIUsage('generate_questions', null, materialId, userId, false, error.message);
+    await trackAPIUsage('generate_questions', null, materialId, userId, false, error.message, GEMINI_QUESTIONS_MODEL);
 
     // Fallback to simple questions
     console.log('Falling back to simple question extraction...');
@@ -683,7 +716,7 @@ async function generateQuestionsFromPDF(pdfUrl, materialId = null, userId = null
       console.log('File uploaded:', uploadResult.file.uri);
 
       // Initialize model
-      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+      const model = genAI.getGenerativeModel({ model: GEMINI_QUESTIONS_MODEL });
 
       // Generate questions from PDF
       console.log('Generating questions from PDF...');
@@ -788,7 +821,7 @@ Generate ${counts.total} questions (${counts.mcq} multiple-choice, ${counts.tf} 
     console.log('Question generation successful');
 
     // Track API usage
-    await trackAPIUsage('generate_questions', result, materialId, userId, true);
+    await trackAPIUsage('generate_questions', result, materialId, userId, true, null, GEMINI_QUESTIONS_MODEL);
 
     // Clean up temp file
     if (tempFilePath && fs.existsSync(tempFilePath)) {
@@ -801,7 +834,7 @@ Generate ${counts.total} questions (${counts.mcq} multiple-choice, ${counts.tf} 
     console.error('PDF question generation error:', error);
 
     // Track failed API usage
-    await trackAPIUsage('generate_questions', null, materialId, userId, false, error.message);
+    await trackAPIUsage('generate_questions', null, materialId, userId, false, error.message, GEMINI_QUESTIONS_MODEL);
 
     // Clean up temp file on error
     if (tempFilePath && fs.existsSync(tempFilePath)) {
@@ -1087,30 +1120,37 @@ Generate ${counts.total} questions with RANDOMIZED answers and high difficulty:`
     const keyIdx = (clientIndex + attempt) % clientCount;
     const client = getClientByIndex(keyIdx);
 
-    try {
-      console.log(`Trying questions with API key ${keyIdx + 1}...`);
-      const model = client.genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-      const result = await model.generateContent(prompt);
-      const questionsText = result.response.text();
+    for (let retryAttempt = 0; retryAttempt < 3; retryAttempt++) {
+      try {
+        console.log(`Trying questions with API key ${keyIdx + 1}, attempt ${retryAttempt + 1}...`);
+        const model = client.genAI.getGenerativeModel({ model: GEMINI_QUESTIONS_MODEL });
+        const result = await withTimeout(
+          model.generateContent(prompt),
+          GEMINI_QUESTIONS_TIMEOUT_MS,
+          `Gemini question generation for ${totalQuestions} questions`
+        );
+        const questionsText = result.response.text();
 
-      await trackAPIUsage('generate_questions', result, materialId, userId, true);
-      return { generated_text: questionsText };
-    } catch (error) {
-      lastError = error;
-      console.error(`Questions failed on key ${keyIdx + 1}:`, error.message?.substring(0, 100));
+        await trackAPIUsage('generate_questions', result, materialId, userId, true, null, GEMINI_QUESTIONS_MODEL);
+        return { generated_text: questionsText };
+      } catch (error) {
+        lastError = error;
+        console.error(`Questions failed on key ${keyIdx + 1}, attempt ${retryAttempt + 1}:`, error.message?.substring(0, 160));
 
-      // If rate limited, try next key
-      if (error.message?.includes('429') || error.message?.includes('quota')) {
-        console.log(`Key ${keyIdx + 1} rate limited, trying next key...`);
-        continue;
+        if (isRetryableGeminiError(error)) {
+          const backoffMs = 1000 * Math.pow(2, retryAttempt) + Math.floor(Math.random() * 500);
+          console.log(`Retryable questions error. Waiting ${backoffMs}ms before retry...`);
+          await sleep(backoffMs);
+          continue;
+        }
+
+        throw error;
       }
-      // For other errors, throw immediately
-      throw error;
     }
   }
 
   // All keys failed
-  await trackAPIUsage('generate_questions', null, materialId, userId, false, lastError?.message);
+  await trackAPIUsage('generate_questions', null, materialId, userId, false, lastError?.message, GEMINI_QUESTIONS_MODEL);
   throw lastError || new Error('All API keys exhausted');
 }
 
@@ -1147,39 +1187,47 @@ Provide a well-structured, comprehensive summary. If a module or unit is missing
     const keyIdx = (clientIndex + attempt) % clientCount;
     const client = getClientByIndex(keyIdx);
 
-    try {
-      console.log(`Trying summary with API key ${keyIdx + 1}...`);
-      const model = client.genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-      const result = await model.generateContent(prompt);
-      const summary = result.response.text();
+    for (let retryAttempt = 0; retryAttempt < 3; retryAttempt++) {
+      try {
+        console.log(`Trying summary with API key ${keyIdx + 1}, attempt ${retryAttempt + 1}...`);
+        const model = client.genAI.getGenerativeModel({ model: GEMINI_SUMMARY_MODEL });
+        console.log(`Summary prompt length: ${prompt.length} characters`);
+        const result = await withTimeout(
+          model.generateContent(prompt),
+          GEMINI_SUMMARY_TIMEOUT_MS,
+          'Gemini summary generation'
+        );
+        const summary = result.response.text();
 
-      await trackAPIUsage('summarize', result, materialId, userId, true);
-      return summary;
-    } catch (error) {
-      lastError = error;
-      console.error(`Summary failed on key ${keyIdx + 1}:`, error.message?.substring(0, 100));
+        await trackAPIUsage('summarize', result, materialId, userId, true, null, GEMINI_SUMMARY_MODEL);
+        return summary;
+      } catch (error) {
+        lastError = error;
+        console.error(`Summary failed on key ${keyIdx + 1}, attempt ${retryAttempt + 1}:`, error.message?.substring(0, 160));
 
-      // If rate limited, try next key
-      if (error.message?.includes('429') || error.message?.includes('quota')) {
-        console.log(`Key ${keyIdx + 1} rate limited, trying next key...`);
-        continue;
+        if (isRetryableGeminiError(error)) {
+          const backoffMs = 1000 * Math.pow(2, retryAttempt) + Math.floor(Math.random() * 500);
+          console.log(`Retryable summary error. Waiting ${backoffMs}ms before retry...`);
+          await sleep(backoffMs);
+          continue;
+        }
+
+        throw error;
       }
-      // For other errors, throw immediately
-      throw error;
     }
   }
 
   // All keys failed
-  await trackAPIUsage('summarize', null, materialId, userId, false, lastError?.message);
+  await trackAPIUsage('summarize', null, materialId, userId, false, lastError?.message, GEMINI_SUMMARY_MODEL);
   throw lastError || new Error('All API keys exhausted');
 }
 
 // FAST: Generate summary and initial questions - optimized for speed
-// Uses Gemini 2.5 Flash on Tier 1 (300 RPM, 2M TPM, 1500 RPD)
 async function generateSummaryAndQuestionsParallel(pdfUrl, materialId = null, userId = null) {
   const startTime = Date.now();
   console.log('Starting OPTIMIZED summary + questions generation...');
-  console.log('Provider: Gemini 2.5 Flash (Tier 1)');
+  console.log(`Summary model: ${GEMINI_SUMMARY_MODEL}`);
+  console.log(`Questions model: ${GEMINI_QUESTIONS_MODEL}`);
 
   // Step 1: Download PDF once
   console.log('Step 1: Downloading PDF...');
@@ -1250,7 +1298,7 @@ async function summarizePDFDirectlyFromFile(tempFilePath, materialId = null, use
       displayName: 'Study Material',
     });
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const model = genAI.getGenerativeModel({ model: GEMINI_SUMMARY_MODEL });
     return await model.generateContent([
       { fileData: { mimeType: uploadResult.file.mimeType, fileUri: uploadResult.file.uri } },
       { text: `${buildPromptGuardText('UPLOADED PDF')}
@@ -1259,7 +1307,7 @@ Provide a comprehensive, well-formatted summary of this PDF. Use bold headers fo
     ]);
   });
 
-  await trackAPIUsage('summarize', result, materialId, userId, true);
+  await trackAPIUsage('summarize', result, materialId, userId, true, null, GEMINI_SUMMARY_MODEL);
   return result.response.text();
 }
 
@@ -1271,7 +1319,7 @@ async function generateQuestionsFromFile(tempFilePath, materialId = null, userId
       displayName: 'Study Material',
     });
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const model = genAI.getGenerativeModel({ model: GEMINI_QUESTIONS_MODEL });
     return await model.generateContent([
       { fileData: { mimeType: uploadResult.file.mimeType, fileUri: uploadResult.file.uri } },
       { text: `${buildPromptGuardText('UPLOADED PDF')}
@@ -1280,7 +1328,7 @@ Generate ${totalQuestions} challenging practice questions from the WHOLE materia
     ]);
   });
 
-  await trackAPIUsage('generate_questions', result, materialId, userId, true);
+  await trackAPIUsage('generate_questions', result, materialId, userId, true, null, GEMINI_QUESTIONS_MODEL);
   return { generated_text: result.response.text() };
 }
 
