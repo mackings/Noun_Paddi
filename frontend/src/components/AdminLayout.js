@@ -1,31 +1,35 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
+  FiBell,
+  FiChevronRight,
+  FiCommand,
   FiGrid,
   FiUploadCloud,
   FiLayers,
   FiUsers,
-  FiBell,
   FiActivity,
   FiBriefcase,
   FiMap,
   FiBookOpen,
   FiShield,
+  FiEdit3,
 } from 'react-icons/fi';
 import { useAuth } from '../contexts/AuthContext';
 import './AdminLayout.css';
 
 const adminMenu = [
   { to: '/admin/overview', label: 'Overview', icon: FiGrid, key: 'overview' },
-  { to: '/admin/broadcast', label: 'Push Broadcast', icon: FiBell, key: 'broadcast' },
-  { to: '/admin/api-usage', label: 'API Usage', icon: FiActivity, key: 'api-usage' },
-  { to: '/admin/upload?tab=faculties', label: 'Faculties', icon: FiBriefcase, key: 'faculties' },
-  { to: '/admin/upload?tab=departments', label: 'Departments', icon: FiMap, key: 'departments' },
-  { to: '/admin/upload?tab=courses', label: 'Courses', icon: FiBookOpen, key: 'courses' },
-  { to: '/admin/upload?tab=materials', label: 'Upload Materials', icon: FiUploadCloud, key: 'materials-upload' },
-  { to: '/admin/materials', label: 'Material Library', icon: FiLayers, key: 'materials-library' },
-  { to: '/admin/users', label: 'Users', icon: FiUsers, key: 'users' },
-  { to: '/admin/users#invite', label: 'Invite Admin', icon: FiShield, key: 'invite-admin' },
+  { to: '/admin/broadcast', label: 'Push Broadcast', icon: FiBell, key: 'broadcast', group: 'Operations' },
+  { to: '/admin/api-usage', label: 'API Usage', icon: FiActivity, key: 'api-usage', group: 'Operations' },
+  { to: '/admin/upload?tab=faculties', label: 'Faculties', icon: FiBriefcase, key: 'faculties', group: 'Academic Setup' },
+  { to: '/admin/upload?tab=departments', label: 'Departments', icon: FiMap, key: 'departments', group: 'Academic Setup' },
+  { to: '/admin/upload?tab=courses', label: 'Courses', icon: FiBookOpen, key: 'courses', group: 'Academic Setup' },
+  { to: '/admin/upload?tab=materials', label: 'Upload Materials', icon: FiUploadCloud, key: 'materials-upload', group: 'Content' },
+  { to: '/admin/materials', label: 'Material Library', icon: FiLayers, key: 'materials-library', group: 'Content' },
+  { to: '/admin/tma', label: 'TMA', icon: FiEdit3, key: 'tma', group: 'Content' },
+  { to: '/admin/users', label: 'Users', icon: FiUsers, key: 'users', group: 'Access' },
+  { to: '/admin/users#invite', label: 'Invite Admin', icon: FiShield, key: 'invite-admin', group: 'Access' },
 ];
 
 const AdminLayout = ({ children }) => {
@@ -50,29 +54,44 @@ const AdminLayout = ({ children }) => {
     }
     return location.pathname === item.to;
   };
+  const activeItem = adminMenu.find((item) => isItemActive(item)) || adminMenu[0];
+  const menuGroups = adminMenu.reduce((groups, item) => {
+    const groupName = item.group || 'Workspace';
+    if (!groups[groupName]) groups[groupName] = [];
+    groups[groupName].push(item);
+    return groups;
+  }, {});
 
   return (
     <div className="admin-shell">
       <aside className="admin-sidebar">
         <div className="admin-sidebar-head">
-          <p className="admin-sidebar-kicker">Admin Workspace</p>
-          <h2>NounPaddi Control</h2>
+          <span className="admin-brand-mark"><FiCommand /></span>
+          <div>
+            <p className="admin-sidebar-kicker">Admin Workspace</p>
+            <h2>NounPaddi</h2>
+          </div>
         </div>
 
         <nav className="admin-sidebar-nav">
-          {adminMenu.map((item) => {
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.to}
-                to={item.to}
-                className={`admin-nav-item ${isItemActive(item) ? 'active' : ''}`}
-              >
-                <Icon />
-                <span>{item.label}</span>
-              </Link>
-            );
-          })}
+          {Object.entries(menuGroups).map(([groupName, items]) => (
+            <div className="admin-nav-group" key={groupName}>
+              <p className="admin-nav-group-label">{groupName}</p>
+              {items.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.to}
+                    to={item.to}
+                    className={`admin-nav-item ${isItemActive(item) ? 'active' : ''}`}
+                  >
+                    <Icon />
+                    <span>{item.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
         </nav>
 
         <div className="admin-sidebar-foot">
@@ -84,12 +103,28 @@ const AdminLayout = ({ children }) => {
             </div>
           </div>
           <p className="admin-sidebar-tip">
-            <FiBell /> Broadcast updates from Push Broadcast.
+            <FiBell /> Broadcast updates and platform changes from one workspace.
           </p>
         </div>
       </aside>
 
-      <main className="admin-main-content">{children}</main>
+      <main className="admin-main-content">
+        <header className="admin-topbar">
+          <div className="admin-breadcrumb">
+            <span>Admin</span>
+            <FiChevronRight />
+            <strong>{activeItem?.label || 'Overview'}</strong>
+          </div>
+          <div className="admin-topbar-actions">
+            <div className="admin-status-pill">
+              <FiActivity />
+              <span>Live workspace</span>
+            </div>
+            <span className="admin-topbar-avatar">{(user?.name || 'A').charAt(0).toUpperCase()}</span>
+          </div>
+        </header>
+        {children}
+      </main>
     </div>
   );
 };

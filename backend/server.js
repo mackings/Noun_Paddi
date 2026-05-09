@@ -5,6 +5,7 @@ const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
 const connectDB = require('./config/db');
 const { startBroadcastScheduler } = require('./utils/broadcastScheduler');
+const { startExamScoreReminderScheduler } = require('./utils/examScoreReminderScheduler');
 
 // Load env vars
 dotenv.config();
@@ -134,6 +135,8 @@ app.use('/api/share', require('./routes/share'));
 app.use('/api/analytics', require('./routes/analytics'));
 app.use('/api/push', require('./routes/push'));
 app.use('/api/ask', require('./routes/ask'));
+app.use('/api/tma', require('./routes/tma'));
+app.use('/api/exam-timetable', require('./routes/examTimetable'));
 
 // Root route
 app.get('/', (req, res) => {
@@ -148,6 +151,7 @@ const PORT = process.env.PORT || 5001;
 // Only start server if not in Vercel serverless environment
 if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
   startBroadcastScheduler();
+  startExamScoreReminderScheduler();
   app.listen(PORT, () => {
     console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
   });

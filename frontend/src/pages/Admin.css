@@ -756,3 +756,240 @@
     font-size: 13px;
   }
 }
+
+/* Admin workspace rebuild */
+.admin-container {
+  min-height: calc(100vh - 70px);
+  padding: 0;
+  background: transparent;
+}
+
+.admin-header {
+  gap: 16px;
+  padding: 22px 24px;
+  border-radius: 8px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  box-shadow: none;
+  margin-bottom: 18px;
+  animation: none;
+}
+
+.admin-header-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 8px;
+  font-size: 22px;
+  box-shadow: none;
+}
+
+.admin-header h1 {
+  font-size: 28px;
+  letter-spacing: 0;
+  margin: 0 0 6px;
+}
+
+.admin-header p {
+  font-size: 15px;
+}
+
+.admin-tabs {
+  gap: 6px;
+  margin-bottom: 18px;
+  padding: 5px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  animation: none;
+}
+
+.admin-tab {
+  min-width: 130px;
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.admin-tab:hover {
+  background: var(--bg-secondary);
+}
+
+.admin-tab.active {
+  background: var(--primary-light);
+  color: var(--primary-color);
+  border-color: rgba(99, 102, 241, 0.28);
+  box-shadow: none;
+}
+
+.admin-content {
+  animation: none;
+}
+
+.admin-grid {
+  gap: 12px;
+}
+
+.admin-form-card,
+.admin-list-card,
+.upload-card-modern,
+.processing-card-modern {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 18px;
+  box-shadow: none;
+}
+
+.admin-form-card:hover,
+.admin-list-card:hover {
+  box-shadow: none;
+  transform: none;
+}
+
+.admin-form-card h2,
+.admin-list-card h2,
+.upload-header h2,
+.processing-card-modern h2 {
+  font-size: 18px;
+  margin-bottom: 14px;
+  letter-spacing: 0;
+}
+
+.item-list {
+  gap: 8px;
+  max-height: 560px;
+}
+
+.item-card,
+.faculty-item-card {
+  gap: 12px;
+  padding: 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  transition: border-color 0.18s ease, background-color 0.18s ease;
+}
+
+.item-card:hover {
+  border-color: var(--border-hover);
+  background: var(--bg-secondary);
+  transform: none;
+}
+
+.item-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  font-size: 20px;
+}
+
+.item-info h3 {
+  font-size: 15px;
+  letter-spacing: 0;
+}
+
+.item-actions {
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+
+.faculty-search-wrap,
+.form-control,
+.admin-invite-form input {
+  border-radius: 8px;
+  border-width: 1px;
+}
+
+.faculty-search-wrap:focus-within {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+.faculty-count-badge,
+.faculty-code-pill,
+.item-meta,
+.item-meta.archived,
+.file-types {
+  border-radius: 8px;
+}
+
+.upload-card-modern,
+.processing-card-modern {
+  max-width: 100%;
+}
+
+.upload-header {
+  text-align: left;
+  margin-bottom: 24px;
+}
+
+.upload-header svg {
+  margin-bottom: 12px;
+}
+
+.upload-header p,
+.processing-card-modern p {
+  font-size: 14px;
+}
+
+.file-drop-label {
+  min-height: 220px;
+  padding: 36px 24px;
+  border: 2px dashed var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+}
+
+.file-drop-label:hover {
+  background: var(--bg-secondary);
+}
+
+.processing-card-modern {
+  text-align: left;
+}
+
+.success-animation {
+  margin-bottom: 24px;
+}
+
+.success-icon-large {
+  width: 58px;
+  height: 58px;
+  border-radius: 8px;
+  margin: 0 0 16px;
+  font-size: 30px;
+  box-shadow: none;
+  animation: none;
+}
+
+.ai-processing-info {
+  gap: 12px;
+  margin: 20px 0;
+}
+
+.info-card {
+  padding: 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+}
+
+.info-card:hover,
+.btn-action:hover:not(:disabled) {
+  transform: none;
+  box-shadow: none;
+}
+
+.info-card h4,
+.info-card p,
+.upload-success-subtitle,
+.upload-success-subtitle strong {
+  color: var(--text-primary);
+}
+
+.info-card p,
+.upload-success-subtitle {
+  color: var(--text-secondary);
+}

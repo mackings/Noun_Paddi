@@ -16,6 +16,7 @@ import AdminOverview from './pages/AdminOverview';
 import AdminBroadcast from './pages/AdminBroadcast';
 import AdminApiUsage from './pages/AdminApiUsage';
 import AdminMaterials from './pages/AdminMaterials';
+import AdminTma from './pages/AdminTma';
 import AdminUsers from './pages/AdminUsers';
 import StudentDashboard from './pages/StudentDashboard';
 import CourseDetail from './pages/CourseDetail';
@@ -24,6 +25,7 @@ import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import ITPlacement from './pages/ITPlacement';
 import Reminders from './pages/Reminders';
+import ExamTimetable from './pages/ExamTimetable';
 import PlagiarismChecker from './pages/PlagiarismChecker';
 import Projects from './pages/Projects';
 import MyFees from './pages/MyFees';
@@ -432,6 +434,14 @@ const AppLayout = () => {
                   }
                 />
                 <Route
+                  path="/exam-timetable"
+                  element={
+                    <ProtectedRoute>
+                      <ExamTimetable />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
                   path="/plagiarism"
                   element={
                     <ProtectedRoute>
@@ -520,6 +530,16 @@ const AppLayout = () => {
                     <ProtectedRoute adminOnly>
                       <AdminLayout>
                         <AdminMaterials />
+                      </AdminLayout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/tma"
+                  element={
+                    <ProtectedRoute adminOnly>
+                      <AdminLayout>
+                        <AdminTma />
                       </AdminLayout>
                     </ProtectedRoute>
                   }

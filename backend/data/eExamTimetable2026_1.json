@@ -1,0 +1,4082 @@
+[
+  {
+    "courseCode": "ARA227",
+    "courseTitle": "ARABIC LITERATURE FROM EARLY ISLAM",
+    "examDate": "2026-06-01",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "BED212",
+    "courseTitle": "Fundamentals of Data Processing",
+    "examDate": "2026-06-01",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "CIT236",
+    "courseTitle": "Analog and Digital Electronics",
+    "examDate": "2026-06-01",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "CRD120",
+    "courseTitle": "Sociology of Co-operation",
+    "examDate": "2026-06-01",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "CRS173",
+    "courseTitle": "Introduction to The Study of Religion",
+    "examDate": "2026-06-01",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "ECE121",
+    "courseTitle": "Child Development",
+    "examDate": "2026-06-01",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "EDU114",
+    "courseTitle": "History of Education In Nigeria",
+    "examDate": "2026-06-01",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "EDU280",
+    "courseTitle": "Agricultural Science Methods",
+    "examDate": "2026-06-01",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "ENG224",
+    "courseTitle": "Advanced English Composition II",
+    "examDate": "2026-06-01",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "FRE121",
+    "courseTitle": "Textual Analysis/practical French I",
+    "examDate": "2026-06-01",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "HAU207",
+    "courseTitle": "Survey of Hausa Oral Literature",
+    "examDate": "2026-06-01",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "ISL132",
+    "courseTitle": "Advanced Study of Salat and Zakat",
+    "examDate": "2026-06-01",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "LIS207",
+    "courseTitle": "Bibliography and Citation Techniques",
+    "examDate": "2026-06-01",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "MKT206",
+    "courseTitle": "Customers Relationship Management",
+    "examDate": "2026-06-01",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "PED234",
+    "courseTitle": "Man Energy and Resources",
+    "examDate": "2026-06-01",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "PHL251",
+    "courseTitle": "African Philosophy II",
+    "examDate": "2026-06-01",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "SED123",
+    "courseTitle": "Physics For Integrated Science",
+    "examDate": "2026-06-01",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "YOR213",
+    "courseTitle": "Use of Yoruba",
+    "examDate": "2026-06-01",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "ARA112",
+    "courseTitle": "ARABIC CONVERSATION II",
+    "examDate": "2026-06-01",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "CIT237",
+    "courseTitle": "Programming & Algorithms",
+    "examDate": "2026-06-01",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "ENG181",
+    "courseTitle": "Introduction to Fiction",
+    "examDate": "2026-06-01",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "FRE252",
+    "courseTitle": "Critical Appreciation of Literature",
+    "examDate": "2026-06-01",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "FSS211",
+    "courseTitle": "Social Science Statistics",
+    "examDate": "2026-06-01",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "GST102",
+    "courseTitle": "Use of English and Communications S",
+    "examDate": "2026-06-01",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "HAU112",
+    "courseTitle": "Introduction to Hausa Linguistics II",
+    "examDate": "2026-06-01",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "IGB212",
+    "courseTitle": "Folktales",
+    "examDate": "2026-06-01",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "KHE101",
+    "courseTitle": "Foundations of Human kinetics",
+    "examDate": "2026-06-01",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "PED221",
+    "courseTitle": "Developmental Psychology",
+    "examDate": "2026-06-01",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "PHL242",
+    "courseTitle": "Professional Ethics",
+    "examDate": "2026-06-01",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "SED226",
+    "courseTitle": "Industrial Processes/ Application",
+    "examDate": "2026-06-01",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "ACC102",
+    "courseTitle": "Principles Of Accounting",
+    "examDate": "2026-06-01",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "ARA114",
+    "courseTitle": "ARABIC GRAMMAR I",
+    "examDate": "2026-06-01",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "CIT213",
+    "courseTitle": "Elementary Data Processing",
+    "examDate": "2026-06-01",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "CRS111",
+    "courseTitle": "Old Testament (o.t) Survey",
+    "examDate": "2026-06-01",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "CRS214",
+    "courseTitle": "Pauline Epistles",
+    "examDate": "2026-06-01",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "ECE110",
+    "courseTitle": "Childhood Education In Traditional",
+    "examDate": "2026-06-01",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "ECE222",
+    "courseTitle": "Developing Professional Skills and Competence",
+    "examDate": "2026-06-01",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "EDU250",
+    "courseTitle": "Subject Methos I (biology)",
+    "examDate": "2026-06-01",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "ENT209",
+    "courseTitle": "Theory of Entrepreneurship",
+    "examDate": "2026-06-01",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "FRE282",
+    "courseTitle": "Introduction to French Literature (Prose Poetry & Drama)",
+    "examDate": "2026-06-01",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "HAU215",
+    "courseTitle": "Hausa Literary Criticism",
+    "examDate": "2026-06-01",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "HED208",
+    "courseTitle": "Personality and Growth in Health Education",
+    "examDate": "2026-06-01",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "IGB113",
+    "courseTitle": "Introduction to the History of the Igbo People",
+    "examDate": "2026-06-01",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "ISL102",
+    "courseTitle": "Mosque In Islam",
+    "examDate": "2026-06-01",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "KHE107",
+    "courseTitle": "Skills Development and Techniques in Sports and Ga",
+    "examDate": "2026-06-01",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "KHE209",
+    "courseTitle": "Gymnastics",
+    "examDate": "2026-06-01",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "LIN111",
+    "courseTitle": "Introduction to Linguistics I",
+    "examDate": "2026-06-01",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "LIS103",
+    "courseTitle": "Introduction to Library & Information Work",
+    "examDate": "2026-06-01",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "LIS218",
+    "courseTitle": "Introduction to Telecommunications",
+    "examDate": "2026-06-01",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "SED222",
+    "courseTitle": "Chemistry For Integrated Science",
+    "examDate": "2026-06-01",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "ARA132",
+    "courseTitle": "ARABIC AS A SECOND LANGUAGE",
+    "examDate": "2026-06-02",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "CRD204",
+    "courseTitle": "Man & His Environment",
+    "examDate": "2026-06-02",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "CRS152",
+    "courseTitle": "Marriage and Family",
+    "examDate": "2026-06-02",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "CRS217",
+    "courseTitle": "Prophets",
+    "examDate": "2026-06-02",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "GST101",
+    "courseTitle": "Use of English and Communications Skills",
+    "examDate": "2026-06-02",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "HAU106",
+    "courseTitle": "General Study of Hausa Genres",
+    "examDate": "2026-06-02",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "HED204",
+    "courseTitle": "Communicable and Non-communicable Diseases",
+    "examDate": "2026-06-02",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "IGB211",
+    "courseTitle": "Survey of the Literature in Igbo",
+    "examDate": "2026-06-02",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "IGB224",
+    "courseTitle": "Syntax of Igbo I",
+    "examDate": "2026-06-02",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "ISL272",
+    "courseTitle": "The Abbasid Caliphate",
+    "examDate": "2026-06-02",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "KHE212",
+    "courseTitle": "Driver Education",
+    "examDate": "2026-06-02",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "PAD251",
+    "courseTitle": "Introduction to Social Psychology",
+    "examDate": "2026-06-02",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "PED150",
+    "courseTitle": "Primary Science Curriculum and Method",
+    "examDate": "2026-06-02",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "YOR241",
+    "courseTitle": "Phonology of Yoruba I",
+    "examDate": "2026-06-02",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "ACC206",
+    "courseTitle": "Risk Management And Insurance",
+    "examDate": "2026-06-02",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "ARA181",
+    "courseTitle": "Basic Arabic",
+    "examDate": "2026-06-02",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "BUS106",
+    "courseTitle": "Elements of Management II",
+    "examDate": "2026-06-02",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "CRS141",
+    "courseTitle": "Church History I",
+    "examDate": "2026-06-02",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "CYB111",
+    "courseTitle": "Fundamentals of Cyber Security",
+    "examDate": "2026-06-02",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "EDU231",
+    "courseTitle": "Curriculum Development Theory and Practice",
+    "examDate": "2026-06-02",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "ENG114",
+    "courseTitle": "Introduction to Nigerian Literature",
+    "examDate": "2026-06-02",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "FRE152",
+    "courseTitle": "Introduction to French Culture and",
+    "examDate": "2026-06-02",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "FRE222",
+    "courseTitle": "French Grammar and Composition II",
+    "examDate": "2026-06-02",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "HAU116",
+    "courseTitle": "Introduction to the Use of Hausa",
+    "examDate": "2026-06-02",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "HAU205",
+    "courseTitle": "Traditional Grammar & Syntactic Analysis",
+    "examDate": "2026-06-02",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "HED123",
+    "courseTitle": "Consumer Health Education",
+    "examDate": "2026-06-02",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "KHE106",
+    "courseTitle": "Skills Development and Techniques in Sports and Games",
+    "examDate": "2026-06-02",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "LIS202",
+    "courseTitle": "Information Retrieval (Cataloguing) I",
+    "examDate": "2026-06-02",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "PED130",
+    "courseTitle": "Introduction to Social Studies",
+    "examDate": "2026-06-02",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "PHL102",
+    "courseTitle": "ANCIENT PHILOSOPHIES",
+    "examDate": "2026-06-02",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "ARA127",
+    "courseTitle": "INTRODUCTION TO ARABIC LITERATURE",
+    "examDate": "2026-06-02",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "CIT108",
+    "courseTitle": "Problem Solving Algorithm",
+    "examDate": "2026-06-02",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "CRS101",
+    "courseTitle": "Introduction to The Study of Islam",
+    "examDate": "2026-06-02",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "FRE162",
+    "courseTitle": "Introduction to Francophone African",
+    "examDate": "2026-06-02",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "HAU105",
+    "courseTitle": "Introduction to Hausa Literature",
+    "examDate": "2026-06-02",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "HED101",
+    "courseTitle": "Personal Health",
+    "examDate": "2026-06-02",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "HED206",
+    "courseTitle": "Health Agencies and Programme",
+    "examDate": "2026-06-02",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "IGB282",
+    "courseTitle": "Varieties of Prose in Igbo",
+    "examDate": "2026-06-02",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "ISL111",
+    "courseTitle": "Studies On The Qur_an",
+    "examDate": "2026-06-02",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "KHE105",
+    "courseTitle": "Organization and Administration of Intramural Spor",
+    "examDate": "2026-06-02",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "LIS106",
+    "courseTitle": "Foundation of Information Systems, Institutions and Services",
+    "examDate": "2026-06-02",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "PAD204",
+    "courseTitle": "Introduction to Political Science",
+    "examDate": "2026-06-02",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "PED112",
+    "courseTitle": "Reading In Early Childhood and Prim",
+    "examDate": "2026-06-02",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "PED237",
+    "courseTitle": "Measurement and Shapes",
+    "examDate": "2026-06-02",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "SED121",
+    "courseTitle": "Biology For Integrated Science",
+    "examDate": "2026-06-02",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "YOR113",
+    "courseTitle": "Introduction to the History of the Yoruba People",
+    "examDate": "2026-06-02",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "ARA211",
+    "courseTitle": "INTERMEDIATE ARABIC CONVERSATION",
+    "examDate": "2026-06-03",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "BED111",
+    "courseTitle": "Keyboarding",
+    "examDate": "2026-06-03",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "CIT104",
+    "courseTitle": "Introduction to Computer Science",
+    "examDate": "2026-06-03",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "CRS104",
+    "courseTitle": "Common Themes In Christianity And Islam",
+    "examDate": "2026-06-03",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "CRS261",
+    "courseTitle": "Christian Counseling",
+    "examDate": "2026-06-03",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "EDU212",
+    "courseTitle": "Sociology of Education",
+    "examDate": "2026-06-03",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "FRE101",
+    "courseTitle": "French Grammar I",
+    "examDate": "2026-06-03",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "HAU104",
+    "courseTitle": "Introduction to the Hausa Sound System",
+    "examDate": "2026-06-03",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "IGB111",
+    "courseTitle": "Introduction to the Igbo People and Language",
+    "examDate": "2026-06-03",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "KHE108",
+    "courseTitle": "Introduction to Movement Analysis",
+    "examDate": "2026-06-03",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "LIS201",
+    "courseTitle": "Knowledge Organisation (Classification I)",
+    "examDate": "2026-06-03",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "PHL202",
+    "courseTitle": "Marxist Philosophy",
+    "examDate": "2026-06-03",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "SED221",
+    "courseTitle": "Biology For Integrated Science",
+    "examDate": "2026-06-03",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "ARA283",
+    "courseTitle": "Arabic Reading II",
+    "examDate": "2026-06-03",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "BUS207",
+    "courseTitle": "Business Communication",
+    "examDate": "2026-06-03",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "CIT143",
+    "courseTitle": "Introductory to Data Organisation A",
+    "examDate": "2026-06-03",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "CIT292",
+    "courseTitle": "Computer Laboratory I",
+    "examDate": "2026-06-03",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "CRS122",
+    "courseTitle": "Types of Theology",
+    "examDate": "2026-06-03",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "CRS151",
+    "courseTitle": "Religion and Society",
+    "examDate": "2026-06-03",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "ECE225",
+    "courseTitle": "Meeting Special Needs In E.C.E",
+    "examDate": "2026-06-03",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "EDU240",
+    "courseTitle": "Mathematics Methods",
+    "examDate": "2026-06-03",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "ENT202",
+    "courseTitle": "Introduction to Entrepreneurial Ventures",
+    "examDate": "2026-06-03",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "FRE212",
+    "courseTitle": "Advanced Oral French",
+    "examDate": "2026-06-03",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "HAU114",
+    "courseTitle": "Hausa Social Norms",
+    "examDate": "2026-06-03",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "HAU201",
+    "courseTitle": "Survey of the Literature in Hausa",
+    "examDate": "2026-06-03",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "HED125",
+    "courseTitle": "Community Organisation for Health Programme",
+    "examDate": "2026-06-03",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "IGB241",
+    "courseTitle": "Phonology of Igbo I",
+    "examDate": "2026-06-03",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "KHE204",
+    "courseTitle": "Skills Development and Techniques in Sports and Ga",
+    "examDate": "2026-06-03",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "LIS105",
+    "courseTitle": "Information Systems, Resources and Services",
+    "examDate": "2026-06-03",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "PED144",
+    "courseTitle": "Primary Mathematics Curriculum Method",
+    "examDate": "2026-06-03",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "PHL106",
+    "courseTitle": "INTRODUCTION TO PROBLEMS OF PHILOSOPHY",
+    "examDate": "2026-06-03",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "PHL203",
+    "courseTitle": "Introduction to Epistemology",
+    "examDate": "2026-06-03",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "SED211",
+    "courseTitle": "Assessment and Evaluation In Integration",
+    "examDate": "2026-06-03",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "YOR211",
+    "courseTitle": "Survey of the Literature in Yoruba",
+    "examDate": "2026-06-03",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "CIT210",
+    "courseTitle": "Computer Hardware",
+    "examDate": "2026-06-03",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "ENG161",
+    "courseTitle": "Theatre Workshop",
+    "examDate": "2026-06-03",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "ENG222",
+    "courseTitle": "Advanced English Syntax",
+    "examDate": "2026-06-03",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "FRE122",
+    "courseTitle": "Textual Analysis/practical French I",
+    "examDate": "2026-06-03",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "HAU110",
+    "courseTitle": "Orthography of Hausa",
+    "examDate": "2026-06-03",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "HAU217",
+    "courseTitle": "Introduction to Hausa Popular Music",
+    "examDate": "2026-06-03",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "ISL172",
+    "courseTitle": "As-sirah: Biography of The Prophet",
+    "examDate": "2026-06-03",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "ISL213",
+    "courseTitle": "Textual Study of The Quran",
+    "examDate": "2026-06-03",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "LIS101",
+    "courseTitle": "Information Literacy",
+    "examDate": "2026-06-03",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "LIS214",
+    "courseTitle": "Literature & Library Services for Young people",
+    "examDate": "2026-06-03",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "PED236",
+    "courseTitle": "Elementary Mathematics",
+    "examDate": "2026-06-03",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "PHL241",
+    "courseTitle": "Comparative Philosophy",
+    "examDate": "2026-06-03",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "ARA118",
+    "courseTitle": "ARABIC CREATIVE WRITING I",
+    "examDate": "2026-06-04",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "ARA183",
+    "courseTitle": "Arabic Conversation",
+    "examDate": "2026-06-04",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "CRS216",
+    "courseTitle": "Greek Syntax",
+    "examDate": "2026-06-04",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "CYB126",
+    "courseTitle": "Security in Social Networks",
+    "examDate": "2026-06-04",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "FRE112",
+    "courseTitle": "Oral and Aural Comprehension",
+    "examDate": "2026-06-04",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "GST103",
+    "courseTitle": "Computer Fundamentals",
+    "examDate": "2026-06-04",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "HAU203",
+    "courseTitle": "Phonology of Hausa I",
+    "examDate": "2026-06-04",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "ISL245",
+    "courseTitle": "Ilm _l-kalam and Development of Mus",
+    "examDate": "2026-06-04",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "KHE214",
+    "courseTitle": "Prevention and care of  Sports Injuries",
+    "examDate": "2026-06-04",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "LIS211",
+    "courseTitle": "Learning and Communication Skills",
+    "examDate": "2026-06-04",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "MKT201",
+    "courseTitle": "Element of Marketing (principles)",
+    "examDate": "2026-06-04",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "PED230",
+    "courseTitle": "Introduction to Music In Primary Sc",
+    "examDate": "2026-06-04",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "PHL126",
+    "courseTitle": "INTRODUCTION TO AFRICAN PHILOSOPHY",
+    "examDate": "2026-06-04",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "PHL214",
+    "courseTitle": "Philosophy of Language",
+    "examDate": "2026-06-04",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "YOR215",
+    "courseTitle": "Introduction to Yoruba Oral Literature",
+    "examDate": "2026-06-04",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "ACC201",
+    "courseTitle": "Taxation 1",
+    "examDate": "2026-06-04",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "ARA281",
+    "courseTitle": "Arabic Literature I",
+    "examDate": "2026-06-04",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "CIT215",
+    "courseTitle": "Introduction to Programming Language",
+    "examDate": "2026-06-04",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "CRS142",
+    "courseTitle": "Church History II",
+    "examDate": "2026-06-04",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "CRS215",
+    "courseTitle": "Greek Grammar",
+    "examDate": "2026-06-04",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "ECE112",
+    "courseTitle": "Origin and Development of E.C.E",
+    "examDate": "2026-06-04",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "EDU220",
+    "courseTitle": "English Methods",
+    "examDate": "2026-06-04",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "ENG141",
+    "courseTitle": "Spoken English",
+    "examDate": "2026-06-04",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "ENT203",
+    "courseTitle": "Introduction to Entrepreneurial Financing",
+    "examDate": "2026-06-04",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "FRE231",
+    "courseTitle": "Introduction to French Phonology",
+    "examDate": "2026-06-04",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "HAU214",
+    "courseTitle": "Hausa Trades and Crafts",
+    "examDate": "2026-06-04",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "IGB122",
+    "courseTitle": "Introduction to the Grammatical Patterns of Igbo",
+    "examDate": "2026-06-04",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "KHE103",
+    "courseTitle": "Sociology and Psychology of Sport",
+    "examDate": "2026-06-04",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "KHE210",
+    "courseTitle": "Introduction to African and Folk Dance",
+    "examDate": "2026-06-04",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "LIN112",
+    "courseTitle": "Introduction to Linguistics II",
+    "examDate": "2026-06-04",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "LIS203",
+    "courseTitle": "Reference and Information Services",
+    "examDate": "2026-06-04",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "MKT108",
+    "courseTitle": "Introduction to Marketing",
+    "examDate": "2026-06-04",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "PHL103",
+    "courseTitle": "Philosophy of Value",
+    "examDate": "2026-06-04",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "ARA282",
+    "courseTitle": "Arabic Grammar I",
+    "examDate": "2026-06-04",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "BFN203",
+    "courseTitle": "Basic Financial Literacy",
+    "examDate": "2026-06-04",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "CRD208",
+    "courseTitle": "Nigeria & International Cooperative",
+    "examDate": "2026-06-04",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "CRS211",
+    "courseTitle": "Introduction to The Bible",
+    "examDate": "2026-06-04",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "CRS222",
+    "courseTitle": "Christian Doctrines",
+    "examDate": "2026-06-04",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "EDU111",
+    "courseTitle": "Introduction to Foundations of Educ",
+    "examDate": "2026-06-04",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "FRE211",
+    "courseTitle": "Advanced Study In Oral and Written",
+    "examDate": "2026-06-04",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "HAU103",
+    "courseTitle": "Advanced Comprehension and Composition",
+    "examDate": "2026-06-04",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "HED106",
+    "courseTitle": "Health Care Delivery System in Nigeria",
+    "examDate": "2026-06-04",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "KHE205",
+    "courseTitle": "Accident Prevention and Safety Education",
+    "examDate": "2026-06-04",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "LIS204",
+    "courseTitle": "Technical Services in Libraries & Information Centres",
+    "examDate": "2026-06-04",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "LIS217",
+    "courseTitle": "Business Information Systems/Services",
+    "examDate": "2026-06-04",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "PED271",
+    "courseTitle": "Primary School Phe Curriculum & Methods",
+    "examDate": "2026-06-04",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "PHL252",
+    "courseTitle": "Philosophy of Religion",
+    "examDate": "2026-06-04",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "SED214",
+    "courseTitle": "History and Philosophyof Integrated",
+    "examDate": "2026-06-04",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "YOR122",
+    "courseTitle": "Introduction to the Grammatical Patterns of Yoruba",
+    "examDate": "2026-06-04",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "ARA116",
+    "courseTitle": "ARABIC MORPHOLOGY",
+    "examDate": "2026-06-05",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "BFN209",
+    "courseTitle": "Introduction to Finance",
+    "examDate": "2026-06-05",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "CIT208",
+    "courseTitle": "Information Systems",
+    "examDate": "2026-06-05",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "CRS231",
+    "courseTitle": "Christian Ethics",
+    "examDate": "2026-06-05",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "ENG216",
+    "courseTitle": "Survey of English Literature II",
+    "examDate": "2026-06-05",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "ENG241",
+    "courseTitle": "Introduction to Phonetics & Phonology",
+    "examDate": "2026-06-05",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "GST104",
+    "courseTitle": "Use of Library",
+    "examDate": "2026-06-05",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "HAU109",
+    "courseTitle": "Introduction to Hausa Orthography",
+    "examDate": "2026-06-05",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "HAU208",
+    "courseTitle": "Hausa Social Institutions",
+    "examDate": "2026-06-05",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "ISL212",
+    "courseTitle": "Introduction to Tajwid",
+    "examDate": "2026-06-05",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "ISL271",
+    "courseTitle": "The Rightly Guided Caliphs and  The Umayyads",
+    "examDate": "2026-06-05",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "LIS213",
+    "courseTitle": "Library & Information Services to People with Special Needs",
+    "examDate": "2026-06-05",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "PED232",
+    "courseTitle": "Aesthetic Expression In Primary Edu",
+    "examDate": "2026-06-05",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "PHL152",
+    "courseTitle": "INTRODUCTION TO LOGIC II",
+    "examDate": "2026-06-05",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "YOR217",
+    "courseTitle": "The Yoruba Traditional and Contemporary Profession",
+    "examDate": "2026-06-05",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "ACC210",
+    "courseTitle": "Auditing",
+    "examDate": "2026-06-05",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "ARA224",
+    "courseTitle": "COMTEMPORARY ARABIC PROSE",
+    "examDate": "2026-06-05",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "CIT216",
+    "courseTitle": "Fundamentals of Data Structure",
+    "examDate": "2026-06-05",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "CRS213",
+    "courseTitle": "Synoptic Gospels",
+    "examDate": "2026-06-05",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "ECE113",
+    "courseTitle": "Introduction to Philosophy of Early",
+    "examDate": "2026-06-05",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "EDU252",
+    "courseTitle": "Chemistry Methods",
+    "examDate": "2026-06-05",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "HAU115",
+    "courseTitle": "Hausa People in Diaspora",
+    "examDate": "2026-06-05",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "HAU216",
+    "courseTitle": "Standard Hausa and its Features",
+    "examDate": "2026-06-05",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "HED103",
+    "courseTitle": "Introduction to Health Education",
+    "examDate": "2026-06-05",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "HED205",
+    "courseTitle": "Health Protections",
+    "examDate": "2026-06-05",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "IGB124",
+    "courseTitle": "Advanced Comprehension and Composition in Igbo",
+    "examDate": "2026-06-05",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "ISL113",
+    "courseTitle": "Qur_anic Ethics",
+    "examDate": "2026-06-05",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "KHE211",
+    "courseTitle": "Pedagogical Elements of Sports",
+    "examDate": "2026-06-05",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "LIS205",
+    "courseTitle": "Internet and Information Searching",
+    "examDate": "2026-06-05",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "MKT205",
+    "courseTitle": "Entrepreneurial Marketing",
+    "examDate": "2026-06-05",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "PAD122",
+    "courseTitle": "Industrial and Organisational Psycology",
+    "examDate": "2026-06-05",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "PED110",
+    "courseTitle": "Philosophy of Primary Education",
+    "examDate": "2026-06-05",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "PHL105",
+    "courseTitle": "INTRODUCTION TO LOGIC I",
+    "examDate": "2026-06-05",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "YOR212",
+    "courseTitle": "Folktales",
+    "examDate": "2026-06-05",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "ACC204",
+    "courseTitle": "Introduction to Financial Accounting",
+    "examDate": "2026-06-05",
+    "startTime": "3pm"
+  },
+  {
+    "courseCode": "ARA111",
+    "courseTitle": "ARABIC CONVERSATION I",
+    "examDate": "2026-06-05",
+    "startTime": "3pm"
+  },
+  {
+    "courseCode": "CIT212",
+    "courseTitle": "Systems Analysis and Design",
+    "examDate": "2026-06-05",
+    "startTime": "3pm"
+  },
+  {
+    "courseCode": "EDU233",
+    "courseTitle": "General Teaching Methods",
+    "examDate": "2026-06-05",
+    "startTime": "3pm"
+  },
+  {
+    "courseCode": "ENG121",
+    "courseTitle": "Structure of Modern English I",
+    "examDate": "2026-06-05",
+    "startTime": "3pm"
+  },
+  {
+    "courseCode": "ENG172",
+    "courseTitle": "Introduction to Poetry",
+    "examDate": "2026-06-05",
+    "startTime": "3pm"
+  },
+  {
+    "courseCode": "FRE271",
+    "courseTitle": "Introduction to Francophone African",
+    "examDate": "2026-06-05",
+    "startTime": "3pm"
+  },
+  {
+    "courseCode": "HAU206",
+    "courseTitle": "Hausa Recreational Activities",
+    "examDate": "2026-06-05",
+    "startTime": "3pm"
+  },
+  {
+    "courseCode": "HED124",
+    "courseTitle": "Community Health Education",
+    "examDate": "2026-06-05",
+    "startTime": "3pm"
+  },
+  {
+    "courseCode": "KHE208",
+    "courseTitle": "Nutrition and Sports performance",
+    "examDate": "2026-06-05",
+    "startTime": "3pm"
+  },
+  {
+    "courseCode": "LIS107",
+    "courseTitle": "Basic Computer Skills & Operating Systems",
+    "examDate": "2026-06-05",
+    "startTime": "3pm"
+  },
+  {
+    "courseCode": "PHL101",
+    "courseTitle": "Introduction to Philosophy",
+    "examDate": "2026-06-05",
+    "startTime": "3pm"
+  },
+  {
+    "courseCode": "ARA228",
+    "courseTitle": "ARABIC LITERATURE- ABBASID PERIOD",
+    "examDate": "2026-06-06",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "CIT110",
+    "courseTitle": "Cyber-Security I",
+    "examDate": "2026-06-06",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "CRS210",
+    "courseTitle": "History and Religion of Israel",
+    "examDate": "2026-06-06",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "ECE221",
+    "courseTitle": "Language and Literacy In The Early",
+    "examDate": "2026-06-06",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "ENG212",
+    "courseTitle": "Creative Writing I",
+    "examDate": "2026-06-06",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "FRE241",
+    "courseTitle": "Introduction to French Literary Genre",
+    "examDate": "2026-06-06",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "HAU213",
+    "courseTitle": "Folktales",
+    "examDate": "2026-06-06",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "ISL231",
+    "courseTitle": "Intorduction to The Shariah",
+    "examDate": "2026-06-06",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "LIS210",
+    "courseTitle": "Library Application Software Packages",
+    "examDate": "2026-06-06",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "MKT104",
+    "courseTitle": "Retail Management",
+    "examDate": "2026-06-06",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "NOU107",
+    "courseTitle": "A STUDY GUIDE FOR DISTANCE LEARNER",
+    "examDate": "2026-06-06",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "YOR124",
+    "courseTitle": "Advanced Comprehension and Composition in Yoruba",
+    "examDate": "2026-06-06",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "ARA284",
+    "courseTitle": "Translation: Arabic / English",
+    "examDate": "2026-06-06",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "BED112",
+    "courseTitle": "Word Processing",
+    "examDate": "2026-06-06",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "BFN104",
+    "courseTitle": "Elements of Banking",
+    "examDate": "2026-06-06",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "BUS205",
+    "courseTitle": "Introduction to Business",
+    "examDate": "2026-06-06",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "CRS102",
+    "courseTitle": "Major Religious Groups In Nigeria",
+    "examDate": "2026-06-06",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "EDU222",
+    "courseTitle": "French Methods",
+    "examDate": "2026-06-06",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "ENG111",
+    "courseTitle": "An Introduction to Literature and Literary Criticism",
+    "examDate": "2026-06-06",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "ENG122",
+    "courseTitle": "Structure of Modern English II",
+    "examDate": "2026-06-06",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "ENT204",
+    "courseTitle": "Entrepreneurship and Change Managem",
+    "examDate": "2026-06-06",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "FRE221",
+    "courseTitle": "French Grammar and Composition I",
+    "examDate": "2026-06-06",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "HAU102",
+    "courseTitle": "Introduction to the History of the Hausa People",
+    "examDate": "2026-06-06",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "HED107",
+    "courseTitle": "School Health Problems of School Age Child",
+    "examDate": "2026-06-06",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "KHE206",
+    "courseTitle": "Human Anatomy Physiology and Sport II",
+    "examDate": "2026-06-06",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "LIS109",
+    "courseTitle": "Introduction to African Information Environment",
+    "examDate": "2026-06-06",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "PED120",
+    "courseTitle": "Principles of Family Living",
+    "examDate": "2026-06-06",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "PHL201",
+    "courseTitle": "INTRODUCTION TO METAPHYSICS",
+    "examDate": "2026-06-06",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "ARA222",
+    "courseTitle": "CLASSICAL AND MODERN ARABIC LIBRARI",
+    "examDate": "2026-06-06",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "CIT211",
+    "courseTitle": "Introduction to Operating Systems",
+    "examDate": "2026-06-06",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "CRD122",
+    "courseTitle": "Nigeria Agriculture",
+    "examDate": "2026-06-06",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "CRS272",
+    "courseTitle": "Ecumenism",
+    "examDate": "2026-06-06",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "EDU292",
+    "courseTitle": "Primary Education Methods",
+    "examDate": "2026-06-06",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "ENG221",
+    "courseTitle": "Introduction to Syntactic Models",
+    "examDate": "2026-06-06",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "FRE111",
+    "courseTitle": "Language Laboratory Work/oral French",
+    "examDate": "2026-06-06",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "HAU212",
+    "courseTitle": "Syntax of Hausa I",
+    "examDate": "2026-06-06",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "HED203",
+    "courseTitle": "Field experience in Health Education",
+    "examDate": "2026-06-06",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "IGB215",
+    "courseTitle": "Introduction to Igbo Oral Literature",
+    "examDate": "2026-06-06",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "KHE110",
+    "courseTitle": "Social Institutions and Sports",
+    "examDate": "2026-06-06",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "KHE202",
+    "courseTitle": "Human Kinetics Methods",
+    "examDate": "2026-06-06",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "PHL107",
+    "courseTitle": "Theories of Human Nature",
+    "examDate": "2026-06-06",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "PHL216",
+    "courseTitle": "Medieval Philosophy",
+    "examDate": "2026-06-06",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "SED224",
+    "courseTitle": "Energy and Matter",
+    "examDate": "2026-06-06",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "VTE115",
+    "courseTitle": "Introduction to Vocational Education",
+    "examDate": "2026-06-06",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "YOR222",
+    "courseTitle": "Morphology of Yoruba",
+    "examDate": "2026-06-06",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "ARA214",
+    "courseTitle": "ARABIC CREATIVE WRITING II",
+    "examDate": "2026-06-08",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "CIT202",
+    "courseTitle": "Applications of Computer In Busines",
+    "examDate": "2026-06-08",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "CRD101",
+    "courseTitle": "Principles and Practice of Co-operation",
+    "examDate": "2026-06-08",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "CRS192",
+    "courseTitle": "Intro. to African Traditional Religion",
+    "examDate": "2026-06-08",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "ECE227",
+    "courseTitle": "Organization and Service Provision",
+    "examDate": "2026-06-08",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "ECE232",
+    "courseTitle": "Observation Recording and Assessmen",
+    "examDate": "2026-06-08",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "EDU282",
+    "courseTitle": "Business Education Teaching Methods",
+    "examDate": "2026-06-08",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "ENG215",
+    "courseTitle": "Survey of English Literature I (Medieval & Renaissance)",
+    "examDate": "2026-06-08",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "ENG226",
+    "courseTitle": "English Morphology",
+    "examDate": "2026-06-08",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "FRE131",
+    "courseTitle": "Textual Analysis I",
+    "examDate": "2026-06-08",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "HAU202",
+    "courseTitle": "Use of Hausa",
+    "examDate": "2026-06-08",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "HAU209",
+    "courseTitle": "Introduction to Hausa Popular Fiction",
+    "examDate": "2026-06-08",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "IGB213",
+    "courseTitle": "Use of Igbo",
+    "examDate": "2026-06-08",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "ISL142",
+    "courseTitle": "Islam and Inter-religious Dialogue",
+    "examDate": "2026-06-08",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "KHE125",
+    "courseTitle": "Adaptive Physical Education",
+    "examDate": "2026-06-08",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "KHE201",
+    "courseTitle": "Human Anatomy Physiology and Sports I",
+    "examDate": "2026-06-08",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "LIS212",
+    "courseTitle": "Indigenous Knowledge Management",
+    "examDate": "2026-06-08",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "SED225",
+    "courseTitle": "Nigerian Integrated Science Curriculum",
+    "examDate": "2026-06-08",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "YOR224",
+    "courseTitle": "Syntax of Yoruba I",
+    "examDate": "2026-06-08",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "ACC101",
+    "courseTitle": "Elements of Book-keeping I",
+    "examDate": "2026-06-08",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "BED113",
+    "courseTitle": "Fundamentals of Business Education",
+    "examDate": "2026-06-08",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "CRD206",
+    "courseTitle": "Economics For Co-operatives",
+    "examDate": "2026-06-08",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "CRS202",
+    "courseTitle": "Comparative Study of Religions",
+    "examDate": "2026-06-08",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "CRS271",
+    "courseTitle": "Christianity In Nigeria",
+    "examDate": "2026-06-08",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "CYB122",
+    "courseTitle": "Ethics and Professional Practice in Cybersecurity",
+    "examDate": "2026-06-08",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "EDU214",
+    "courseTitle": "Philosophy of Education",
+    "examDate": "2026-06-08",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "ENG113",
+    "courseTitle": "Introduction to Nigerian Literature",
+    "examDate": "2026-06-08",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "ENG211",
+    "courseTitle": "History of The English Language",
+    "examDate": "2026-06-08",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "ENT102",
+    "courseTitle": "The Nigerian Entrepreneurial Enviro",
+    "examDate": "2026-06-08",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "FRE102",
+    "courseTitle": "French Grammar II",
+    "examDate": "2026-06-08",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "HAU101",
+    "courseTitle": "Introduction to the Hausa People and Their Languag",
+    "examDate": "2026-06-08",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "ISL101",
+    "courseTitle": "General Introduction to Islam",
+    "examDate": "2026-06-08",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "KHE207",
+    "courseTitle": "Skills Development and Techniques in Sports and Games",
+    "examDate": "2026-06-08",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "LIS108",
+    "courseTitle": "History of Writing, Publishing and Book Trade",
+    "examDate": "2026-06-08",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "PED121",
+    "courseTitle": "Childhood and Adolescent Psychology",
+    "examDate": "2026-06-08",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "PED122",
+    "courseTitle": "Primary English Curriculum and Method",
+    "examDate": "2026-06-08",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "YOR111",
+    "courseTitle": "Introduction to the Yoruba People and Language",
+    "examDate": "2026-06-08",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "ARA229",
+    "courseTitle": "ARABIC RHETORIC I: AL-BAYAN",
+    "examDate": "2026-06-08",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "BED214",
+    "courseTitle": "Computer Application In Business",
+    "examDate": "2026-06-08",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "BUS105",
+    "courseTitle": "Elements of Management I",
+    "examDate": "2026-06-08",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "CIT217",
+    "courseTitle": "Foundation of Sequetial Programming",
+    "examDate": "2026-06-08",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "CRS113",
+    "courseTitle": "Bible Geography",
+    "examDate": "2026-06-08",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "CRS218",
+    "courseTitle": "Biblical Hermeneutics",
+    "examDate": "2026-06-08",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "ECE231",
+    "courseTitle": "Science In The Early Years",
+    "examDate": "2026-06-08",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "EDU290",
+    "courseTitle": "Early Childhood Education Methods",
+    "examDate": "2026-06-08",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "ENG251",
+    "courseTitle": "Language and Society",
+    "examDate": "2026-06-08",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "HAU108",
+    "courseTitle": "Hausa and the Media",
+    "examDate": "2026-06-08",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "HAU111",
+    "courseTitle": "Introduction to Hausa Linguistics I",
+    "examDate": "2026-06-08",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "IGB222",
+    "courseTitle": "Morphology of Igbo",
+    "examDate": "2026-06-08",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "ISL214",
+    "courseTitle": "Textual Study of Qur_an II",
+    "examDate": "2026-06-08",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "KHE102",
+    "courseTitle": "Introduction to Sports Facilities",
+    "examDate": "2026-06-08",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "LIS102",
+    "courseTitle": "Libraries and Society",
+    "examDate": "2026-06-08",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "PAD202",
+    "courseTitle": "Introduction to Public Administration",
+    "examDate": "2026-06-08",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "PHL253",
+    "courseTitle": "Social and Political Philosophy",
+    "examDate": "2026-06-08",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "SED223",
+    "courseTitle": "Physics For Integrated Science",
+    "examDate": "2026-06-08",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "ARA113",
+    "courseTitle": "ARABIC READING SKILLS",
+    "examDate": "2026-06-09",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "BED114",
+    "courseTitle": "Business Methods",
+    "examDate": "2026-06-09",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "CIT191",
+    "courseTitle": "Computer Laboratory I",
+    "examDate": "2026-06-09",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "CIT206",
+    "courseTitle": "Discrete Structure",
+    "examDate": "2026-06-09",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "CRD124",
+    "courseTitle": "Introduction to Cooperatives",
+    "examDate": "2026-06-09",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "CRS212",
+    "courseTitle": "Pentateuch",
+    "examDate": "2026-06-09",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "CYB191",
+    "courseTitle": "Cybersecurity Practical I",
+    "examDate": "2026-06-09",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "ECE120",
+    "courseTitle": "Development of Appropriate Skills I",
+    "examDate": "2026-06-09",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "EDU254",
+    "courseTitle": "Integrated Science Methods",
+    "examDate": "2026-06-09",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "ENG151",
+    "courseTitle": "Introduction to English  As A Second",
+    "examDate": "2026-06-09",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "ENG223",
+    "courseTitle": "Advanced English Composition I",
+    "examDate": "2026-06-09",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "FRE132",
+    "courseTitle": "Textual Analysis II",
+    "examDate": "2026-06-09",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "HAU204",
+    "courseTitle": "Introduction to the Oral Literature of Hausa",
+    "examDate": "2026-06-09",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "HAU211",
+    "courseTitle": "Varieties of Prose Writing in Hausa",
+    "examDate": "2026-06-09",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "HED213",
+    "courseTitle": "Family Life and Sex Education",
+    "examDate": "2026-06-09",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "IFT191",
+    "courseTitle": "Computer Laboratory I",
+    "examDate": "2026-06-09",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "ISL121",
+    "courseTitle": "Studies On The Hadith",
+    "examDate": "2026-06-09",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "LIS206",
+    "courseTitle": "Introduction to Information Science",
+    "examDate": "2026-06-09",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "PED261",
+    "courseTitle": "Primary School Social Studies Curriculum",
+    "examDate": "2026-06-09",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "PHL204",
+    "courseTitle": "Introduction to Ethics",
+    "examDate": "2026-06-09",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "SED122",
+    "courseTitle": "Chemistry For Integrated Science",
+    "examDate": "2026-06-09",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "ACC203",
+    "courseTitle": "Introduction to Financial Accounting",
+    "examDate": "2026-06-09",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "ARA221",
+    "courseTitle": "ARABIC READER II",
+    "examDate": "2026-06-09",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "CIT246",
+    "courseTitle": "Introduction to Computer Organisation",
+    "examDate": "2026-06-09",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "ECE223",
+    "courseTitle": "Plays and Learning",
+    "examDate": "2026-06-09",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "EDU256",
+    "courseTitle": "Physics Methods",
+    "examDate": "2026-06-09",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "ENG162",
+    "courseTitle": "Elements of Drama",
+    "examDate": "2026-06-09",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "ENT101",
+    "courseTitle": "Introduction to Entrepreneurship",
+    "examDate": "2026-06-09",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "FRE141",
+    "courseTitle": "Introduction to Composition Writing",
+    "examDate": "2026-06-09",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "FRE242",
+    "courseTitle": "Introduction to French Literary Genre II (Drama & Poetry)",
+    "examDate": "2026-06-09",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "HAU113",
+    "courseTitle": "Hausa Language and Communication",
+    "examDate": "2026-06-09",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "HED127",
+    "courseTitle": "Organisation and Administration of School Health P",
+    "examDate": "2026-06-09",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "ISL222",
+    "courseTitle": "Textual Studies of Hadith",
+    "examDate": "2026-06-09",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "KHE109",
+    "courseTitle": "Introduction to Outdoor Sports",
+    "examDate": "2026-06-09",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "LIS104",
+    "courseTitle": "Introduction to ICT in Library & Information Services",
+    "examDate": "2026-06-09",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "LIS219",
+    "courseTitle": "Multimedia Application in Libraries & Information Centres",
+    "examDate": "2026-06-09",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "PED233",
+    "courseTitle": "Religious and Moral Education",
+    "examDate": "2026-06-09",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "PHL205",
+    "courseTitle": "Philosophical Anthropology",
+    "examDate": "2026-06-09",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "YOR282",
+    "courseTitle": "Varieties of Prose in Yoruba",
+    "examDate": "2026-06-09",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "ARA182",
+    "courseTitle": "Arabic Reading",
+    "examDate": "2026-06-09",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "ARA215",
+    "courseTitle": "ARABIC GRAMMAR II",
+    "examDate": "2026-06-09",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "CIT204",
+    "courseTitle": "Computer Appreciation and Application",
+    "examDate": "2026-06-09",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "CRS251",
+    "courseTitle": "Pastoral Theology",
+    "examDate": "2026-06-09",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "ECE123",
+    "courseTitle": "Health Care In The Early Years",
+    "examDate": "2026-06-09",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "ECE230",
+    "courseTitle": "Introduction to Early Childhood Education",
+    "examDate": "2026-06-09",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "EDU112",
+    "courseTitle": "Professionalism In Teaching",
+    "examDate": "2026-06-09",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "EDU258",
+    "courseTitle": "Computer Science Methods",
+    "examDate": "2026-06-09",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "ENG281",
+    "courseTitle": "The African Novel",
+    "examDate": "2026-06-09",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "ENT208",
+    "courseTitle": "Biographical Studies of Entrepreneurship",
+    "examDate": "2026-06-09",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "HAU107",
+    "courseTitle": "Introduction to Hausa Cultural Studies",
+    "examDate": "2026-06-09",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "HAU210",
+    "courseTitle": "Morphology of Hausa",
+    "examDate": "2026-06-09",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "ISL136",
+    "courseTitle": "Women In Islam",
+    "examDate": "2026-06-09",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "ISL241",
+    "courseTitle": "Prophethood and The Prophets In Islam",
+    "examDate": "2026-06-09",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "KHE203",
+    "courseTitle": "Basic Psychology in coaching",
+    "examDate": "2026-06-09",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "LIS215",
+    "courseTitle": "Rural Community Info Systems, Services & Info Repackaging",
+    "examDate": "2026-06-09",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "PED235",
+    "courseTitle": "Clothing and Textiles",
+    "examDate": "2026-06-09",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "YOR226",
+    "courseTitle": "Yoruba Traditional Foods and Dietary Practices",
+    "examDate": "2026-06-09",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "ECO154",
+    "courseTitle": "Introduction to Quantitative Method",
+    "examDate": "2026-06-10",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "EHS204",
+    "courseTitle": "Introduction to Environmental Health",
+    "examDate": "2026-06-10",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "ESM112",
+    "courseTitle": "Introductory Ecology",
+    "examDate": "2026-06-10",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "FMC113",
+    "courseTitle": "History of Nigerian Films & Cinemas",
+    "examDate": "2026-06-10",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "GST203",
+    "courseTitle": "Introduction to Philosophy and Logic",
+    "examDate": "2026-06-10",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "HCM134",
+    "courseTitle": "Food & Nutrition",
+    "examDate": "2026-06-10",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "MAC116",
+    "courseTitle": "African Communication Systems II",
+    "examDate": "2026-06-10",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "MTH103",
+    "courseTitle": "Elementary Mathematics IIi",
+    "examDate": "2026-06-10",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "TSM244",
+    "courseTitle": "tourist Sites: Products & Operation",
+    "examDate": "2026-06-10",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "BIO201",
+    "courseTitle": "Genetics I",
+    "examDate": "2026-06-10",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "ESM204",
+    "courseTitle": "Environmental Hazards and Disaster",
+    "examDate": "2026-06-10",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "HCM133",
+    "courseTitle": "Agriculture Nutrition & Health",
+    "examDate": "2026-06-10",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "INR121",
+    "courseTitle": "Structure of The International System",
+    "examDate": "2026-06-10",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "MAC142",
+    "courseTitle": "Introduction to Radio and Television",
+    "examDate": "2026-06-10",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "MTH105",
+    "courseTitle": "Mathematics For Management Sciences",
+    "examDate": "2026-06-10",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "PCR272",
+    "courseTitle": "Concept and Practice of Peace Build",
+    "examDate": "2026-06-10",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "PHS202",
+    "courseTitle": "Nutrition In Health and Disease",
+    "examDate": "2026-06-10",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "PHY192",
+    "courseTitle": "Introductory Practical Physics II",
+    "examDate": "2026-06-10",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "PHY291",
+    "courseTitle": "Physics Laboratory 1",
+    "examDate": "2026-06-10",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "ANP204",
+    "courseTitle": "Introduction to Agricultural Biochemistry",
+    "examDate": "2026-06-10",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "BIO210",
+    "courseTitle": "Seed Plants",
+    "examDate": "2026-06-10",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "CHM103",
+    "courseTitle": "Introduction to Physical Chemistry",
+    "examDate": "2026-06-10",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "CSS111",
+    "courseTitle": "Introduction to Sociology",
+    "examDate": "2026-06-10",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "DES216",
+    "courseTitle": "Nigerian Economy in Perspective II",
+    "examDate": "2026-06-10",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "ECO253",
+    "courseTitle": "Statistics For Economist I",
+    "examDate": "2026-06-10",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "ESM231",
+    "courseTitle": "Introductory toxicology",
+    "examDate": "2026-06-10",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "HCM235",
+    "courseTitle": "Food Beverage & Costs",
+    "examDate": "2026-06-10",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "INR261",
+    "courseTitle": "International Environmental Politics",
+    "examDate": "2026-06-10",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "NSC219",
+    "courseTitle": "Foundation of Professional Nursing Practice I",
+    "examDate": "2026-06-10",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "POL124",
+    "courseTitle": "Organisation of Government",
+    "examDate": "2026-06-10",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "STT102",
+    "courseTitle": "Introductory Statistics",
+    "examDate": "2026-06-10",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "BIO102",
+    "courseTitle": "General Biology II",
+    "examDate": "2026-06-11",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "DES222",
+    "courseTitle": "Technology and Socio-Economic Development",
+    "examDate": "2026-06-11",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "EHS201",
+    "courseTitle": "General Microbiology",
+    "examDate": "2026-06-11",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "GST105",
+    "courseTitle": "History & Philosophy of Science",
+    "examDate": "2026-06-11",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "MAC214",
+    "courseTitle": "Investigative & Interpretative Reporting",
+    "examDate": "2026-06-11",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "PHY206",
+    "courseTitle": "Optics I",
+    "examDate": "2026-06-11",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "TSM221",
+    "courseTitle": "Ecotourism",
+    "examDate": "2026-06-11",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "AGR202",
+    "courseTitle": "Introduction to Agric. Engineering",
+    "examDate": "2026-06-11",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "BIO207",
+    "courseTitle": "Lower In Vertebrates",
+    "examDate": "2026-06-11",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "DES218",
+    "courseTitle": "Communication and Development",
+    "examDate": "2026-06-11",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "EHS210",
+    "courseTitle": "Biodiversity and Climate Change",
+    "examDate": "2026-06-11",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "ESM212",
+    "courseTitle": "Tropical Climatology",
+    "examDate": "2026-06-11",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "HCM147",
+    "courseTitle": "tourism Policy and Planning",
+    "examDate": "2026-06-11",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "HCM244",
+    "courseTitle": "tourists Sites: Products and Operation",
+    "examDate": "2026-06-11",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "MTH211",
+    "courseTitle": "Abstract Algebra I",
+    "examDate": "2026-06-11",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "NOU807",
+    "courseTitle": "A STUDY GUIDE FOR DISTANCE LEARNER",
+    "examDate": "2026-06-11",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "PCR276",
+    "courseTitle": "Perception and Conflict",
+    "examDate": "2026-06-11",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "POL111",
+    "courseTitle": "Elements of Political Science",
+    "examDate": "2026-06-11",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "TSM142",
+    "courseTitle": "tourism As An Industry",
+    "examDate": "2026-06-11",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "AFS220",
+    "courseTitle": "Introduction to Fisheries and Wildl",
+    "examDate": "2026-06-11",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "BIO218",
+    "courseTitle": "General Biochemistry Laboratory 11",
+    "examDate": "2026-06-11",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "CHM201",
+    "courseTitle": "Physical Chemistry II",
+    "examDate": "2026-06-11",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "CSS212",
+    "courseTitle": "The Sociology of Punishment and Corrections",
+    "examDate": "2026-06-11",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "ECO231",
+    "courseTitle": "Micro Economic Theory I",
+    "examDate": "2026-06-11",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "FMC221",
+    "courseTitle": "Fundamentals of Scriptwriting, Directing and Acting",
+    "examDate": "2026-06-11",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "FRM211",
+    "courseTitle": "Forestry and Wildlife Management",
+    "examDate": "2026-06-11",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "HCM232",
+    "courseTitle": "Menu Development & Planning",
+    "examDate": "2026-06-11",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "INR132",
+    "courseTitle": "Africa and The Western Powers",
+    "examDate": "2026-06-11",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "INR242",
+    "courseTitle": "Pre-colonial African Diplomacy",
+    "examDate": "2026-06-11",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "NSC217",
+    "courseTitle": "Human Anatomy II",
+    "examDate": "2026-06-11",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "PHY103",
+    "courseTitle": "Geometrics and Wave Optics",
+    "examDate": "2026-06-11",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "POL121",
+    "courseTitle": "Introduction to African Politics",
+    "examDate": "2026-06-11",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "STT211",
+    "courseTitle": "Probaility Distribution I",
+    "examDate": "2026-06-11",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "AEM251",
+    "courseTitle": "Introduction to Agricultural Economy",
+    "examDate": "2026-06-13",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "CHM205",
+    "courseTitle": "Inorganic Chemistry II",
+    "examDate": "2026-06-13",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "CSS132",
+    "courseTitle": "Ethnography of Social Structure of Nigeria",
+    "examDate": "2026-06-13",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "DES211",
+    "courseTitle": "Environment and Sustainable Develop",
+    "examDate": "2026-06-13",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "ESM106",
+    "courseTitle": "Environmental Resource Management",
+    "examDate": "2026-06-13",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "GST202",
+    "courseTitle": "Fundamentals of Peace Studies and Conflict Resolution",
+    "examDate": "2026-06-13",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "HCM142",
+    "courseTitle": "tourism As An Industry",
+    "examDate": "2026-06-13",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "INR111",
+    "courseTitle": "Introduction to International Studies",
+    "examDate": "2026-06-13",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "MAC221",
+    "courseTitle": "Editing & Graphics of Communication",
+    "examDate": "2026-06-13",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "NSC211",
+    "courseTitle": "Medical Microbiology and Parasitology",
+    "examDate": "2026-06-13",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "PCR271",
+    "courseTitle": "Understanding Conflicts and War",
+    "examDate": "2026-06-13",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "PHY201",
+    "courseTitle": "Classical Mechanics I",
+    "examDate": "2026-06-13",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "BIO212",
+    "courseTitle": "Helminthology",
+    "examDate": "2026-06-13",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "CHM291",
+    "courseTitle": "Practical Chemistry IIi- Inorganic",
+    "examDate": "2026-06-13",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "CSS245",
+    "courseTitle": "Security Planning Development and Organization",
+    "examDate": "2026-06-13",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "ECO122",
+    "courseTitle": "Principles of Economics II",
+    "examDate": "2026-06-13",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "ESM236",
+    "courseTitle": "Environmental Microbiology",
+    "examDate": "2026-06-13",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "HCM136",
+    "courseTitle": "Introduction to Food & Beverage Ser",
+    "examDate": "2026-06-13",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "HCM239",
+    "courseTitle": "Menu Planning & Catering Services",
+    "examDate": "2026-06-13",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "MAC113",
+    "courseTitle": "History of Nigerian Mass Media",
+    "examDate": "2026-06-13",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "MTH251",
+    "courseTitle": "Mechanics",
+    "examDate": "2026-06-13",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "NSC221",
+    "courseTitle": "Human Physiology I",
+    "examDate": "2026-06-13",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "PHY202",
+    "courseTitle": "Modern Physics I",
+    "examDate": "2026-06-13",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "POL204",
+    "courseTitle": "Introduction to Political Science",
+    "examDate": "2026-06-13",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "STA111",
+    "courseTitle": "Descriptive Statistics",
+    "examDate": "2026-06-13",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "TSM147",
+    "courseTitle": "tourism Policy and Planning",
+    "examDate": "2026-06-13",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "BIO191",
+    "courseTitle": "General Biology Practical I",
+    "examDate": "2026-06-13",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "BIO220",
+    "courseTitle": "Fisheries and Wildlife",
+    "examDate": "2026-06-13",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "CSS211",
+    "courseTitle": "Sociology of Crime and Delinquency",
+    "examDate": "2026-06-13",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "ECO232",
+    "courseTitle": "Micro Economic Theory II",
+    "examDate": "2026-06-13",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "ESM102",
+    "courseTitle": "The Nigerian Environment",
+    "examDate": "2026-06-13",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "FMC215",
+    "courseTitle": "Principle of Sound Recording & Editing in Film",
+    "examDate": "2026-06-13",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "HCM237",
+    "courseTitle": "Hospitality Sales and Marketing",
+    "examDate": "2026-06-13",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "INR142",
+    "courseTitle": "Introduction to Public Administration",
+    "examDate": "2026-06-13",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "MTH213",
+    "courseTitle": "Numerical Analysis I",
+    "examDate": "2026-06-13",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "NSC201",
+    "courseTitle": "Foundation of Professional Nursing Practice I",
+    "examDate": "2026-06-13",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "PHY104",
+    "courseTitle": "General Physics IV",
+    "examDate": "2026-06-13",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "TSM146",
+    "courseTitle": "The Cultural Heritage",
+    "examDate": "2026-06-13",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "AGR205",
+    "courseTitle": "Introduction to Agro-climatology",
+    "examDate": "2026-06-15",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "CSS242",
+    "courseTitle": "Measurements and Patterns of Crimes",
+    "examDate": "2026-06-15",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "DES213",
+    "courseTitle": "Introduction to Public Finance Mana",
+    "examDate": "2026-06-15",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "ECO247",
+    "courseTitle": "The Nigerian Economy In Perspective",
+    "examDate": "2026-06-15",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "ESM222",
+    "courseTitle": "Water Resource Evaluation",
+    "examDate": "2026-06-15",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "HCM144",
+    "courseTitle": "tourism Marketing",
+    "examDate": "2026-06-15",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "INR212",
+    "courseTitle": "International Law and Diplomacy In the 20th Century",
+    "examDate": "2026-06-15",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "MAC117",
+    "courseTitle": "Writing For Mass Media I",
+    "examDate": "2026-06-15",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "NSC216",
+    "courseTitle": "Human Anatomy III",
+    "examDate": "2026-06-15",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "PCR114",
+    "courseTitle": "Introduction to Conflict Resolution",
+    "examDate": "2026-06-15",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "PHY101",
+    "courseTitle": "Elementary Mechanics Heat andprope",
+    "examDate": "2026-06-15",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "POL231",
+    "courseTitle": "Essentials of International Relatio",
+    "examDate": "2026-06-15",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "TSM144",
+    "courseTitle": "Tourism Marketing",
+    "examDate": "2026-06-15",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "AGR201",
+    "courseTitle": "General Agriculture",
+    "examDate": "2026-06-15",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "BIO205",
+    "courseTitle": "Introductory Developmental Cell Biology",
+    "examDate": "2026-06-15",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "CHM192",
+    "courseTitle": "Introductory Practical Chemistry II",
+    "examDate": "2026-06-15",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "CSS121",
+    "courseTitle": "Introduction to Psychology",
+    "examDate": "2026-06-15",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "EHS208",
+    "courseTitle": "HYGIENE EDUCATION AND PROMOTION",
+    "examDate": "2026-06-15",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "ESM211",
+    "courseTitle": "Global Environmental Issues",
+    "examDate": "2026-06-15",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "FMC211",
+    "courseTitle": "Films and Cinema Censorship",
+    "examDate": "2026-06-15",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "HCM141",
+    "courseTitle": "Understanding tourism",
+    "examDate": "2026-06-15",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "HCM146",
+    "courseTitle": "The Culture Heritage",
+    "examDate": "2026-06-15",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "INR262",
+    "courseTitle": "International Migration II",
+    "examDate": "2026-06-15",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "MAC132",
+    "courseTitle": "Principles of Advertisement Sales Promotion",
+    "examDate": "2026-06-15",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "PHY208",
+    "courseTitle": "Network Analysis and Devises",
+    "examDate": "2026-06-15",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "POL215",
+    "courseTitle": "History of Political Thought I",
+    "examDate": "2026-06-15",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "TSM141",
+    "courseTitle": "Understanding tourism",
+    "examDate": "2026-06-15",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "AGR207",
+    "courseTitle": "Anatomy and Physiology of Farm Animals",
+    "examDate": "2026-06-15",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "BIO215",
+    "courseTitle": "General Biochemistry Laboratory 1",
+    "examDate": "2026-06-15",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "CHM101",
+    "courseTitle": "Introductory Inorganic Chemistry I",
+    "examDate": "2026-06-15",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "CHM204",
+    "courseTitle": "Structure andbonding",
+    "examDate": "2026-06-15",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "CSS243",
+    "courseTitle": "Principles of Security Practice and Management",
+    "examDate": "2026-06-15",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "ECO292",
+    "courseTitle": "Environmental Economics",
+    "examDate": "2026-06-15",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "INR112",
+    "courseTitle": "Introduction to Law and Diplomacy I",
+    "examDate": "2026-06-15",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "MAC211",
+    "courseTitle": "Theories of Mass Communication",
+    "examDate": "2026-06-15",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "MTH282",
+    "courseTitle": "Mathematical Methods II",
+    "examDate": "2026-06-15",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "NSC210",
+    "courseTitle": "Introduction to Sociology II",
+    "examDate": "2026-06-15",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "PHY205",
+    "courseTitle": "Introduction to Space Physics",
+    "examDate": "2026-06-15",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "POL216",
+    "courseTitle": "Evolution of Nigerian Local Government",
+    "examDate": "2026-06-15",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "TSM145",
+    "courseTitle": "Geography of tourism",
+    "examDate": "2026-06-15",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "ARD202",
+    "courseTitle": "Introduction to Rural Sociology",
+    "examDate": "2026-06-16",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "BIO217",
+    "courseTitle": "General Microbiology",
+    "examDate": "2026-06-16",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "CHM202",
+    "courseTitle": "Analytical Chemistry I",
+    "examDate": "2026-06-16",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "EHS207",
+    "courseTitle": "GENERAL BIOCHEMISTRY",
+    "examDate": "2026-06-16",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "ESM221",
+    "courseTitle": "Ecotourism",
+    "examDate": "2026-06-16",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "HCM234",
+    "courseTitle": "Facility Maintenance Management",
+    "examDate": "2026-06-16",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "INR122",
+    "courseTitle": "Concepts In International Relations",
+    "examDate": "2026-06-16",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "INR221",
+    "courseTitle": "History and Practice of Diplomacy",
+    "examDate": "2026-06-16",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "MAC223",
+    "courseTitle": "Magazine & Feature Article Writing",
+    "examDate": "2026-06-16",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "MTH106",
+    "courseTitle": "Mathematics For Management Sciences",
+    "examDate": "2026-06-16",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "NSC223",
+    "courseTitle": "Medical Biochemistry I",
+    "examDate": "2026-06-16",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "PHY261",
+    "courseTitle": "Geophysics I",
+    "examDate": "2026-06-16",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "POL228",
+    "courseTitle": "Introduction to Comparative Politics",
+    "examDate": "2026-06-16",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "TSM143",
+    "courseTitle": "tourism Services & Operations",
+    "examDate": "2026-06-16",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "AEM202",
+    "courseTitle": "Introduction to Rural Sociology",
+    "examDate": "2026-06-16",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "CSS112",
+    "courseTitle": "Sociology of Law",
+    "examDate": "2026-06-16",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "ESM104",
+    "courseTitle": "Introduction to Environmenatal Science",
+    "examDate": "2026-06-16",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "INR231",
+    "courseTitle": "South-south Cooperation",
+    "examDate": "2026-06-16",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "MAC232",
+    "courseTitle": "Environmental Public Relations",
+    "examDate": "2026-06-16",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "MTH101",
+    "courseTitle": "Elementary Mathematics I",
+    "examDate": "2026-06-16",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "NSC224",
+    "courseTitle": "Medical Biochemistry II",
+    "examDate": "2026-06-16",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "PCR211",
+    "courseTitle": "Education For Peace",
+    "examDate": "2026-06-16",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "SLM201",
+    "courseTitle": "Principles of Soil Science",
+    "examDate": "2026-06-16",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "BIO209",
+    "courseTitle": "Chordates",
+    "examDate": "2026-06-16",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "CSS241",
+    "courseTitle": "Basic Security and Security Threats",
+    "examDate": "2026-06-16",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "FMC132",
+    "courseTitle": "Media, Culture and Films",
+    "examDate": "2026-06-16",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "GST204",
+    "courseTitle": "Entrepreneurship and Innovation",
+    "examDate": "2026-06-16",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "INR211",
+    "courseTitle": "International Law and Diplomacy In",
+    "examDate": "2026-06-16",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "NSC209",
+    "courseTitle": "Physical and Health Assessment",
+    "examDate": "2026-06-16",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "PCR111",
+    "courseTitle": "Introduction to Peace Studies",
+    "examDate": "2026-06-16",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "PHY102",
+    "courseTitle": "Electricity Magnetism and Modern Physics",
+    "examDate": "2026-06-16",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "ANP202",
+    "courseTitle": "Principles of Animal Production",
+    "examDate": "2026-06-17",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "BIO214",
+    "courseTitle": "Structure and Functions of Major Cell Components",
+    "examDate": "2026-06-17",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "DES112",
+    "courseTitle": "Introduction to Development Studies",
+    "examDate": "2026-06-17",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "GST201",
+    "courseTitle": "Nigerian People and Culture",
+    "examDate": "2026-06-17",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "NSC214",
+    "courseTitle": "Cellular and General Pathology",
+    "examDate": "2026-06-17",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "PHY204",
+    "courseTitle": "Electromagnetism",
+    "examDate": "2026-06-17",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "POL214",
+    "courseTitle": "Introduction to Political Analysis",
+    "examDate": "2026-06-17",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "ARD203",
+    "courseTitle": "Introduction to Home Economics",
+    "examDate": "2026-06-17",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "BIO208",
+    "courseTitle": "Seedless Plants",
+    "examDate": "2026-06-17",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "CRP206",
+    "courseTitle": "Crop Anatomy Taxonomy and Physiology",
+    "examDate": "2026-06-17",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "CSS136",
+    "courseTitle": "Introduction to Criminology II",
+    "examDate": "2026-06-17",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "DES219",
+    "courseTitle": "Climate Change and Development",
+    "examDate": "2026-06-17",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "HCM243",
+    "courseTitle": "tourists Sites: Products and Operations",
+    "examDate": "2026-06-17",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "INR162",
+    "courseTitle": "International Migration I",
+    "examDate": "2026-06-17",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "MAC225",
+    "courseTitle": "News  Writing & Reporting",
+    "examDate": "2026-06-17",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "NOU707",
+    "courseTitle": "A STUDY GUIDE FOR DISTANCE LEARNER",
+    "examDate": "2026-06-17",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "NSC204",
+    "courseTitle": "Epidemiology",
+    "examDate": "2026-06-17",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "PCR112",
+    "courseTitle": "Democracy and Good Governance",
+    "examDate": "2026-06-17",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "PHY191",
+    "courseTitle": "Introductory Practical Physics I",
+    "examDate": "2026-06-17",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "POL223",
+    "courseTitle": "Foundation of Political Economy",
+    "examDate": "2026-06-17",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "ARD251",
+    "courseTitle": "Introduction to Agricultural Economy",
+    "examDate": "2026-06-17",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "BIO101",
+    "courseTitle": "General Biology I",
+    "examDate": "2026-06-17",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "BIO206",
+    "courseTitle": "Statistics For Agriculture and Biol",
+    "examDate": "2026-06-17",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "HCM131",
+    "courseTitle": "Introduction to Hospitality Management",
+    "examDate": "2026-06-17",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "HCM231",
+    "courseTitle": "Introduction to Food & Beverage Pro",
+    "examDate": "2026-06-17",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "MAC134",
+    "courseTitle": "Principles and Practice of Public Relations",
+    "examDate": "2026-06-17",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "MAC242",
+    "courseTitle": "Foundations  of Broadcasting",
+    "examDate": "2026-06-17",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "MTH212",
+    "courseTitle": "Linear Algebra II",
+    "examDate": "2026-06-17",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "NSC222",
+    "courseTitle": "Human Physiology II",
+    "examDate": "2026-06-17",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "PCR113",
+    "courseTitle": "Introduction to Peace Education",
+    "examDate": "2026-06-17",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "PHS217",
+    "courseTitle": "General Microbiology",
+    "examDate": "2026-06-17",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "POL226",
+    "courseTitle": "Organization and Administrative Theories",
+    "examDate": "2026-06-17",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "TSM241",
+    "courseTitle": "Understanding tourist and Hosts",
+    "examDate": "2026-06-17",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "ANP201",
+    "courseTitle": "Introduction to Biotechnology",
+    "examDate": "2026-06-18",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "BIO211",
+    "courseTitle": "Coelomate Invertebrates",
+    "examDate": "2026-06-18",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "ECO255",
+    "courseTitle": "Mathematics For Economist 1",
+    "examDate": "2026-06-18",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "EHS202",
+    "courseTitle": "Introduction to Ecology and Environ",
+    "examDate": "2026-06-18",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "FMC217",
+    "courseTitle": "Films and Aesthetics Theory",
+    "examDate": "2026-06-18",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "HCM241",
+    "courseTitle": "Understanding tourists and Hosts",
+    "examDate": "2026-06-18",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "INR222",
+    "courseTitle": "Europe From French Revolution to The World Wars",
+    "examDate": "2026-06-18",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "MAC115",
+    "courseTitle": "African Communication Systems I",
+    "examDate": "2026-06-18",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "MTH102",
+    "courseTitle": "Elementary Mathematics II",
+    "examDate": "2026-06-18",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "NSC220",
+    "courseTitle": "Foundation of Professional Nursing Practice II",
+    "examDate": "2026-06-18",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "PHS201",
+    "courseTitle": "Anatomy",
+    "examDate": "2026-06-18",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "POL126",
+    "courseTitle": "Citizens and The State",
+    "examDate": "2026-06-18",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "STT205",
+    "courseTitle": "Statistics For Management Sciences",
+    "examDate": "2026-06-18",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "AEM203",
+    "courseTitle": "Introduction to Home Economics",
+    "examDate": "2026-06-18",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "BIO203",
+    "courseTitle": "General Physiology 1",
+    "examDate": "2026-06-18",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "CHM191",
+    "courseTitle": "Introductory Practical Chemistry I",
+    "examDate": "2026-06-18",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "CSS244",
+    "courseTitle": "Types and Analysis of Security Threats",
+    "examDate": "2026-06-18",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "DES111",
+    "courseTitle": "Introduction to Development Studies",
+    "examDate": "2026-06-18",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "ECO146",
+    "courseTitle": "The Nigerian Economy In Perspective",
+    "examDate": "2026-06-18",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "ECO256",
+    "courseTitle": "Mathematics For Economist II",
+    "examDate": "2026-06-18",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "ESM291",
+    "courseTitle": "Map Analysis",
+    "examDate": "2026-06-18",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "FST202",
+    "courseTitle": "Principles of Food Science and Technology",
+    "examDate": "2026-06-18",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "MAC111",
+    "courseTitle": "Introduction to Mass Communication",
+    "examDate": "2026-06-18",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "MTH210",
+    "courseTitle": "Introduction to Complex Analysis",
+    "examDate": "2026-06-18",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "PHS210",
+    "courseTitle": "Introduction to Biostatistics",
+    "examDate": "2026-06-18",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "PHY203",
+    "courseTitle": "Oscilations and Waves",
+    "examDate": "2026-06-18",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "POL212",
+    "courseTitle": "Basic Statistics For Social Science",
+    "examDate": "2026-06-18",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "STT206",
+    "courseTitle": "Statistics For Management Sciences",
+    "examDate": "2026-06-18",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "TSM243",
+    "courseTitle": "tourist Sites: Products  & Operation",
+    "examDate": "2026-06-18",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "AFS202",
+    "courseTitle": "Principles of Food Science Technolo",
+    "examDate": "2026-06-18",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "BIO204",
+    "courseTitle": "Biological Techniques",
+    "examDate": "2026-06-18",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "CHM102",
+    "courseTitle": "Introductory Organic Chemistry I",
+    "examDate": "2026-06-18",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "DES221",
+    "courseTitle": "Social Change and Development",
+    "examDate": "2026-06-18",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "ECO254",
+    "courseTitle": "Statistics For Economist II",
+    "examDate": "2026-06-18",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "ESM234",
+    "courseTitle": "Soil Resources",
+    "examDate": "2026-06-18",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "FMC116",
+    "courseTitle": "Elements of Film Production",
+    "examDate": "2026-06-18",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "HCM135",
+    "courseTitle": "Introduction to Food & Beverage Ser",
+    "examDate": "2026-06-18",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "INR251",
+    "courseTitle": "Evolution of Modern International System",
+    "examDate": "2026-06-18",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "JLS111",
+    "courseTitle": "Introduction to Journalism",
+    "examDate": "2026-06-18",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "MAC212",
+    "courseTitle": "Media and Society",
+    "examDate": "2026-06-18",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "MTH241",
+    "courseTitle": "Introduction to Real Analysis",
+    "examDate": "2026-06-18",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "NSC218",
+    "courseTitle": "Human Anatomy IV",
+    "examDate": "2026-06-18",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "PCR115",
+    "courseTitle": "Introduction to Conflict Resolution",
+    "examDate": "2026-06-18",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "PHS203",
+    "courseTitle": "Introduction to Public Health",
+    "examDate": "2026-06-18",
+    "startTime": "2pm"
+  },
+  {
+    "courseCode": "AEM201",
+    "courseTitle": "Principles of Agricultural Extension",
+    "examDate": "2026-06-19",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "CHM292",
+    "courseTitle": "Practical Chemistry Iv - Physical A",
+    "examDate": "2026-06-19",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "CSS246",
+    "courseTitle": "Legal & Social Framework of Private Security Services in Nigeria",
+    "examDate": "2026-06-19",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "ECO121",
+    "courseTitle": "Principles of Economics 1",
+    "examDate": "2026-06-19",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "ESM238",
+    "courseTitle": "Air Photo Interpretation",
+    "examDate": "2026-06-19",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "HCM238",
+    "courseTitle": "Introduction to Food & Beverage Production",
+    "examDate": "2026-06-19",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "INR232",
+    "courseTitle": "Introduction to Foreign Policy",
+    "examDate": "2026-06-19",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "MTH281",
+    "courseTitle": "Mathematical Method I",
+    "examDate": "2026-06-19",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "NSC215",
+    "courseTitle": "Human Anatomy I",
+    "examDate": "2026-06-19",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "PCR261",
+    "courseTitle": "Culture Values and Conflicts In War",
+    "examDate": "2026-06-19",
+    "startTime": "8:30am"
+  },
+  {
+    "courseCode": "ARD201",
+    "courseTitle": "Principles of Agricultural Extension",
+    "examDate": "2026-06-19",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "BIO216",
+    "courseTitle": "Chemistry of Carbohydrates, Lipids",
+    "examDate": "2026-06-19",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "CHM203",
+    "courseTitle": "Organic Chemistry II",
+    "examDate": "2026-06-19",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "CSS133",
+    "courseTitle": "Introduction to Criminology I",
+    "examDate": "2026-06-19",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "DES220",
+    "courseTitle": "Poverty, Inequality and Development",
+    "examDate": "2026-06-19",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "ECO153",
+    "courseTitle": "Introduction to Quantitative Method",
+    "examDate": "2026-06-19",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "EHS206",
+    "courseTitle": "Climate Change and Contemporary Issues",
+    "examDate": "2026-06-19",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "GST302",
+    "courseTitle": "Business Creation and Growth",
+    "examDate": "2026-06-19",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "HCM236",
+    "courseTitle": "Beverage Management",
+    "examDate": "2026-06-19",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "MAC246",
+    "courseTitle": "Educational Broadcasting",
+    "examDate": "2026-06-19",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "MTH232",
+    "courseTitle": "Elementary Differential Equation 1",
+    "examDate": "2026-06-19",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "POL221",
+    "courseTitle": "Nigerian Government and Politics",
+    "examDate": "2026-06-19",
+    "startTime": "11am"
+  },
+  {
+    "courseCode": "AGR203",
+    "courseTitle": "Principles of Crop Production",
+    "examDate": "2026-06-19",
+    "startTime": "3pm"
+  },
+  {
+    "courseCode": "BIO192",
+    "courseTitle": "General Biology Practical II",
+    "examDate": "2026-06-19",
+    "startTime": "3pm"
+  },
+  {
+    "courseCode": "BIO213",
+    "courseTitle": "Chemistry of Amino Acids and Protein",
+    "examDate": "2026-06-19",
+    "startTime": "3pm"
+  },
+  {
+    "courseCode": "CSS134",
+    "courseTitle": "Geography of Nigeria",
+    "examDate": "2026-06-19",
+    "startTime": "3pm"
+  },
+  {
+    "courseCode": "DES215",
+    "courseTitle": "Nigerian Economy in Perspective I",
+    "examDate": "2026-06-19",
+    "startTime": "3pm"
+  },
+  {
+    "courseCode": "ESM206",
+    "courseTitle": "Community Participation In Environm",
+    "examDate": "2026-06-19",
+    "startTime": "3pm"
+  },
+  {
+    "courseCode": "FMC212",
+    "courseTitle": "Visual Language of Film",
+    "examDate": "2026-06-19",
+    "startTime": "3pm"
+  },
+  {
+    "courseCode": "HCM145",
+    "courseTitle": "Geography of tourism",
+    "examDate": "2026-06-19",
+    "startTime": "3pm"
+  },
+  {
+    "courseCode": "MAC121",
+    "courseTitle": "Introduction to News Writing & Reporting",
+    "examDate": "2026-06-19",
+    "startTime": "3pm"
+  },
+  {
+    "courseCode": "MAC213",
+    "courseTitle": "Foundation of Communication Research",
+    "examDate": "2026-06-19",
+    "startTime": "3pm"
+  },
+  {
+    "courseCode": "PCR274",
+    "courseTitle": "Introduction to Conflict Transformation",
+    "examDate": "2026-06-19",
+    "startTime": "3pm"
+  },
+  {
+    "courseCode": "PHS204",
+    "courseTitle": "Introduction to Sociology",
+    "examDate": "2026-06-19",
+    "startTime": "3pm"
+  },
+  {
+    "courseCode": "PHY207",
+    "courseTitle": "Thermodynamics",
+    "examDate": "2026-06-19",
+    "startTime": "3pm"
+  },
+  {
+    "courseCode": "POL123",
+    "courseTitle": "Introduction to Public Administration",
+    "examDate": "2026-06-19",
+    "startTime": "3pm"
+  }
+]

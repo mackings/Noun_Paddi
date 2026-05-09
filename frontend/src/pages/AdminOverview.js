@@ -1,6 +1,19 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FiActivity, FiBook, FiBriefcase, FiGrid, FiLayers, FiRefreshCw, FiShield, FiTrendingUp, FiUsers } from 'react-icons/fi';
+import {
+  FiActivity,
+  FiBook,
+  FiBriefcase,
+  FiCheckCircle,
+  FiFileText,
+  FiGrid,
+  FiLayers,
+  FiRefreshCw,
+  FiShield,
+  FiTrendingUp,
+  FiUploadCloud,
+  FiUsers,
+} from 'react-icons/fi';
 import api from '../utils/api';
 import { trackFeatureVisit } from '../utils/featureTracking';
 import './AdminOverview.css';
@@ -96,6 +109,8 @@ const AdminOverview = () => {
     [users, viewMode]
   );
   const chartMax = Math.max(...chartData.map((item) => item.value), 1);
+  const summaryPercentage = stats?.overview?.summaryPercentage || 0;
+  const questionsPerMaterial = stats?.overview?.questionsPerMaterial || 0;
 
   if (loading) {
     return (
@@ -113,8 +128,8 @@ const AdminOverview = () => {
       <section className="overview-hero">
         <div>
           <p className="overview-kicker">NounPaddi Admin</p>
-          <h1>Overview</h1>
-          <p>Monitor your academic structure and user growth from one modern control surface.</p>
+          <h1>Operations Overview</h1>
+          <p>Monitor academic content, platform users, generation coverage, and admin activity.</p>
         </div>
         <button onClick={fetchStats} className="btn btn-outline-primary">
           <FiRefreshCw /> Refresh
@@ -124,33 +139,51 @@ const AdminOverview = () => {
       <section className="overview-stat-grid">
         <article className="overview-stat-card">
           <span className="overview-stat-icon purple"><FiBriefcase /></span>
-          <h3>{stats?.overview?.totalFaculties || 0}</h3>
-          <p>Faculties</p>
+          <div>
+            <p>Faculties</p>
+            <h3>{stats?.overview?.totalFaculties || 0}</h3>
+            <span>Academic groups</span>
+          </div>
         </article>
         <article className="overview-stat-card">
           <span className="overview-stat-icon blue"><FiLayers /></span>
-          <h3>{stats?.overview?.totalDepartments || 0}</h3>
-          <p>Departments</p>
+          <div>
+            <p>Departments</p>
+            <h3>{stats?.overview?.totalDepartments || 0}</h3>
+            <span>Active units</span>
+          </div>
         </article>
         <article className="overview-stat-card">
           <span className="overview-stat-icon green"><FiBook /></span>
-          <h3>{stats?.overview?.totalCourses || 0}</h3>
-          <p>Courses</p>
+          <div>
+            <p>Courses</p>
+            <h3>{stats?.overview?.totalCourses || 0}</h3>
+            <span>Course records</span>
+          </div>
         </article>
         <article className="overview-stat-card">
-          <span className="overview-stat-icon orange"><FiUsers /></span>
-          <h3>{studentCount}</h3>
-          <p>Students</p>
+          <span className="overview-stat-icon orange"><FiFileText /></span>
+          <div>
+            <p>Materials</p>
+            <h3>{stats?.overview?.totalMaterials || 0}</h3>
+            <span>Uploaded files</span>
+          </div>
         </article>
         <article className="overview-stat-card">
-          <span className="overview-stat-icon pink"><FiGrid /></span>
-          <h3>{users.length}</h3>
-          <p>Total Users</p>
+          <span className="overview-stat-icon pink"><FiUsers /></span>
+          <div>
+            <p>Students</p>
+            <h3>{studentCount}</h3>
+            <span>Registered learners</span>
+          </div>
         </article>
         <article className="overview-stat-card">
           <span className="overview-stat-icon indigo"><FiShield /></span>
-          <h3>{adminCount}</h3>
-          <p>Admins</p>
+          <div>
+            <p>Admins</p>
+            <h3>{adminCount}</h3>
+            <span>Workspace access</span>
+          </div>
         </article>
       </section>
 
@@ -201,22 +234,35 @@ const AdminOverview = () => {
         </article>
 
         <article className="overview-panel">
-          <h2><FiTrendingUp /> User Role Mix</h2>
+          <h2><FiTrendingUp /> Platform Health</h2>
           <div className="overview-list">
             <div className="overview-row">
-              <h4>Students</h4>
-              <p>Primary learning users on the platform.</p>
-              <span>{studentCount}</span>
+              <div>
+                <h4>Summary Coverage</h4>
+                <p>Materials with generated summaries.</p>
+              </div>
+              <span>{summaryPercentage}%</span>
             </div>
             <div className="overview-row">
-              <h4>Admins</h4>
-              <p>Operational users managing content and messaging.</p>
-              <span>{adminCount}</span>
+              <div>
+                <h4>Question Density</h4>
+                <p>Average generated practice questions.</p>
+              </div>
+              <span>{questionsPerMaterial}</span>
             </div>
             <div className="overview-row">
-              <h4>Total Accounts</h4>
-              <p>All registered user profiles in the system.</p>
+              <div>
+                <h4>Total Accounts</h4>
+                <p>All registered user profiles in the system.</p>
+              </div>
               <span>{users.length}</span>
+            </div>
+            <div className="overview-row">
+              <div>
+                <h4>Admin Coverage</h4>
+                <p>Trusted operators with platform access.</p>
+              </div>
+              <span>{adminCount}</span>
             </div>
           </div>
         </article>
@@ -233,8 +279,13 @@ const AdminOverview = () => {
           <h3>API Usage</h3>
           <p>Monitor model calls, tokens, and operation health.</p>
         </Link>
+        <Link to="/admin/upload?tab=materials" className="overview-action">
+          <FiUploadCloud />
+          <h3>Upload Materials</h3>
+          <p>Add course files and trigger learning content workflows.</p>
+        </Link>
         <Link to="/admin/users" className="overview-action">
-          <FiUsers />
+          <FiCheckCircle />
           <h3>Manage Users</h3>
           <p>View profiles and invite trusted admins.</p>
         </Link>

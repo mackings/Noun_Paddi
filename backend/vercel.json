@@ -10,6 +10,10 @@
     {
       "path": "/api/admin/notifications/process-scheduled/cron",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/exam-timetable/process-reminders/cron",
+      "schedule": "0 8 * * *"
     }
   ],
   "routes": [

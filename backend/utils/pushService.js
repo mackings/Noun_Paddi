@@ -116,9 +116,60 @@ const sendBroadcastNotification = async ({ title, message, url = '/', imageUrl =
   };
 };
 
+const sendUserNotification = async ({ userId, title, message, url = '/', imageUrl = '' }) => {
+  ensurePushConfigured();
+
+  const subscriptions = await PushSubscription.find({ userId });
+  if (subscriptions.length === 0) {
+    return { total: 0, sent: 0, failed: 0, removed: 0 };
+  }
+
+  const payload = JSON.stringify({
+    title,
+    body: message,
+    url,
+    imageUrl,
+  });
+
+  let sent = 0;
+  let failed = 0;
+  let removed = 0;
+
+  await Promise.all(
+    subscriptions.map(async (record) => {
+      try {
+        await webpush.sendNotification(
+          {
+            endpoint: record.endpoint,
+            expirationTime: record.expirationTime || null,
+            keys: record.keys,
+          },
+          payload
+        );
+        sent += 1;
+      } catch (error) {
+        failed += 1;
+        const statusCode = error?.statusCode;
+        if (statusCode === 404 || statusCode === 410) {
+          await PushSubscription.deleteOne({ _id: record._id });
+          removed += 1;
+        }
+      }
+    })
+  );
+
+  return {
+    total: subscriptions.length,
+    sent,
+    failed,
+    removed,
+  };
+};
+
 module.exports = {
   getPublicVapidKey,
   saveUserSubscription,
   removeUserSubscription,
   sendBroadcastNotification,
+  sendUserNotification,
 };
