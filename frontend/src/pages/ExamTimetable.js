@@ -163,7 +163,7 @@ const ExamTimetable = () => {
       <div className="container">
         <section className="exam-hero">
           <div>
-            <p className="exam-kicker">2026_1 E-Exam Draft Timetable</p>
+            <p className="exam-kicker">2026_1 E-Exam Final Timetable</p>
             <h1>My Exam Timetable</h1>
             <p>Add your course codes, view exam dates and times, then record your score after each paper.</p>
           </div>

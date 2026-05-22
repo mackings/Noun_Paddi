@@ -548,6 +548,7 @@ exports.answerTmaQuestion = async (req, res) => {
       });
     }
 
+    
     const evidence = ranked.map(({ chunk }) => ({
       sourceId: chunk.sourceId?._id,
       title: chunk.sourceId?.title || 'TMA source',

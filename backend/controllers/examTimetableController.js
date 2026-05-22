@@ -50,7 +50,7 @@ exports.addCourseToSchedule = async (req, res) => {
   if (!entry) {
     return res.status(404).json({
       success: false,
-      message: 'Course code was not found in the 2026_1 e-exam timetable.',
+      message: 'Course code was not found in the 2026_1 e-exam final timetable.',
     });
   }
 

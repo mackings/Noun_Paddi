@@ -1,4 +1,4 @@
-const timetable = require('../data/eExamTimetable2026_1.json');
+const timetable = require('../data/eExamFinalTimetable2026_1.json');
 
 const TIME_TO_HOUR = {
   '8:30am': { hour: 8, minute: 30 },
