@@ -28,6 +28,7 @@ import Reminders from './pages/Reminders';
 import ExamTimetable from './pages/ExamTimetable';
 import PlagiarismChecker from './pages/PlagiarismChecker';
 import Projects from './pages/Projects';
+import Videos from './pages/Videos';
 import MyFees from './pages/MyFees';
 import ConsultationTerms from './pages/ConsultationTerms';
 import ProjectConsultation from './pages/ProjectConsultation';
@@ -438,6 +439,14 @@ const AppLayout = () => {
                   element={
                     <ProtectedRoute>
                       <ExamTimetable />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/videos"
+                  element={
+                    <ProtectedRoute>
+                      <Videos />
                     </ProtectedRoute>
                   }
                 />

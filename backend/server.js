@@ -131,6 +131,7 @@ app.use('/api/reminders', require('./routes/readingReminder'));
 app.use('/api/plagiarism', require('./routes/plagiarism'));
 app.use('/api/projects', require('./routes/project'));
 app.use('/api/reviews', require('./routes/review'));
+app.use('/api/videos', require('./routes/video'));
 app.use('/api/share', require('./routes/share'));
 app.use('/api/analytics', require('./routes/analytics'));
 app.use('/api/push', require('./routes/push'));

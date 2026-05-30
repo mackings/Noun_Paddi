@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { FiMenu, FiX, FiLogOut, FiUser, FiSun, FiMoon, FiBook, FiBell, FiFolder, FiChevronDown, FiAlertTriangle, FiMessageSquare, FiCalendar } from 'react-icons/fi';
+import { FiMenu, FiX, FiLogOut, FiUser, FiSun, FiMoon, FiBook, FiBell, FiFolder, FiChevronDown, FiAlertTriangle, FiMessageSquare, FiCalendar, FiPlayCircle } from 'react-icons/fi';
 import './Navbar.css';
 
 const Navbar = () => {
@@ -46,6 +46,7 @@ const Navbar = () => {
                   <>
                     <Link to="/dashboard" className="nav-link">Dashboard</Link>
                     <Link to="/explore" className="nav-link">Courses</Link>
+                    <Link to="/videos" className="nav-link"><FiPlayCircle size={16} /> Videos</Link>
                     <Link to="/ask" className="nav-link"><FiMessageSquare size={16} /> Past Questions</Link>
                     <Link to="/exam-timetable" className="nav-link"><FiCalendar size={16} /> Exam Timetable</Link>
                     <Link to="/it-placement" className="nav-link">Siwes</Link>
@@ -196,6 +197,9 @@ const Navbar = () => {
                     </Link>
                     <Link to="/explore" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>
                       Courses
+                    </Link>
+                    <Link to="/videos" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>
+                      <FiPlayCircle size={16} /> Videos
                     </Link>
                     <Link to="/ask" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>
                       <FiMessageSquare size={16} /> Past Questions
