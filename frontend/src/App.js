@@ -29,6 +29,8 @@ import ExamTimetable from './pages/ExamTimetable';
 import PlagiarismChecker from './pages/PlagiarismChecker';
 import Projects from './pages/Projects';
 import Videos from './pages/Videos';
+import LiveQuiz from './pages/LiveQuiz';
+import AdminLiveQuiz from './pages/AdminLiveQuiz';
 import MyFees from './pages/MyFees';
 import ConsultationTerms from './pages/ConsultationTerms';
 import ProjectConsultation from './pages/ProjectConsultation';
@@ -379,6 +381,7 @@ const AppLayout = () => {
                 <Route path="/noun-course/:courseSlug" element={<PublicCoursePreview />} />
                 <Route path="/news" element={<NewsHub />} />
                 <Route path="/news/:slug" element={<NewsArticle />} />
+                <Route path="/quiz" element={<LiveQuiz />} />
 
                 {/* Student Routes */}
                 <Route
@@ -549,6 +552,16 @@ const AppLayout = () => {
                     <ProtectedRoute adminOnly>
                       <AdminLayout>
                         <AdminTma />
+                      </AdminLayout>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/quiz"
+                  element={
+                    <ProtectedRoute adminOnly>
+                      <AdminLayout>
+                        <AdminLiveQuiz />
                       </AdminLayout>
                     </ProtectedRoute>
                   }

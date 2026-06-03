@@ -101,7 +101,14 @@ const corsOptions = {
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'X-Requested-With',
+    'Accept',
+    'X-Quiz-Participant',
+    'X-Quiz-Token',
+  ],
   exposedHeaders: ['Content-Length', 'X-Request-Id'],
   maxAge: 86400, // 24 hours
   preflightContinue: false,
@@ -132,6 +139,7 @@ app.use('/api/plagiarism', require('./routes/plagiarism'));
 app.use('/api/projects', require('./routes/project'));
 app.use('/api/reviews', require('./routes/review'));
 app.use('/api/videos', require('./routes/video'));
+app.use('/api/live-quiz', require('./routes/liveQuiz'));
 app.use('/api/share', require('./routes/share'));
 app.use('/api/analytics', require('./routes/analytics'));
 app.use('/api/push', require('./routes/push'));

@@ -14,6 +14,7 @@ import {
   FiBookOpen,
   FiShield,
   FiEdit3,
+  FiAward,
 } from 'react-icons/fi';
 import { useAuth } from '../contexts/AuthContext';
 import './AdminLayout.css';
@@ -28,6 +29,7 @@ const adminMenu = [
   { to: '/admin/upload?tab=materials', label: 'Upload Materials', icon: FiUploadCloud, key: 'materials-upload', group: 'Content' },
   { to: '/admin/materials', label: 'Material Library', icon: FiLayers, key: 'materials-library', group: 'Content' },
   { to: '/admin/tma', label: 'TMA', icon: FiEdit3, key: 'tma', group: 'Content' },
+  { to: '/admin/quiz', label: 'Live Quiz', icon: FiAward, key: 'quiz', group: 'Content' },
   { to: '/admin/users', label: 'Users', icon: FiUsers, key: 'users', group: 'Access' },
   { to: '/admin/users#invite', label: 'Invite Admin', icon: FiShield, key: 'invite-admin', group: 'Access' },
 ];

@@ -1,0 +1,581 @@
+const crypto = require('crypto');
+const fs = require('fs');
+const path = require('path');
+const jwt = require('jsonwebtoken');
+const User = require('../models/User');
+const LiveQuiz = require('../models/LiveQuiz');
+const LiveQuizQuestion = require('../models/LiveQuizQuestion');
+const LiveQuizParticipant = require('../models/LiveQuizParticipant');
+const LiveQuizAnswer = require('../models/LiveQuizAnswer');
+const { generateQuizQuestionsFromPdfBuffer, normalizeAnswer } = require('../utils/liveQuizHelper');
+
+const hashToken = (token) => crypto.createHash('sha256').update(String(token || '')).digest('hex');
+const isValidEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '').trim());
+const cleanUsername = (value) => String(value || '').trim().replace(/\s+/g, ' ');
+
+const serializeQuiz = (quiz) => ({
+  _id: quiz._id,
+  title: quiz.title,
+  courseCode: quiz.courseCode,
+  description: quiz.description,
+  status: quiz.status,
+  sourceFileName: quiz.sourceFileName,
+  questionCount: quiz.questionCount,
+  questionDurationSeconds: quiz.questionDurationSeconds || 30,
+  startedAt: quiz.startedAt,
+  endedAt: quiz.endedAt,
+  createdAt: quiz.createdAt,
+});
+
+const serializeQuestionForStudent = (question, answeredIds) => ({
+  _id: question._id,
+  order: question.order,
+  questionType: question.questionType,
+  prompt: question.prompt,
+  options: question.options,
+  points: question.points,
+  answered: answeredIds.has(String(question._id)),
+});
+
+const getQuestionDeadline = (participant, quiz) => {
+  if (!participant.questionStartedAt) return null;
+  return new Date(
+    participant.questionStartedAt.getTime() + ((quiz.questionDurationSeconds || 30) * 1000)
+  );
+};
+
+async function findNextUnansweredQuestion(quizId, participantId) {
+  const answeredQuestionIds = await LiveQuizAnswer.find({ participantId }).distinct('questionId');
+  return LiveQuizQuestion.findOne({
+    quizId,
+    _id: { $nin: answeredQuestionIds },
+  }).sort({ order: 1 });
+}
+
+async function setCurrentQuestion(participant, question) {
+  participant.currentQuestionId = question?._id || null;
+  participant.questionStartedAt = question ? new Date() : null;
+  await participant.save();
+}
+
+async function recordMissedQuestion({ quiz, participant, question }) {
+  try {
+    await LiveQuizAnswer.create({
+      quizId: quiz._id,
+      questionId: question._id,
+      participantId: participant._id,
+      answer: '[No answer - time elapsed]',
+      normalizedAnswer: 'no answer time elapsed',
+      isCorrect: false,
+      awardedPoints: 0,
+    });
+    participant.answeredCount += 1;
+    participant.lastAnsweredAt = new Date();
+  } catch (error) {
+    if (error?.code !== 11000) throw error;
+  }
+}
+
+async function ensureParticipantCurrentQuestion(quiz, participant) {
+  if (quiz.status !== 'live') {
+    if (participant.currentQuestionId || participant.questionStartedAt) {
+      await setCurrentQuestion(participant, null);
+    }
+    return null;
+  }
+
+  let currentQuestion = participant.currentQuestionId
+    ? await LiveQuizQuestion.findOne({ _id: participant.currentQuestionId, quizId: quiz._id })
+    : null;
+
+  if (!currentQuestion) {
+    currentQuestion = await findNextUnansweredQuestion(quiz._id, participant._id);
+    await setCurrentQuestion(participant, currentQuestion);
+    return currentQuestion;
+  }
+
+  const deadline = getQuestionDeadline(participant, quiz);
+  if (deadline && deadline.getTime() <= Date.now()) {
+    await recordMissedQuestion({ quiz, participant, question: currentQuestion });
+    currentQuestion = await findNextUnansweredQuestion(quiz._id, participant._id);
+    await setCurrentQuestion(participant, currentQuestion);
+  }
+
+  return currentQuestion;
+}
+
+async function getParticipantFromRequest(req) {
+  const participantId = String(req.headers['x-quiz-participant'] || '').trim();
+  const token = String(req.headers['x-quiz-token'] || '').trim();
+  if (participantId && token) {
+    const tokenParticipant = await LiveQuizParticipant.findOne({
+      _id: participantId,
+      tokenHash: hashToken(token),
+    });
+    if (tokenParticipant) return tokenParticipant;
+  }
+
+  const authHeader = String(req.headers.authorization || '');
+  if (!authHeader.startsWith('Bearer ') || !process.env.JWT_SECRET) return null;
+
+  try {
+    const decoded = jwt.verify(authHeader.slice(7), process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id).select('email');
+    if (!user?.email) return null;
+
+    const currentQuiz = await LiveQuiz.findOne({ status: 'live' }).sort({ createdAt: -1 })
+      || await LiveQuiz.findOne({ status: 'draft' }).sort({ createdAt: -1 });
+    if (!currentQuiz) return null;
+
+    return LiveQuizParticipant.findOne({
+      quizId: currentQuiz._id,
+      email: String(user.email).trim().toLowerCase(),
+    });
+  } catch (error) {
+    return null;
+  }
+}
+
+async function requireParticipant(req, res, next) {
+  try {
+    const participant = await getParticipantFromRequest(req);
+    if (!participant) {
+      return res.status(401).json({
+        success: false,
+        message: 'Join the quiz to continue.',
+      });
+    }
+    req.quizParticipant = participant;
+    return next();
+  } catch (error) {
+    return res.status(401).json({
+      success: false,
+      message: 'Quiz access could not be verified.',
+    });
+  }
+}
+
+async function createQuizFromBuffer({ buffer, fileName, title, courseCode, description, userId }) {
+  const quiz = await LiveQuiz.create({
+    title: String(title || 'GST103 Live Quiz').trim(),
+    courseCode: String(courseCode || 'GST103').trim().toUpperCase(),
+    description: String(description || '').trim(),
+    sourceFileName: fileName,
+    createdBy: userId,
+  });
+
+  try {
+    const generated = await generateQuizQuestionsFromPdfBuffer(buffer, 100);
+    if (generated.length < 20) {
+      throw new Error(`Gemini generated only ${generated.length} usable questions.`);
+    }
+
+    await LiveQuizQuestion.insertMany(generated.map((question, index) => ({
+      ...question,
+      quizId: quiz._id,
+      order: index + 1,
+    })));
+
+    quiz.questionCount = generated.length;
+    await quiz.save();
+    return quiz;
+  } catch (error) {
+    await LiveQuiz.deleteOne({ _id: quiz._id });
+    throw error;
+  }
+}
+
+exports.requireParticipant = requireParticipant;
+
+exports.getCurrentQuiz = async (req, res) => {
+  try {
+    const quiz = await LiveQuiz.findOne({ status: 'live' }).sort({ createdAt: -1 })
+      || await LiveQuiz.findOne({ status: 'draft' }).sort({ createdAt: -1 });
+
+    return res.status(200).json({
+      success: true,
+      data: quiz ? serializeQuiz(quiz) : null,
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Failed to load the current quiz.' });
+  }
+};
+
+exports.joinQuiz = async (req, res) => {
+  try {
+    const quiz = await LiveQuiz.findById(req.params.quizId);
+    const username = cleanUsername(req.body?.username);
+    const email = String(req.body?.email || '').trim().toLowerCase();
+
+    if (!quiz || quiz.status === 'ended') {
+      return res.status(404).json({ success: false, message: 'This quiz is not available.' });
+    }
+    if (username.length < 2 || username.length > 40) {
+      return res.status(400).json({ success: false, message: 'Choose a username between 2 and 40 characters.' });
+    }
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ success: false, message: 'Enter a valid email address.' });
+    }
+
+    const conflictingUsername = await LiveQuizParticipant.findOne({
+      quizId: quiz._id,
+      username: { $regex: `^${username.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, $options: 'i' },
+      email: { $ne: email },
+    });
+    if (conflictingUsername) {
+      return res.status(409).json({ success: false, message: 'That username is already in use for this quiz.' });
+    }
+
+    const token = crypto.randomBytes(32).toString('hex');
+    const participant = await LiveQuizParticipant.findOneAndUpdate(
+      { quizId: quiz._id, email },
+      {
+        $set: {
+          username,
+          tokenHash: hashToken(token),
+        },
+        $setOnInsert: {
+          quizId: quiz._id,
+          email,
+        },
+      },
+      { new: true, upsert: true, runValidators: true }
+    );
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        participantId: participant._id,
+        token,
+        username: participant.username,
+        quiz: serializeQuiz(quiz),
+      },
+    });
+  } catch (error) {
+    if (error?.code === 11000) {
+      return res.status(409).json({ success: false, message: 'That username or email is already in use.' });
+    }
+    return res.status(500).json({ success: false, message: error.message || 'Failed to join the quiz.' });
+  }
+};
+
+exports.getQuizState = async (req, res) => {
+  try {
+    const participant = req.quizParticipant;
+    const quiz = await LiveQuiz.findById(participant.quizId);
+    if (!quiz) return res.status(404).json({ success: false, message: 'Quiz not found.' });
+
+    const currentQuestion = await ensureParticipantCurrentQuestion(quiz, participant);
+    const answers = await LiveQuizAnswer.find({ participantId: participant._id }).select('questionId');
+    const answeredIds = new Set(answers.map((answer) => String(answer.questionId)));
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        quiz: serializeQuiz(quiz),
+        participant: {
+          _id: participant._id,
+          username: participant.username,
+          answeredCount: participant.answeredCount,
+        },
+        questions: currentQuestion ? [serializeQuestionForStudent(currentQuestion, answeredIds)] : [],
+        questionDeadline: getQuestionDeadline(participant, quiz),
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Failed to load quiz questions.' });
+  }
+};
+
+exports.submitQuizAnswer = async (req, res) => {
+  try {
+    const participant = req.quizParticipant;
+    const quiz = await LiveQuiz.findById(participant.quizId);
+    if (!quiz || quiz.status !== 'live') {
+      return res.status(409).json({ success: false, message: 'The quiz is not currently live.' });
+    }
+
+    const currentQuestion = await ensureParticipantCurrentQuestion(quiz, participant);
+    const question = await LiveQuizQuestion.findOne({
+      _id: req.params.questionId,
+      quizId: quiz._id,
+    });
+    if (!question) return res.status(404).json({ success: false, message: 'Question not found.' });
+    if (!currentQuestion || String(currentQuestion._id) !== String(question._id)) {
+      return res.status(409).json({ success: false, message: 'This question is no longer active.' });
+    }
+
+    const deadline = getQuestionDeadline(participant, quiz);
+    if (deadline && deadline.getTime() <= Date.now()) {
+      await recordMissedQuestion({ quiz, participant, question });
+      const nextQuestion = await findNextUnansweredQuestion(quiz._id, participant._id);
+      await setCurrentQuestion(participant, nextQuestion);
+      return res.status(409).json({ success: false, message: 'Time elapsed. The question was recorded as missed.' });
+    }
+
+    const answer = String(req.body?.answer || '').trim();
+    if (!answer || answer.length > 500) {
+      return res.status(400).json({ success: false, message: 'Enter a valid answer.' });
+    }
+
+    const normalized = normalizeAnswer(answer);
+    const accepted = question.acceptedAnswers.map(normalizeAnswer).filter(Boolean);
+    const isCorrect = accepted.includes(normalized);
+    const awardedPoints = isCorrect ? question.points : 0;
+
+    await LiveQuizAnswer.create({
+      quizId: quiz._id,
+      questionId: question._id,
+      participantId: participant._id,
+      answer,
+      normalizedAnswer: normalized,
+      isCorrect,
+      awardedPoints,
+    });
+
+    participant.answeredCount += 1;
+    participant.correctCount += isCorrect ? 1 : 0;
+    participant.score += awardedPoints;
+    participant.lastAnsweredAt = new Date();
+    const nextQuestion = await findNextUnansweredQuestion(quiz._id, participant._id);
+    await setCurrentQuestion(participant, nextQuestion);
+
+    return res.status(201).json({
+      success: true,
+      message: 'Answer submitted.',
+    });
+  } catch (error) {
+    if (error?.code === 11000) {
+      return res.status(409).json({ success: false, message: 'You have already answered this question.' });
+    }
+    return res.status(500).json({ success: false, message: error.message || 'Failed to submit answer.' });
+  }
+};
+
+exports.markQuestionMissed = async (req, res) => {
+  try {
+    const participant = req.quizParticipant;
+    const quiz = await LiveQuiz.findById(participant.quizId);
+    if (!quiz || quiz.status !== 'live') {
+      return res.status(409).json({ success: false, message: 'The quiz is not currently live.' });
+    }
+
+    const currentQuestion = await ensureParticipantCurrentQuestion(quiz, participant);
+    if (!currentQuestion || String(currentQuestion._id) !== String(req.params.questionId)) {
+      return res.status(200).json({ success: true, message: 'Question already advanced.' });
+    }
+
+    const deadline = getQuestionDeadline(participant, quiz);
+    if (deadline && deadline.getTime() > Date.now()) {
+      return res.status(409).json({ success: false, message: 'This question still has time remaining.' });
+    }
+
+    await recordMissedQuestion({ quiz, participant, question: currentQuestion });
+    const nextQuestion = await findNextUnansweredQuestion(quiz._id, participant._id);
+    await setCurrentQuestion(participant, nextQuestion);
+
+    return res.status(200).json({ success: true, message: 'Question recorded as missed.' });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Failed to advance the question.' });
+  }
+};
+
+exports.getQuizLeaderboard = async (req, res) => {
+  try {
+    const quiz = await LiveQuiz.findById(req.params.quizId);
+    if (!quiz) return res.status(404).json({ success: false, message: 'Quiz not found.' });
+
+    const leaders = await LiveQuizParticipant.find({ quizId: quiz._id })
+      .sort({ correctCount: -1, score: -1, lastAnsweredAt: 1, createdAt: 1 })
+      .limit(10)
+      .select('username score correctCount answeredCount');
+
+    return res.status(200).json({
+      success: true,
+      data: leaders.map((participant, index) => ({
+        rank: index + 1,
+        username: participant.username,
+        score: participant.correctCount,
+        points: participant.score,
+        correctCount: participant.correctCount,
+        answeredCount: participant.answeredCount,
+      })),
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Failed to load leaderboard.' });
+  }
+};
+
+exports.adminListQuizzes = async (req, res) => {
+  try {
+    const quizzes = await LiveQuiz.find().sort({ createdAt: -1 });
+    return res.status(200).json({ success: true, data: quizzes.map(serializeQuiz) });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Failed to load quizzes.' });
+  }
+};
+
+exports.adminImportRootPdf = async (req, res) => {
+  try {
+    const filePath = path.resolve(__dirname, '..', '..', 'GST103 PDF.pdf');
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ success: false, message: 'GST103 PDF.pdf was not found in the project root.' });
+    }
+
+    const quiz = await createQuizFromBuffer({
+      buffer: fs.readFileSync(filePath),
+      fileName: path.basename(filePath),
+      title: req.body?.title || 'GST103 Live Quiz',
+      courseCode: req.body?.courseCode || 'GST103',
+      description: req.body?.description || 'Live GST103 quiz generated from the uploaded course PDF.',
+      userId: req.user._id,
+    });
+
+    return res.status(201).json({ success: true, data: serializeQuiz(quiz) });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message || 'Failed to generate quiz questions.' });
+  }
+};
+
+exports.adminImportUploadedPdf = async (req, res) => {
+  try {
+    if (!req.file?.buffer) {
+      return res.status(400).json({ success: false, message: 'Choose a PDF file.' });
+    }
+
+    const quiz = await createQuizFromBuffer({
+      buffer: req.file.buffer,
+      fileName: req.file.originalname,
+      title: req.body?.title || 'Live Quiz',
+      courseCode: req.body?.courseCode || 'QUIZ',
+      description: req.body?.description || '',
+      userId: req.user._id,
+    });
+
+    return res.status(201).json({ success: true, data: serializeQuiz(quiz) });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message || 'Failed to generate quiz questions.' });
+  }
+};
+
+exports.adminSetQuizStatus = async (req, res) => {
+  try {
+    const status = String(req.body?.status || '').trim();
+    if (!['draft', 'live', 'ended'].includes(status)) {
+      return res.status(400).json({ success: false, message: 'Invalid quiz status.' });
+    }
+
+    const existingQuiz = await LiveQuiz.findById(req.params.quizId);
+    if (!existingQuiz) return res.status(404).json({ success: false, message: 'Quiz not found.' });
+
+    if (status === 'live') {
+      await LiveQuiz.updateMany({ status: 'live', _id: { $ne: req.params.quizId } }, {
+        $set: { status: 'ended', endedAt: new Date() },
+      });
+
+      if (existingQuiz.status !== 'live') {
+        await LiveQuizAnswer.deleteMany({ quizId: req.params.quizId });
+        await LiveQuizParticipant.updateMany(
+          { quizId: req.params.quizId },
+          {
+            $set: {
+              score: 0,
+              correctCount: 0,
+              answeredCount: 0,
+              lastAnsweredAt: null,
+              currentQuestionId: null,
+              questionStartedAt: null,
+            },
+          }
+        );
+      }
+    }
+
+    const updates = { status };
+    if (status === 'live') {
+      updates.startedAt = existingQuiz.status === 'live' ? existingQuiz.startedAt : new Date();
+      updates.endedAt = null;
+    }
+    if (status === 'ended') updates.endedAt = new Date();
+
+    const quiz = await LiveQuiz.findByIdAndUpdate(req.params.quizId, { $set: updates }, { new: true });
+
+    return res.status(200).json({ success: true, data: serializeQuiz(quiz) });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Failed to update quiz status.' });
+  }
+};
+
+
+exports.adminGetQuizDetail = async (req, res) => {
+  try {
+    const quiz = await LiveQuiz.findById(req.params.quizId);
+    if (!quiz) return res.status(404).json({ success: false, message: 'Quiz not found.' });
+
+    const [questions, participants, answers] = await Promise.all([
+      LiveQuizQuestion.find({ quizId: quiz._id }).sort({ order: 1 }),
+      LiveQuizParticipant.find({ quizId: quiz._id })
+        .sort({ correctCount: -1, score: -1, lastAnsweredAt: 1, createdAt: 1 })
+        .select('username email score correctCount answeredCount lastAnsweredAt createdAt'),
+      LiveQuizAnswer.find({ quizId: quiz._id })
+        .populate('participantId', 'username email')
+        .populate('questionId', 'order prompt questionType acceptedAnswers')
+        .sort({ createdAt: -1 }),
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        quiz: serializeQuiz(quiz),
+        participantCount: participants.length,
+        leaderboard: participants.map((participant, index) => ({
+          rank: index + 1,
+          _id: participant._id,
+          username: participant.username,
+          email: participant.email,
+          score: participant.score,
+          correctCount: participant.correctCount,
+          answeredCount: participant.answeredCount,
+          lastAnsweredAt: participant.lastAnsweredAt,
+        })),
+        questions,
+        answers,
+      },
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Failed to load quiz details.' });
+  }
+};
+
+
+exports.adminModerateAnswer = async (req, res) => {
+  try {
+    const answer = await LiveQuizAnswer.findById(req.params.answerId);
+    if (!answer) return res.status(404).json({ success: false, message: 'Answer not found.' });
+
+    const isCorrect = req.body?.isCorrect === true;
+    const question = await LiveQuizQuestion.findById(answer.questionId);
+    const oldPoints = answer.awardedPoints;
+    const newPoints = isCorrect ? (question?.points || 1) : 0;
+    const correctDelta = Number(isCorrect) - Number(answer.isCorrect);
+
+    answer.isCorrect = isCorrect;
+    answer.awardedPoints = newPoints;
+    answer.moderationStatus = 'overridden';
+    await answer.save();
+
+    await LiveQuizParticipant.updateOne(
+      { _id: answer.participantId },
+      {
+        $inc: {
+          score: newPoints - oldPoints,
+          correctCount: correctDelta,
+        },
+      }
+    );
+
+    return res.status(200).json({ success: true, data: answer });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Failed to moderate answer.' });
+  }
+};

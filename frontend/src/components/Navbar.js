@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { FiMenu, FiX, FiLogOut, FiUser, FiSun, FiMoon, FiBook, FiBell, FiFolder, FiChevronDown, FiAlertTriangle, FiMessageSquare, FiCalendar, FiPlayCircle } from 'react-icons/fi';
+import { FiMenu, FiX, FiLogOut, FiUser, FiSun, FiMoon, FiBook, FiBell, FiFolder, FiChevronDown, FiAlertTriangle, FiMessageSquare, FiCalendar, FiPlayCircle, FiAward } from 'react-icons/fi';
 import './Navbar.css';
 
 const Navbar = () => {
@@ -47,6 +47,7 @@ const Navbar = () => {
                     <Link to="/dashboard" className="nav-link">Dashboard</Link>
                     <Link to="/explore" className="nav-link">Courses</Link>
                     <Link to="/videos" className="nav-link"><FiPlayCircle size={16} /> Videos</Link>
+                    <Link to="/quiz" className="nav-link"><FiAward size={16} /> Quiz</Link>
                     <Link to="/ask" className="nav-link"><FiMessageSquare size={16} /> Past Questions</Link>
                     <Link to="/exam-timetable" className="nav-link"><FiCalendar size={16} /> Exam Timetable</Link>
                     <Link to="/it-placement" className="nav-link">Siwes</Link>
@@ -85,6 +86,7 @@ const Navbar = () => {
                 {user.role === 'admin' && (
                   <>
                     <Link to="/admin/overview" className="nav-link">Admin Workspace</Link>
+                    <Link to="/quiz" className="nav-link"><FiAward size={16} /> Quiz</Link>
                   </>
                 )}
                 <Link to="/disclaimer" className="nav-icon-link" aria-label="Disclaimer" title="Disclaimer">
@@ -145,6 +147,7 @@ const Navbar = () => {
               </>
             ) : (
               <>
+                <Link to="/quiz" className="nav-link"><FiAward size={16} /> Quiz</Link>
                 <Link to="/disclaimer" className="nav-icon-link" aria-label="Disclaimer" title="Disclaimer">
                   <FiAlertTriangle size={18} />
                 </Link>
@@ -201,6 +204,9 @@ const Navbar = () => {
                     <Link to="/videos" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>
                       <FiPlayCircle size={16} /> Videos
                     </Link>
+                    <Link to="/quiz" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>
+                      <FiAward size={16} /> Quiz
+                    </Link>
                     <Link to="/ask" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>
                       <FiMessageSquare size={16} /> Past Questions
                     </Link>
@@ -242,6 +248,9 @@ const Navbar = () => {
                     <Link to="/admin/overview" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>
                       Admin Workspace
                     </Link>
+                    <Link to="/quiz" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>
+                      <FiAward size={16} /> Quiz
+                    </Link>
                   </>
                 )}
                 <Link
@@ -265,6 +274,9 @@ const Navbar = () => {
               </>
             ) : (
               <>
+                <Link to="/quiz" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>
+                  <FiAward size={16} /> Quiz
+                </Link>
                 <Link to="/login" className="mobile-nav-link" onClick={() => setMobileMenuOpen(false)}>
                   Login
                 </Link>
