@@ -131,7 +131,7 @@ const LiveQuiz = () => {
   );
   const currentQuestion = unansweredQuestions[0] || null;
   const answeredCount = Math.max(0, Number(participantAnsweredCount || 0));
-  const questionDuration = quiz?.questionDurationSeconds || 30;
+  const questionDuration = quiz?.questionDurationSeconds || 40;
   const timerPercent = Math.max(0, Math.min(100, (timeRemaining / questionDuration) * 100));
 
   useEffect(() => {

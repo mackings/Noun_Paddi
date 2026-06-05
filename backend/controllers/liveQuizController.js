@@ -7,7 +7,14 @@ const LiveQuiz = require('../models/LiveQuiz');
 const LiveQuizQuestion = require('../models/LiveQuizQuestion');
 const LiveQuizParticipant = require('../models/LiveQuizParticipant');
 const LiveQuizAnswer = require('../models/LiveQuizAnswer');
-const { generateQuizQuestionsFromPdfBuffer, normalizeAnswer } = require('../utils/liveQuizHelper');
+const {
+  generateNou107QuizQuestions,
+  generateQuizQuestionsFromPdfBuffer,
+  normalizeAnswer,
+} = require('../utils/liveQuizHelper');
+
+const DEFAULT_QUESTION_DURATION_SECONDS = 40;
+const ROOT_QUIZ_PDF = 'NOU107_A_Study_Guide_For_The_Distance_Learner.pdf';
 
 const hashToken = (token) => crypto.createHash('sha256').update(String(token || '')).digest('hex');
 const isValidEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '').trim());
@@ -21,7 +28,7 @@ const serializeQuiz = (quiz) => ({
   status: quiz.status,
   sourceFileName: quiz.sourceFileName,
   questionCount: quiz.questionCount,
-  questionDurationSeconds: quiz.questionDurationSeconds || 30,
+  questionDurationSeconds: quiz.questionDurationSeconds || DEFAULT_QUESTION_DURATION_SECONDS,
   startedAt: quiz.startedAt,
   endedAt: quiz.endedAt,
   createdAt: quiz.createdAt,
@@ -40,7 +47,8 @@ const serializeQuestionForStudent = (question, answeredIds) => ({
 const getQuestionDeadline = (participant, quiz) => {
   if (!participant.questionStartedAt) return null;
   return new Date(
-    participant.questionStartedAt.getTime() + ((quiz.questionDurationSeconds || 30) * 1000)
+    participant.questionStartedAt.getTime()
+      + ((quiz.questionDurationSeconds || DEFAULT_QUESTION_DURATION_SECONDS) * 1000)
   );
 };
 
@@ -155,17 +163,28 @@ async function requireParticipant(req, res, next) {
   }
 }
 
-async function createQuizFromBuffer({ buffer, fileName, title, courseCode, description, userId }) {
+async function createQuizFromBuffer({
+  buffer,
+  fileName,
+  title,
+  courseCode,
+  description,
+  userId,
+  questionDurationSeconds = DEFAULT_QUESTION_DURATION_SECONDS,
+  questionGenerator = generateQuizQuestionsFromPdfBuffer,
+  questionCount = 100,
+}) {
   const quiz = await LiveQuiz.create({
-    title: String(title || 'GST103 Live Quiz').trim(),
-    courseCode: String(courseCode || 'GST103').trim().toUpperCase(),
+    title: String(title || 'NOU107 Live Quiz').trim(),
+    courseCode: String(courseCode || 'NOU107').trim().toUpperCase(),
     description: String(description || '').trim(),
     sourceFileName: fileName,
+    questionDurationSeconds,
     createdBy: userId,
   });
 
   try {
-    const generated = await generateQuizQuestionsFromPdfBuffer(buffer, 100);
+    const generated = await questionGenerator(buffer, questionCount);
     if (generated.length < 20) {
       throw new Error(`Gemini generated only ${generated.length} usable questions.`);
     }
@@ -417,18 +436,24 @@ exports.adminListQuizzes = async (req, res) => {
 
 exports.adminImportRootPdf = async (req, res) => {
   try {
-    const filePath = path.resolve(__dirname, '..', '..', 'GST103 PDF.pdf');
+    const filePath = path.resolve(__dirname, '..', '..', ROOT_QUIZ_PDF);
     if (!fs.existsSync(filePath)) {
-      return res.status(404).json({ success: false, message: 'GST103 PDF.pdf was not found in the project root.' });
+      return res.status(404).json({
+        success: false,
+        message: `${ROOT_QUIZ_PDF} was not found in the project root.`,
+      });
     }
 
     const quiz = await createQuizFromBuffer({
       buffer: fs.readFileSync(filePath),
       fileName: path.basename(filePath),
-      title: req.body?.title || 'GST103 Live Quiz',
-      courseCode: req.body?.courseCode || 'GST103',
-      description: req.body?.description || 'Live GST103 quiz generated from the uploaded course PDF.',
+      title: req.body?.title || 'NOU107 Live Quiz',
+      courseCode: req.body?.courseCode || 'NOU107',
+      description: req.body?.description
+        || '120 difficult questions sourced exclusively from the NOU107 study guide.',
       userId: req.user._id,
+      questionGenerator: generateNou107QuizQuestions,
+      questionCount: 120,
     });
 
     return res.status(201).json({ success: true, data: serializeQuiz(quiz) });

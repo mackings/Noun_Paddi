@@ -7,7 +7,7 @@
     "start": "node server.js",
     "dev": "nodemon server.js",
     "regen:tough-questions": "node regenerate-tough-questions.js",
-    "import:gst103-quiz": "node scripts/import-gst103-live-quiz.cjs",
+    "import:nou107-quiz": "node scripts/import-nou107-live-quiz.cjs",
     "test:security": "node --test tests/security-hardening.test.js"
   },
   "keywords": [],

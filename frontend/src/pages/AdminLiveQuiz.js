@@ -21,9 +21,9 @@ const AdminLiveQuiz = () => {
   const [importing, setImporting] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
   const [form, setForm] = useState({
-    title: 'GST103 Live Quiz',
-    courseCode: 'GST103',
-    description: 'Live GST103 quiz generated from the course PDF.',
+    title: 'NOU107 Live Quiz',
+    courseCode: 'NOU107',
+    description: '120 difficult questions sourced exclusively from the NOU107 study guide.',
     file: null,
   });
 
@@ -32,13 +32,17 @@ const AdminLiveQuiz = () => {
     [quizzes, selectedQuizId]
   );
 
-  const loadQuizzes = async () => {
+  const loadQuizzes = async (refreshDetail = false) => {
     try {
       setLoading(true);
       const response = await api.get('/live-quiz/admin/quizzes');
       const items = response.data?.data || [];
+      const nextQuizId = items.some((quiz) => quiz._id === selectedQuizId)
+        ? selectedQuizId
+        : (items[0]?._id || '');
       setQuizzes(items);
-      if (!selectedQuizId && items[0]?._id) setSelectedQuizId(items[0]._id);
+      setSelectedQuizId(nextQuizId);
+      if (refreshDetail) await loadDetail(nextQuizId);
     } catch (error) {
       setMessage({ type: 'error', text: error.response?.data?.message || 'Failed to load quizzes.' });
     } finally {
@@ -55,6 +59,7 @@ const AdminLiveQuiz = () => {
       const response = await api.get(`/live-quiz/admin/quizzes/${quizId}`);
       setDetail(response.data?.data || null);
     } catch (error) {
+      setDetail(null);
       setMessage({ type: 'error', text: error.response?.data?.message || 'Failed to load quiz details.' });
     }
   };
@@ -72,16 +77,16 @@ const AdminLiveQuiz = () => {
     try {
       setImporting(true);
       setMessage({ type: '', text: '' });
-      const response = await api.post('/live-quiz/admin/import-root-gst103', {
+      const response = await api.post('/live-quiz/admin/import-root-nou107', {
         title: form.title,
         courseCode: form.courseCode,
         description: form.description,
       });
-      setMessage({ type: 'success', text: `${response.data.data.questionCount} questions generated from GST103 PDF.pdf.` });
+      setMessage({ type: 'success', text: `${response.data.data.questionCount} NOU107 questions generated.` });
       await loadQuizzes();
       setSelectedQuizId(response.data.data._id);
     } catch (error) {
-      setMessage({ type: 'error', text: error.response?.data?.message || 'Failed to import the root GST103 PDF.' });
+      setMessage({ type: 'error', text: error.response?.data?.message || 'Failed to import the root NOU107 PDF.' });
     } finally {
       setImporting(false);
     }
@@ -144,7 +149,11 @@ const AdminLiveQuiz = () => {
           <h1>Quiz Control</h1>
           <p>Generate questions from a PDF, start the live quiz, and moderate recorded answers.</p>
         </div>
-        <button type="button" className="admin-live-quiz-refresh" onClick={() => loadDetail(selectedQuizId)}>
+        <button
+          type="button"
+          className="admin-live-quiz-refresh"
+          onClick={() => loadQuizzes(true)}
+        >
           <FiRefreshCw />
           Refresh
         </button>
@@ -156,7 +165,7 @@ const AdminLiveQuiz = () => {
         <div className="admin-live-quiz-section-head">
           <div>
             <p className="admin-live-quiz-kicker">Gemini question generation</p>
-            <h2>Create a 100-question quiz</h2>
+            <h2>Create a 120-question quiz</h2>
           </div>
           <FiFileText />
         </div>
@@ -180,7 +189,7 @@ const AdminLiveQuiz = () => {
           <div className="admin-live-quiz-import-actions">
             <button type="button" onClick={handleRootImport} disabled={importing}>
               <FiFileText />
-              {importing ? 'Generating questions...' : 'Use root GST103 PDF'}
+              {importing ? 'Generating questions...' : 'Use root NOU107 PDF'}
             </button>
             <button type="submit" disabled={importing}>
               <FiUploadCloud />

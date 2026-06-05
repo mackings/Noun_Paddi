@@ -33,7 +33,7 @@ const liveQuizSchema = new mongoose.Schema({
   },
   questionDurationSeconds: {
     type: Number,
-    default: 30,
+    default: 40,
     min: 5,
     max: 300,
   },

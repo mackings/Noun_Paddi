@@ -50,7 +50,7 @@ router.post('/participant/questions/:questionId/miss', answerLimiter, requirePar
 
 router.use('/admin', protect, authorize('admin'));
 router.get('/admin/quizzes', adminListQuizzes);
-router.post('/admin/import-root-gst103', adminImportRootPdf);
+router.post('/admin/import-root-nou107', adminImportRootPdf);
 router.post('/admin/import-pdf', quizUpload.single('file'), adminImportUploadedPdf);
 router.patch('/admin/quizzes/:quizId/status', adminSetQuizStatus);
 router.get('/admin/quizzes/:quizId', adminGetQuizDetail);
