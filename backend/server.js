@@ -171,7 +171,7 @@ if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
   }
   const server = http.createServer(app);
   initLiveQuizRealtime(server, corsOptions);
-  server.listen(PORT, () => {
+  server.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
   });
 } else {
