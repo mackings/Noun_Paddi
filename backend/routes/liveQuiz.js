@@ -14,6 +14,7 @@ const {
   adminImportUploadedPdf,
   adminSetQuizStatus,
   adminGetQuizDetail,
+  adminDeleteQuiz,
   adminModerateAnswer,
 } = require('../controllers/liveQuizController');
 const { protect, authorize } = require('../middleware/auth');
@@ -54,6 +55,7 @@ router.post('/admin/import-root-nou107', adminImportRootPdf);
 router.post('/admin/import-pdf', quizUpload.single('file'), adminImportUploadedPdf);
 router.patch('/admin/quizzes/:quizId/status', adminSetQuizStatus);
 router.get('/admin/quizzes/:quizId', adminGetQuizDetail);
+router.delete('/admin/quizzes/:quizId', adminDeleteQuiz);
 router.patch('/admin/answers/:answerId', adminModerateAnswer);
 
 module.exports = router;

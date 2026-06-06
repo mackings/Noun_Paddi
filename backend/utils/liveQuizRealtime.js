@@ -126,6 +126,12 @@ function emitQuizStatus(quiz) {
   });
 }
 
+function emitQuizDeleted(quizId) {
+  emitToQuiz(quizId, 'liveQuiz:deleted', {
+    quizId: String(quizId),
+  });
+}
+
 function clearLeaderboard(quizId) {
   leaderboardCache.delete(String(quizId));
 }
@@ -165,6 +171,7 @@ module.exports = {
   clearLeaderboard,
   emitAnswerRecorded,
   emitLeaderboard,
+  emitQuizDeleted,
   emitParticipantJoined,
   emitQuizStatus,
   getLeaderboard,

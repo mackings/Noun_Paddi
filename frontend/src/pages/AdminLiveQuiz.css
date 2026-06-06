@@ -207,6 +207,31 @@
   color: #fff;
 }
 
+.admin-live-quiz-controls button.danger {
+  background: rgba(185, 28, 28, 0.08);
+  border-color: rgba(185, 28, 28, 0.35);
+  color: #b91c1c;
+}
+
+.admin-live-quiz-inline-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  padding: 7px 12px;
+  cursor: pointer;
+  font-weight: 900;
+}
+
+.admin-live-quiz-inline-action:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .admin-live-quiz-stats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

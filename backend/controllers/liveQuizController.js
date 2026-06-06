@@ -16,6 +16,7 @@ const {
   clearLeaderboard,
   emitAnswerRecorded,
   emitParticipantJoined,
+  emitQuizDeleted,
   emitQuizStatus,
   getLeaderboard,
   updateParticipantScore,
@@ -558,22 +559,32 @@ exports.adminGetQuizDetail = async (req, res) => {
     const quiz = await LiveQuiz.findById(req.params.quizId);
     if (!quiz) return res.status(404).json({ success: false, message: 'Quiz not found.' });
 
-    const [questions, participants, answers] = await Promise.all([
-      LiveQuizQuestion.find({ quizId: quiz._id }).sort({ order: 1 }),
+    const includeQuestions = String(req.query.includeQuestions || '').toLowerCase() === 'true';
+    const answersLimit = Math.max(0, Math.min(100, Number(req.query.answersLimit || 20)));
+    const participantsLimit = Math.max(10, Math.min(100, Number(req.query.participantsLimit || 50)));
+
+    const [questions, participants, answers, answerCount, participantCount] = await Promise.all([
+      includeQuestions
+        ? LiveQuizQuestion.find({ quizId: quiz._id }).sort({ order: 1 })
+        : Promise.resolve([]),
       LiveQuizParticipant.find({ quizId: quiz._id })
         .sort({ correctCount: -1, score: -1, lastAnsweredAt: 1, createdAt: 1 })
-        .select('username email score correctCount answeredCount lastAnsweredAt createdAt'),
+        .select('username email score correctCount answeredCount lastAnsweredAt createdAt')
+        .limit(participantsLimit),
       LiveQuizAnswer.find({ quizId: quiz._id })
         .populate('participantId', 'username email')
         .populate('questionId', 'order prompt questionType acceptedAnswers')
-        .sort({ createdAt: -1 }),
+        .sort({ createdAt: -1 })
+        .limit(answersLimit),
+      LiveQuizAnswer.countDocuments({ quizId: quiz._id }),
+      LiveQuizParticipant.countDocuments({ quizId: quiz._id }),
     ]);
 
     return res.status(200).json({
       success: true,
       data: {
         quiz: serializeQuiz(quiz),
-        participantCount: participants.length,
+        participantCount,
         leaderboard: participants.map((participant, index) => ({
           rank: index + 1,
           _id: participant._id,
@@ -586,10 +597,35 @@ exports.adminGetQuizDetail = async (req, res) => {
         })),
         questions,
         answers,
+        answerCount,
+        answersLimit,
+        participantsLimit,
       },
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: 'Failed to load quiz details.' });
+  }
+};
+
+exports.adminDeleteQuiz = async (req, res) => {
+  try {
+    const quiz = await LiveQuiz.findById(req.params.quizId);
+    if (!quiz) return res.status(404).json({ success: false, message: 'Quiz not found.' });
+
+    await Promise.all([
+      LiveQuizAnswer.deleteMany({ quizId: quiz._id }),
+      LiveQuizParticipant.deleteMany({ quizId: quiz._id }),
+      LiveQuizQuestion.deleteMany({ quizId: quiz._id }),
+      LiveQuiz.deleteOne({ _id: quiz._id }),
+    ]);
+
+    clearLeaderboard(quiz._id);
+    clearQuizQuestionCache(quiz._id);
+    emitQuizDeleted(quiz._id);
+
+    return res.status(200).json({ success: true, message: 'Quiz deleted.' });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Failed to delete quiz.' });
   }
 };
 

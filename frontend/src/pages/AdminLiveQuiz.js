@@ -6,6 +6,7 @@ import {
   FiPlay,
   FiRefreshCw,
   FiSquare,
+  FiTrash2,
   FiUploadCloud,
   FiUsers,
   FiX,
@@ -20,6 +21,7 @@ const AdminLiveQuiz = () => {
   const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(true);
   const [importing, setImporting] = useState(false);
+  const [showAnswerKey, setShowAnswerKey] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
   const [form, setForm] = useState({
     title: 'NOU107 Live Quiz',
@@ -51,13 +53,20 @@ const AdminLiveQuiz = () => {
     }
   };
 
-  const loadDetail = async (quizId) => {
+  const loadDetail = async (quizId, options = {}) => {
     if (!quizId) {
       setDetail(null);
       return;
     }
     try {
-      const response = await liveQuizApi.get(`/live-quiz/admin/quizzes/${quizId}`);
+      const includeQuestions = options.includeQuestions ?? showAnswerKey;
+      const response = await liveQuizApi.get(`/live-quiz/admin/quizzes/${quizId}`, {
+        params: {
+          answersLimit: 25,
+          participantsLimit: 50,
+          includeQuestions,
+        },
+      });
       setDetail(response.data?.data || null);
     } catch (error) {
       setDetail(null);
@@ -71,7 +80,9 @@ const AdminLiveQuiz = () => {
   }, []);
 
   useEffect(() => {
-    loadDetail(selectedQuizId);
+    setShowAnswerKey(false);
+    loadDetail(selectedQuizId, { includeQuestions: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedQuizId]);
 
   useEffect(() => {
@@ -95,6 +106,12 @@ const AdminLiveQuiz = () => {
     socket.on('liveQuiz:participantJoined', (payload) => {
       if (payload?.quizId === selectedQuizId) {
         loadDetail(selectedQuizId);
+      }
+    });
+    socket.on('liveQuiz:deleted', (payload) => {
+      if (payload?.quizId === selectedQuizId) {
+        setDetail(null);
+        loadQuizzes();
       }
     });
 
@@ -163,6 +180,31 @@ const AdminLiveQuiz = () => {
       await loadDetail(selectedQuizId);
     } catch (error) {
       setMessage({ type: 'error', text: error.response?.data?.message || 'Failed to update quiz status.' });
+    }
+  };
+
+  const handleToggleAnswerKey = async () => {
+    const nextValue = !showAnswerKey;
+    setShowAnswerKey(nextValue);
+    await loadDetail(selectedQuizId, { includeQuestions: nextValue });
+  };
+
+  const handleDeleteQuiz = async () => {
+    if (!selectedQuizId || !selectedQuiz) return;
+    const confirmed = window.confirm(
+      `Delete "${selectedQuiz.title}" and all its questions, participants, and answers? This cannot be undone.`
+    );
+    if (!confirmed) return;
+
+    try {
+      setMessage({ type: '', text: '' });
+      await liveQuizApi.delete(`/live-quiz/admin/quizzes/${selectedQuizId}`);
+      setMessage({ type: 'success', text: 'Quiz deleted.' });
+      setDetail(null);
+      setSelectedQuizId('');
+      await loadQuizzes();
+    } catch (error) {
+      setMessage({ type: 'error', text: error.response?.data?.message || 'Failed to delete quiz.' });
     }
   };
 
@@ -273,12 +315,13 @@ const AdminLiveQuiz = () => {
                 <button type="button" onClick={() => handleStatus('draft')}><FiClock /> Draft</button>
                 <button type="button" onClick={() => handleStatus('live')}><FiPlay /> Start quiz</button>
                 <button type="button" onClick={() => handleStatus('ended')}><FiSquare /> End quiz</button>
+                <button type="button" className="danger" onClick={handleDeleteQuiz}><FiTrash2 /> Delete</button>
               </div>
 
               <div className="admin-live-quiz-stats">
                 <div><FiFileText /><strong>{selectedQuiz.questionCount}</strong><span>Questions</span></div>
                 <div><FiUsers /><strong>{detail?.participantCount || 0}</strong><span>Participants</span></div>
-                <div><FiCheck /><strong>{detail?.answers?.length || 0}</strong><span>Recorded answers</span></div>
+                <div><FiCheck /><strong>{detail?.answerCount || 0}</strong><span>Recorded answers</span></div>
               </div>
 
               <div className="admin-live-quiz-leaderboard">
@@ -315,25 +358,37 @@ const AdminLiveQuiz = () => {
                     <p className="admin-live-quiz-kicker">Answer key</p>
                     <h2>Generated questions</h2>
                   </div>
-                  <span>{detail?.questions?.length || 0}</span>
+                  <button
+                    type="button"
+                    className="admin-live-quiz-inline-action"
+                    onClick={handleToggleAnswerKey}
+                    disabled={!selectedQuizId}
+                  >
+                    {showAnswerKey ? 'Hide' : 'Load'}
+                  </button>
                 </div>
-                <div className="admin-live-quiz-question-list">
-                  {(detail?.questions || []).map((question) => (
-                    <article key={question._id}>
-                      <span>Q{question.order} / {question.questionType}</span>
-                      <h3>{question.prompt}</h3>
-                      <p>Accepted: {(question.acceptedAnswers || []).join(', ')}</p>
-                    </article>
-                  ))}
-                </div>
+                {showAnswerKey ? (
+                  <div className="admin-live-quiz-question-list">
+                    {(detail?.questions || []).map((question) => (
+                      <article key={question._id}>
+                        <span>Q{question.order} / {question.questionType}</span>
+                        <h3>{question.prompt}</h3>
+                        <p>Accepted: {(question.acceptedAnswers || []).join(', ')}</p>
+                      </article>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="admin-live-quiz-muted">Question key is hidden until needed.</p>
+                )}
               </div>
 
               <div className="admin-live-quiz-answers">
                 <div className="admin-live-quiz-section-head">
                   <div>
                     <p className="admin-live-quiz-kicker">Moderation</p>
-                    <h2>Recorded answers</h2>
+                    <h2>Recent answers</h2>
                   </div>
+                  <span>{(detail?.answers || []).length} of {detail?.answerCount || 0}</span>
                 </div>
                 {(detail?.answers || []).map((answer) => (
                   <article className="admin-live-quiz-answer" key={answer._id}>
