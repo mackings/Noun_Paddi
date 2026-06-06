@@ -4,10 +4,11 @@ const crypto = require('crypto');
 const { sendPasswordResetEmail } = require('../utils/emailService');
 const { normalizeEmail } = require('../utils/securityValidation');
 const { auditLog } = require('../utils/securityAudit');
+const { getJwtSecret } = require('../utils/jwtSecret');
 
 // Generate JWT Token
 const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
+  return jwt.sign({ id }, getJwtSecret(), {
     expiresIn: '30d',
   });
 };

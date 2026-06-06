@@ -20,6 +20,7 @@ const {
   getLeaderboard,
   updateParticipantScore,
 } = require('../utils/liveQuizRealtime');
+const { getJwtSecret } = require('../utils/jwtSecret');
 
 const DEFAULT_QUESTION_DURATION_SECONDS = 40;
 const ROOT_QUIZ_PDF = 'NOU107_A_Study_Guide_For_The_Distance_Learner.pdf';
@@ -142,10 +143,11 @@ async function getParticipantFromRequest(req) {
   }
 
   const authHeader = String(req.headers.authorization || '');
-  if (!authHeader.startsWith('Bearer ') || !process.env.JWT_SECRET) return null;
+  const jwtSecret = getJwtSecret();
+  if (!authHeader.startsWith('Bearer ') || !jwtSecret) return null;
 
   try {
-    const decoded = jwt.verify(authHeader.slice(7), process.env.JWT_SECRET);
+    const decoded = jwt.verify(authHeader.slice(7), jwtSecret);
     const user = await User.findById(decoded.id).select('email');
     if (!user?.email) return null;
 
