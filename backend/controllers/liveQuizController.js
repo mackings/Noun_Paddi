@@ -20,6 +20,12 @@ const {
   getLeaderboard,
   updateParticipantScore,
 } = require('../utils/liveQuizRealtime');
+const {
+  clearQuizQuestionCache,
+  getQuizQuestion,
+  getQuizQuestions,
+  loadQuizQuestions,
+} = require('../utils/liveQuizQuestionCache');
 const { getJwtSecret } = require('../utils/jwtSecret');
 
 const DEFAULT_QUESTION_DURATION_SECONDS = 40;
@@ -72,10 +78,9 @@ const getQuestionDeadline = (participant, quiz) => {
 
 async function findNextUnansweredQuestion(quizId, participantId) {
   const answeredQuestionIds = await LiveQuizAnswer.find({ participantId }).distinct('questionId');
-  return LiveQuizQuestion.findOne({
-    quizId,
-    _id: { $nin: answeredQuestionIds },
-  }).sort({ order: 1 });
+  const answeredIds = new Set(answeredQuestionIds.map((id) => String(id)));
+  const questions = await getQuizQuestions(quizId);
+  return questions.find((question) => !answeredIds.has(String(question._id))) || null;
 }
 
 async function setCurrentQuestion(participant, question) {
@@ -111,7 +116,7 @@ async function ensureParticipantCurrentQuestion(quiz, participant) {
   }
 
   let currentQuestion = participant.currentQuestionId
-    ? await LiveQuizQuestion.findOne({ _id: participant.currentQuestionId, quizId: quiz._id })
+    ? await getQuizQuestion(quiz._id, participant.currentQuestionId)
     : null;
 
   if (!currentQuestion) {
@@ -214,6 +219,7 @@ async function createQuizFromBuffer({
       quizId: quiz._id,
       order: index + 1,
     })));
+    clearQuizQuestionCache(quiz._id);
 
     quiz.questionCount = generated.length;
     await quiz.save();
@@ -337,10 +343,7 @@ exports.submitQuizAnswer = async (req, res) => {
     }
 
     const currentQuestion = await ensureParticipantCurrentQuestion(quiz, participant);
-    const question = await LiveQuizQuestion.findOne({
-      _id: req.params.questionId,
-      quizId: quiz._id,
-    });
+    const question = await getQuizQuestion(quiz._id, req.params.questionId);
     if (!question) return res.status(404).json({ success: false, message: 'Question not found.' });
     if (!currentQuestion || String(currentQuestion._id) !== String(question._id)) {
       return res.status(409).json({ success: false, message: 'This question is no longer active.' });
@@ -514,6 +517,7 @@ exports.adminSetQuizStatus = async (req, res) => {
       if (existingQuiz.status !== 'live') {
         await LiveQuizAnswer.deleteMany({ quizId: req.params.quizId });
         clearLeaderboard(req.params.quizId);
+        clearQuizQuestionCache(req.params.quizId);
         await LiveQuizParticipant.updateMany(
           { quizId: req.params.quizId },
           {
@@ -539,6 +543,7 @@ exports.adminSetQuizStatus = async (req, res) => {
 
     const quiz = await LiveQuiz.findByIdAndUpdate(req.params.quizId, { $set: updates }, { new: true });
     clearLeaderboard(quiz._id);
+    if (status === 'live') await loadQuizQuestions(quiz._id);
     emitQuizStatus(quiz);
 
     return res.status(200).json({ success: true, data: serializeQuiz(quiz) });
@@ -595,7 +600,7 @@ exports.adminModerateAnswer = async (req, res) => {
     if (!answer) return res.status(404).json({ success: false, message: 'Answer not found.' });
 
     const isCorrect = req.body?.isCorrect === true;
-    const question = await LiveQuizQuestion.findById(answer.questionId);
+    const question = await getQuizQuestion(answer.quizId, answer.questionId);
     const oldPoints = answer.awardedPoints;
     const newPoints = isCorrect ? (question?.points || 1) : 0;
     const correctDelta = Number(isCorrect) - Number(answer.isCorrect);
