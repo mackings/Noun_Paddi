@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: nounpaddi-live-quiz
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: LIVE_QUIZ_ONLY
+        value: "true"
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false

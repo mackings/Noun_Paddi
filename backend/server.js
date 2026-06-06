@@ -1,4 +1,5 @@
 const express = require('express');
+const http = require('http');
 const dotenv = require('dotenv');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -6,6 +7,7 @@ const cookieParser = require('cookie-parser');
 const connectDB = require('./config/db');
 const { startBroadcastScheduler } = require('./utils/broadcastScheduler');
 const { startExamScoreReminderScheduler } = require('./utils/examScoreReminderScheduler');
+const { initLiveQuizRealtime } = require('./utils/liveQuizRealtime');
 
 // Load env vars
 dotenv.config();
@@ -15,6 +17,7 @@ connectDB();
 
 const app = express();
 app.disable('x-powered-by');
+const liveQuizOnly = String(process.env.LIVE_QUIZ_ONLY || '').toLowerCase() === 'true';
 
 // Body parser middleware
 app.use(express.json());
@@ -121,31 +124,34 @@ app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
 
 
-// Routes
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/users', require('./routes/user'));
-app.use('/api/faculties', require('./routes/faculty'));
-app.use('/api/departments', require('./routes/department'));
-app.use('/api/courses', require('./routes/course'));
-app.use('/api/admin', require('./routes/admin'));
-app.use('/api/materials', require('./routes/material'));
-app.use('/api/questions', require('./routes/question'));
-app.use('/api/stats', require('./routes/stats'));
-app.use('/api/it-placement', require('./routes/itPlacement'));
-app.use('/api/leaderboard', require('./routes/leaderboard'));
-app.use('/api/gamification', require('./routes/gamification'));
-app.use('/api/reminders', require('./routes/readingReminder'));
-app.use('/api/plagiarism', require('./routes/plagiarism'));
-app.use('/api/projects', require('./routes/project'));
-app.use('/api/reviews', require('./routes/review'));
-app.use('/api/videos', require('./routes/video'));
 app.use('/api/live-quiz', require('./routes/liveQuiz'));
-app.use('/api/share', require('./routes/share'));
-app.use('/api/analytics', require('./routes/analytics'));
-app.use('/api/push', require('./routes/push'));
-app.use('/api/ask', require('./routes/ask'));
-app.use('/api/tma', require('./routes/tma'));
-app.use('/api/exam-timetable', require('./routes/examTimetable'));
+
+// Routes
+if (!liveQuizOnly) {
+  app.use('/api/auth', require('./routes/auth'));
+  app.use('/api/users', require('./routes/user'));
+  app.use('/api/faculties', require('./routes/faculty'));
+  app.use('/api/departments', require('./routes/department'));
+  app.use('/api/courses', require('./routes/course'));
+  app.use('/api/admin', require('./routes/admin'));
+  app.use('/api/materials', require('./routes/material'));
+  app.use('/api/questions', require('./routes/question'));
+  app.use('/api/stats', require('./routes/stats'));
+  app.use('/api/it-placement', require('./routes/itPlacement'));
+  app.use('/api/leaderboard', require('./routes/leaderboard'));
+  app.use('/api/gamification', require('./routes/gamification'));
+  app.use('/api/reminders', require('./routes/readingReminder'));
+  app.use('/api/plagiarism', require('./routes/plagiarism'));
+  app.use('/api/projects', require('./routes/project'));
+  app.use('/api/reviews', require('./routes/review'));
+  app.use('/api/videos', require('./routes/video'));
+  app.use('/api/share', require('./routes/share'));
+  app.use('/api/analytics', require('./routes/analytics'));
+  app.use('/api/push', require('./routes/push'));
+  app.use('/api/ask', require('./routes/ask'));
+  app.use('/api/tma', require('./routes/tma'));
+  app.use('/api/exam-timetable', require('./routes/examTimetable'));
+}
 
 // Root route
 app.get('/', (req, res) => {
@@ -159,9 +165,13 @@ const PORT = process.env.PORT || 5001;
 
 // Only start server if not in Vercel serverless environment
 if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
-  startBroadcastScheduler();
-  startExamScoreReminderScheduler();
-  app.listen(PORT, () => {
+  if (!liveQuizOnly) {
+    startBroadcastScheduler();
+    startExamScoreReminderScheduler();
+  }
+  const server = http.createServer(app);
+  initLiveQuizRealtime(server, corsOptions);
+  server.listen(PORT, () => {
     console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
   });
 } else {

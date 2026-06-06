@@ -8,7 +8,8 @@ import {
   FiSend,
   FiUsers,
 } from 'react-icons/fi';
-import api from '../utils/api';
+import liveQuizApi from '../utils/liveQuizApi';
+import { createLiveQuizSocket } from '../utils/liveQuizSocket';
 import SEO from '../components/SEO';
 import './LiveQuiz.css';
 
@@ -42,11 +43,12 @@ const LiveQuiz = () => {
   const [advancing, setAdvancing] = useState(false);
   const [participantAnsweredCount, setParticipantAnsweredCount] = useState(0);
   const [stateLoading, setStateLoading] = useState(false);
+  const [socketConnected, setSocketConnected] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
 
   const loadCurrentQuiz = useCallback(async () => {
     try {
-      const response = await api.get('/live-quiz/current');
+      const response = await liveQuizApi.get('/live-quiz/current');
       setQuiz(response.data?.data || null);
     } catch (error) {
       setMessage({ type: 'error', text: 'The quiz could not be loaded.' });
@@ -57,7 +59,7 @@ const LiveQuiz = () => {
     if (!guest?.participantId || !guest?.token) return;
     try {
       setStateLoading(true);
-      const response = await api.get('/live-quiz/participant/state', {
+      const response = await liveQuizApi.get('/live-quiz/participant/state', {
         headers: participantHeaders(guest),
       });
       setQuiz(response.data.data.quiz);
@@ -82,7 +84,7 @@ const LiveQuiz = () => {
   const loadLeaderboard = useCallback(async (quizId) => {
     if (!quizId) return;
     try {
-      const response = await api.get(`/live-quiz/${quizId}/leaderboard`);
+      const response = await liveQuizApi.get(`/live-quiz/${quizId}/leaderboard`);
       setLeaderboard(response.data?.data || []);
     } catch (error) {
       // Keep the previous leaderboard during brief polling failures.
@@ -93,7 +95,7 @@ const LiveQuiz = () => {
     const initialize = async () => {
       setLoading(true);
       try {
-        const response = await api.get('/live-quiz/current');
+        const response = await liveQuizApi.get('/live-quiz/current');
         const currentQuiz = response.data?.data || null;
         setQuiz(currentQuiz);
 
@@ -116,14 +118,49 @@ const LiveQuiz = () => {
 
   useEffect(() => {
     if (!quiz?._id) return undefined;
+    const socket = createLiveQuizSocket();
+
+    const joinQuizRoom = () => {
+      setSocketConnected(true);
+      socket.emit('liveQuiz:joinQuiz', { quizId: quiz._id });
+    };
+
+    socket.on('connect', joinQuizRoom);
+    socket.on('disconnect', () => setSocketConnected(false));
+    socket.on('liveQuiz:leaderboard', (payload) => {
+      if (payload?.quizId === quiz._id) {
+        setLeaderboard(payload.leaderboard || []);
+      }
+    });
+    socket.on('liveQuiz:status', (payload) => {
+      if (payload?.quizId !== quiz._id || !payload.quiz) return;
+      setQuiz(payload.quiz);
+      if (guest) loadParticipantState();
+    });
+    socket.on('liveQuiz:answerRecorded', (payload) => {
+      if (payload?.quizId === quiz._id && payload.participantId === guest?.participantId) {
+        setParticipantAnsweredCount(payload.answeredCount || 0);
+      }
+    });
+
+    if (socket.connected) joinQuizRoom();
+
+    return () => {
+      socket.emit('liveQuiz:leaveQuiz', { quizId: quiz._id });
+      socket.disconnect();
+    };
+  }, [guest, loadParticipantState, quiz?._id]);
+
+  useEffect(() => {
+    if (!quiz?._id) return undefined;
     loadLeaderboard(quiz._id);
     const timer = window.setInterval(() => {
-      loadLeaderboard(quiz._id);
+      if (!socketConnected) loadLeaderboard(quiz._id);
       if (guest) loadParticipantState();
-      else loadCurrentQuiz();
-    }, 3000);
+      else if (!socketConnected) loadCurrentQuiz();
+    }, socketConnected ? 15000 : 3000);
     return () => window.clearInterval(timer);
-  }, [guest, loadCurrentQuiz, loadLeaderboard, loadParticipantState, quiz?._id]);
+  }, [guest, loadCurrentQuiz, loadLeaderboard, loadParticipantState, quiz?._id, socketConnected]);
 
   const unansweredQuestions = useMemo(
     () => questions.filter((question) => !question.answered),
@@ -163,7 +200,7 @@ const LiveQuiz = () => {
     const markMissed = async () => {
       try {
         setAdvancing(true);
-        await api.post(
+        await liveQuizApi.post(
           `/live-quiz/participant/questions/${currentQuestion._id}/miss`,
           {},
           { headers: participantHeaders(guest) }
@@ -198,7 +235,7 @@ const LiveQuiz = () => {
     try {
       setJoining(true);
       setMessage({ type: '', text: '' });
-      const response = await api.post(`/live-quiz/${quiz._id}/join`, joinForm);
+      const response = await liveQuizApi.post(`/live-quiz/${quiz._id}/join`, joinForm);
       const nextGuest = response.data.data;
       localStorage.setItem(STORAGE_KEY, JSON.stringify(nextGuest));
       setGuest(nextGuest);
@@ -220,7 +257,7 @@ const LiveQuiz = () => {
     try {
       setSubmittingId(question._id);
       setMessage({ type: '', text: '' });
-      await api.post(
+      await liveQuizApi.post(
         `/live-quiz/participant/questions/${question._id}/answer`,
         { answer },
         { headers: participantHeaders(guest) }

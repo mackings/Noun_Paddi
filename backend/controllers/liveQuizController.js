@@ -12,6 +12,14 @@ const {
   generateQuizQuestionsFromPdfBuffer,
   normalizeAnswer,
 } = require('../utils/liveQuizHelper');
+const {
+  clearLeaderboard,
+  emitAnswerRecorded,
+  emitParticipantJoined,
+  emitQuizStatus,
+  getLeaderboard,
+  updateParticipantScore,
+} = require('../utils/liveQuizRealtime');
 
 const DEFAULT_QUESTION_DURATION_SECONDS = 40;
 const ROOT_QUIZ_PDF = 'NOU107_A_Study_Guide_For_The_Distance_Learner.pdf';
@@ -19,6 +27,15 @@ const ROOT_QUIZ_PDF = 'NOU107_A_Study_Guide_For_The_Distance_Learner.pdf';
 const hashToken = (token) => crypto.createHash('sha256').update(String(token || '')).digest('hex');
 const isValidEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '').trim());
 const cleanUsername = (value) => String(value || '').trim().replace(/\s+/g, ' ');
+
+async function syncParticipantRealtime(quizId, participant, { answerRecorded = false } = {}) {
+  try {
+    await updateParticipantScore(quizId, participant);
+    if (answerRecorded) emitAnswerRecorded(quizId, participant);
+  } catch (error) {
+    console.warn('[live-quiz-realtime] Failed to sync participant update:', error.message);
+  }
+}
 
 const serializeQuiz = (quiz) => ({
   _id: quiz._id,
@@ -107,6 +124,7 @@ async function ensureParticipantCurrentQuestion(quiz, participant) {
     await recordMissedQuestion({ quiz, participant, question: currentQuestion });
     currentQuestion = await findNextUnansweredQuestion(quiz._id, participant._id);
     await setCurrentQuestion(participant, currentQuestion);
+    await syncParticipantRealtime(quiz._id, participant, { answerRecorded: true });
   }
 
   return currentQuestion;
@@ -260,6 +278,8 @@ exports.joinQuiz = async (req, res) => {
       },
       { new: true, upsert: true, runValidators: true }
     );
+    emitParticipantJoined(quiz._id, participant);
+    await syncParticipantRealtime(quiz._id, participant);
 
     return res.status(200).json({
       success: true,
@@ -329,6 +349,7 @@ exports.submitQuizAnswer = async (req, res) => {
       await recordMissedQuestion({ quiz, participant, question });
       const nextQuestion = await findNextUnansweredQuestion(quiz._id, participant._id);
       await setCurrentQuestion(participant, nextQuestion);
+      await syncParticipantRealtime(quiz._id, participant, { answerRecorded: true });
       return res.status(409).json({ success: false, message: 'Time elapsed. The question was recorded as missed.' });
     }
 
@@ -358,6 +379,7 @@ exports.submitQuizAnswer = async (req, res) => {
     participant.lastAnsweredAt = new Date();
     const nextQuestion = await findNextUnansweredQuestion(quiz._id, participant._id);
     await setCurrentQuestion(participant, nextQuestion);
+    await syncParticipantRealtime(quiz._id, participant, { answerRecorded: true });
 
     return res.status(201).json({
       success: true,
@@ -392,6 +414,7 @@ exports.markQuestionMissed = async (req, res) => {
     await recordMissedQuestion({ quiz, participant, question: currentQuestion });
     const nextQuestion = await findNextUnansweredQuestion(quiz._id, participant._id);
     await setCurrentQuestion(participant, nextQuestion);
+    await syncParticipantRealtime(quiz._id, participant, { answerRecorded: true });
 
     return res.status(200).json({ success: true, message: 'Question recorded as missed.' });
   } catch (error) {
@@ -404,21 +427,9 @@ exports.getQuizLeaderboard = async (req, res) => {
     const quiz = await LiveQuiz.findById(req.params.quizId);
     if (!quiz) return res.status(404).json({ success: false, message: 'Quiz not found.' });
 
-    const leaders = await LiveQuizParticipant.find({ quizId: quiz._id })
-      .sort({ correctCount: -1, score: -1, lastAnsweredAt: 1, createdAt: 1 })
-      .limit(10)
-      .select('username score correctCount answeredCount');
-
     return res.status(200).json({
       success: true,
-      data: leaders.map((participant, index) => ({
-        rank: index + 1,
-        username: participant.username,
-        score: participant.correctCount,
-        points: participant.score,
-        correctCount: participant.correctCount,
-        answeredCount: participant.answeredCount,
-      })),
+      data: await getLeaderboard(quiz._id),
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: 'Failed to load leaderboard.' });
@@ -500,6 +511,7 @@ exports.adminSetQuizStatus = async (req, res) => {
 
       if (existingQuiz.status !== 'live') {
         await LiveQuizAnswer.deleteMany({ quizId: req.params.quizId });
+        clearLeaderboard(req.params.quizId);
         await LiveQuizParticipant.updateMany(
           { quizId: req.params.quizId },
           {
@@ -524,6 +536,8 @@ exports.adminSetQuizStatus = async (req, res) => {
     if (status === 'ended') updates.endedAt = new Date();
 
     const quiz = await LiveQuiz.findByIdAndUpdate(req.params.quizId, { $set: updates }, { new: true });
+    clearLeaderboard(quiz._id);
+    emitQuizStatus(quiz);
 
     return res.status(200).json({ success: true, data: serializeQuiz(quiz) });
   } catch (error) {
@@ -598,6 +612,10 @@ exports.adminModerateAnswer = async (req, res) => {
         },
       }
     );
+    const participant = await LiveQuizParticipant.findById(answer.participantId);
+    if (participant) {
+      await syncParticipantRealtime(answer.quizId, participant, { answerRecorded: true });
+    }
 
     return res.status(200).json({ success: true, data: answer });
   } catch (error) {

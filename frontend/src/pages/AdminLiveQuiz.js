@@ -10,7 +10,8 @@ import {
   FiUsers,
   FiX,
 } from 'react-icons/fi';
-import api from '../utils/api';
+import liveQuizApi from '../utils/liveQuizApi';
+import { createLiveQuizSocket } from '../utils/liveQuizSocket';
 import './AdminLiveQuiz.css';
 
 const AdminLiveQuiz = () => {
@@ -35,7 +36,7 @@ const AdminLiveQuiz = () => {
   const loadQuizzes = async (refreshDetail = false) => {
     try {
       setLoading(true);
-      const response = await api.get('/live-quiz/admin/quizzes');
+      const response = await liveQuizApi.get('/live-quiz/admin/quizzes');
       const items = response.data?.data || [];
       const nextQuizId = items.some((quiz) => quiz._id === selectedQuizId)
         ? selectedQuizId
@@ -56,7 +57,7 @@ const AdminLiveQuiz = () => {
       return;
     }
     try {
-      const response = await api.get(`/live-quiz/admin/quizzes/${quizId}`);
+      const response = await liveQuizApi.get(`/live-quiz/admin/quizzes/${quizId}`);
       setDetail(response.data?.data || null);
     } catch (error) {
       setDetail(null);
@@ -73,11 +74,44 @@ const AdminLiveQuiz = () => {
     loadDetail(selectedQuizId);
   }, [selectedQuizId]);
 
+  useEffect(() => {
+    if (!selectedQuizId) return undefined;
+    const socket = createLiveQuizSocket();
+
+    const joinQuizRoom = () => {
+      socket.emit('liveQuiz:joinQuiz', { quizId: selectedQuizId });
+    };
+
+    socket.on('connect', joinQuizRoom);
+    socket.on('liveQuiz:status', (payload) => {
+      if (payload?.quizId !== selectedQuizId) return;
+      loadQuizzes(true);
+    });
+    socket.on('liveQuiz:answerRecorded', (payload) => {
+      if (payload?.quizId === selectedQuizId) {
+        loadDetail(selectedQuizId);
+      }
+    });
+    socket.on('liveQuiz:participantJoined', (payload) => {
+      if (payload?.quizId === selectedQuizId) {
+        loadDetail(selectedQuizId);
+      }
+    });
+
+    if (socket.connected) joinQuizRoom();
+
+    return () => {
+      socket.emit('liveQuiz:leaveQuiz', { quizId: selectedQuizId });
+      socket.disconnect();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedQuizId]);
+
   const handleRootImport = async () => {
     try {
       setImporting(true);
       setMessage({ type: '', text: '' });
-      const response = await api.post('/live-quiz/admin/import-root-nou107', {
+      const response = await liveQuizApi.post('/live-quiz/admin/import-root-nou107', {
         title: form.title,
         courseCode: form.courseCode,
         description: form.description,
@@ -107,7 +141,7 @@ const AdminLiveQuiz = () => {
       data.append('title', form.title);
       data.append('courseCode', form.courseCode);
       data.append('description', form.description);
-      const response = await api.post('/live-quiz/admin/import-pdf', data, {
+      const response = await liveQuizApi.post('/live-quiz/admin/import-pdf', data, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       setMessage({ type: 'success', text: `${response.data.data.questionCount} questions generated from the PDF.` });
@@ -123,7 +157,7 @@ const AdminLiveQuiz = () => {
   const handleStatus = async (status) => {
     if (!selectedQuizId) return;
     try {
-      await api.patch(`/live-quiz/admin/quizzes/${selectedQuizId}/status`, { status });
+      await liveQuizApi.patch(`/live-quiz/admin/quizzes/${selectedQuizId}/status`, { status });
       setMessage({ type: 'success', text: `Quiz status changed to ${status}.` });
       await loadQuizzes();
       await loadDetail(selectedQuizId);
@@ -134,7 +168,7 @@ const AdminLiveQuiz = () => {
 
   const handleModerate = async (answerId, isCorrect) => {
     try {
-      await api.patch(`/live-quiz/admin/answers/${answerId}`, { isCorrect });
+      await liveQuizApi.patch(`/live-quiz/admin/answers/${answerId}`, { isCorrect });
       await loadDetail(selectedQuizId);
     } catch (error) {
       setMessage({ type: 'error', text: error.response?.data?.message || 'Failed to moderate answer.' });
