@@ -19,17 +19,21 @@ const getSessionToken = async () => {
   const existingToken = localStorage.getItem('token');
   if (existingToken) return existingToken;
 
-  const response = await api.get('/auth/session-token');
-  const nextToken = response.data?.data?.token;
-  if (nextToken) {
-    localStorage.setItem('token', nextToken);
+  try {
+    const response = await api.get('/auth/session-token');
+    const nextToken = response.data?.data?.token;
+    if (nextToken) {
+      localStorage.setItem('token', nextToken);
+    }
+    return nextToken || '';
+  } catch {
+    return '';
   }
-  return nextToken || '';
 };
 
 liveQuizApi.interceptors.request.use(
-  async (config) => {
-    const token = await getSessionToken();
+  (config) => {
+    const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
