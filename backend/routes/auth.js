@@ -4,6 +4,7 @@ const {
   signup,
   login,
   getMe,
+  getSessionToken,
   forgotPassword,
   resetPassword,
   logout,
@@ -41,6 +42,7 @@ const resetLimiter = createRateLimit({
 router.post('/signup', signupLimiter, validateSignupInput, signup);
 router.post('/login', loginLimiter, validateLoginInput, login);
 router.get('/me', protect, getMe);
+router.get('/session-token', protect, getSessionToken);
 router.post('/forgot-password', resetLimiter, validateForgotPasswordInput, forgotPassword);
 router.post('/reset-password/:resetToken', resetLimiter, validatePasswordResetInput, resetPassword);
 router.post('/logout', protect, logout);

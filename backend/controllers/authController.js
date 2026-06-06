@@ -201,6 +201,26 @@ exports.getMe = async (req, res) => {
   }
 };
 
+// @desc    Get a bearer token for cross-origin service calls
+// @route   GET /api/auth/session-token
+// @access  Private
+exports.getSessionToken = async (req, res) => {
+  try {
+    const token = generateToken(req.user._id);
+    setAuthCookie(res, token);
+
+    return res.status(200).json({
+      success: true,
+      data: { token },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: 'Could not refresh session token.',
+    });
+  }
+};
+
 // @desc    Forgot password
 // @route   POST /api/auth/forgot-password
 // @access  Public
