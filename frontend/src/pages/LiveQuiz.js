@@ -156,9 +156,9 @@ const LiveQuiz = () => {
     loadLeaderboard(quiz._id);
     const timer = window.setInterval(() => {
       if (!socketConnected) loadLeaderboard(quiz._id);
-      if (guest) loadParticipantState();
+      if (guest && !socketConnected) loadParticipantState();
       else if (!socketConnected) loadCurrentQuiz();
-    }, socketConnected ? 15000 : 3000);
+    }, 3000);
     return () => window.clearInterval(timer);
   }, [guest, loadCurrentQuiz, loadLeaderboard, loadParticipantState, quiz?._id, socketConnected]);
 

@@ -42,6 +42,14 @@ const answerLimiter = createRateLimit({
   keyBuilder: (req, ip) => `${req.headers['x-quiz-participant'] || ip}`,
 });
 
+router.use((req, res, next) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.set('Pragma', 'no-cache');
+  res.set('Expires', '0');
+  res.set('Surrogate-Control', 'no-store');
+  next();
+});
+
 router.get('/current', getCurrentQuiz);
 router.get('/:quizId/leaderboard', getQuizLeaderboard);
 router.post('/:quizId/join', joinLimiter, joinQuiz);

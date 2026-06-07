@@ -18,27 +18,6 @@ const serializeLeader = (participant, index) => ({
   createdAt: participant.createdAt,
 });
 
-const sortLeaders = (leaders) => leaders
-  .sort((a, b) => (
-    (b.correctCount || 0) - (a.correctCount || 0)
-    || (b.points || 0) - (a.points || 0)
-    || new Date(a.lastAnsweredAt || a.createdAt || 0) - new Date(b.lastAnsweredAt || b.createdAt || 0)
-    || new Date(a.createdAt || 0) - new Date(b.createdAt || 0)
-  ))
-  .slice(0, 10)
-  .map((leader, index) => ({ ...leader, rank: index + 1 }));
-
-const serializeParticipantForCache = (participant) => ({
-  _id: String(participant._id),
-  username: participant.username,
-  score: participant.correctCount,
-  points: participant.score,
-  correctCount: participant.correctCount,
-  answeredCount: participant.answeredCount,
-  lastAnsweredAt: participant.lastAnsweredAt,
-  createdAt: participant.createdAt,
-});
-
 async function loadLeaderboard(quizId) {
   const leaders = await LiveQuizParticipant.find({ quizId })
     .sort({ correctCount: -1, score: -1, lastAnsweredAt: 1, createdAt: 1 })
@@ -71,14 +50,7 @@ async function emitLeaderboard(quizId) {
 
 async function updateParticipantScore(quizId, participant) {
   const key = String(quizId);
-  let leaders = leaderboardCache.get(key);
-  if (!leaders) {
-    leaders = await loadLeaderboard(key);
-  }
-
-  const participantEntry = serializeParticipantForCache(participant);
-  const withoutParticipant = leaders.filter((leader) => String(leader._id) !== participantEntry._id);
-  const nextLeaders = sortLeaders([...withoutParticipant, participantEntry]);
+  const nextLeaders = await loadLeaderboard(key);
   leaderboardCache.set(key, nextLeaders);
 
   emitToQuiz(key, 'liveQuiz:leaderboard', {
