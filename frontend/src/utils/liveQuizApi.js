@@ -20,7 +20,7 @@ let sessionTokenRefresh = null;
 const refreshSessionToken = async () => {
   if (!sessionTokenRefresh) {
     sessionTokenRefresh = api.get('/auth/session-token', {
-      headers: { Authorization: undefined },
+      skipAuth: true,
     }).then((response) => {
       const nextToken = response.data?.data?.token || '';
       if (nextToken) {
