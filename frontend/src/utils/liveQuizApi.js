@@ -15,25 +15,53 @@ const liveQuizApi = axios.create({
   },
 });
 
+let sessionTokenRefresh = null;
+
+const refreshSessionToken = async () => {
+  if (!sessionTokenRefresh) {
+    sessionTokenRefresh = api.get('/auth/session-token', {
+      headers: { Authorization: undefined },
+    }).then((response) => {
+      const nextToken = response.data?.data?.token || '';
+      if (nextToken) {
+        localStorage.setItem('token', nextToken);
+      }
+      return nextToken;
+    }).catch(() => '').finally(() => {
+      sessionTokenRefresh = null;
+    });
+  }
+
+  return sessionTokenRefresh;
+};
+
 const getSessionToken = async () => {
   const existingToken = localStorage.getItem('token');
-  if (existingToken) return existingToken;
-
-  try {
-    const response = await api.get('/auth/session-token');
-    const nextToken = response.data?.data?.token;
-    if (nextToken) {
-      localStorage.setItem('token', nextToken);
-    }
-    return nextToken || '';
-  } catch {
-    return '';
+  if (existingToken) {
+    return existingToken;
   }
+
+  return refreshSessionToken();
+};
+
+const retryWithFreshSession = async (originalRequest) => {
+  localStorage.removeItem('token');
+  const token = await refreshSessionToken();
+  if (!token) {
+    return null;
+  }
+
+  originalRequest._retriedWithSessionToken = true;
+  originalRequest.headers = {
+    ...(originalRequest.headers || {}),
+    Authorization: `Bearer ${token}`,
+  };
+  return liveQuizApi(originalRequest);
 };
 
 liveQuizApi.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
+  async (config) => {
+    const token = await getSessionToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -50,16 +78,11 @@ liveQuizApi.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    localStorage.removeItem('token');
-    const token = await getSessionToken();
-    if (!token) return Promise.reject(error);
-
-    originalRequest._retriedWithSessionToken = true;
-    originalRequest.headers = {
-      ...(originalRequest.headers || {}),
-      Authorization: `Bearer ${token}`,
-    };
-    return liveQuizApi(originalRequest);
+    const retriedResponse = await retryWithFreshSession(originalRequest);
+    if (!retriedResponse) {
+      return Promise.reject(error);
+    }
+    return retriedResponse;
   }
 );
 

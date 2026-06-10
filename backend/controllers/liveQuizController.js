@@ -501,8 +501,9 @@ exports.adminImportUploadedPdf = async (req, res) => {
 };
 
 exports.adminSetQuizStatus = async (req, res) => {
+  const requestedStatus = String(req.body?.status || '').trim();
   try {
-    const status = String(req.body?.status || '').trim();
+    const status = requestedStatus;
     if (!['draft', 'live', 'ended'].includes(status)) {
       return res.status(400).json({ success: false, message: 'Invalid quiz status.' });
     }
@@ -511,6 +512,14 @@ exports.adminSetQuizStatus = async (req, res) => {
     if (!existingQuiz) return res.status(404).json({ success: false, message: 'Quiz not found.' });
 
     if (status === 'live') {
+      const questions = await loadQuizQuestions(existingQuiz._id);
+      if (!questions?.questions?.length) {
+        return res.status(409).json({
+          success: false,
+          message: 'This quiz has no questions and cannot be started.',
+        });
+      }
+
       await LiveQuiz.updateMany({ status: 'live', _id: { $ne: req.params.quizId } }, {
         $set: { status: 'ended', endedAt: new Date() },
       });
@@ -544,11 +553,16 @@ exports.adminSetQuizStatus = async (req, res) => {
 
     const quiz = await LiveQuiz.findByIdAndUpdate(req.params.quizId, { $set: updates }, { new: true });
     clearLeaderboard(quiz._id);
-    if (status === 'live') await loadQuizQuestions(quiz._id);
     emitQuizStatus(quiz);
 
     return res.status(200).json({ success: true, data: serializeQuiz(quiz) });
   } catch (error) {
+    console.error('[live-quiz-status] Failed to update quiz status', {
+      quizId: req.params.quizId,
+      requestedStatus,
+      error: error.message,
+      stack: error.stack,
+    });
     return res.status(500).json({ success: false, message: 'Failed to update quiz status.' });
   }
 };

@@ -21,6 +21,7 @@ const AdminLiveQuiz = () => {
   const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(true);
   const [importing, setImporting] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState('');
   const [showAnswerKey, setShowAnswerKey] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
   const detailRequestRef = useRef(0);
@@ -215,14 +216,22 @@ const AdminLiveQuiz = () => {
   };
 
   const handleStatus = async (status) => {
-    if (!selectedQuizId) return;
+    if (!selectedQuizId || updatingStatus) return;
     try {
+      setUpdatingStatus(status);
+      setMessage({ type: '', text: '' });
       await liveQuizApi.patch(`/live-quiz/admin/quizzes/${selectedQuizId}/status`, { status });
       setMessage({ type: 'success', text: `Quiz status changed to ${status}.` });
       await loadQuizzes();
       await loadDetail(selectedQuizId);
     } catch (error) {
-      setMessage({ type: 'error', text: error.response?.data?.message || 'Failed to update quiz status.' });
+      const statusCode = error.response?.status;
+      const fallback = statusCode === 401 || statusCode === 403
+        ? 'Your admin session expired. Sign in again and retry.'
+        : 'Failed to update quiz status.';
+      setMessage({ type: 'error', text: error.response?.data?.message || fallback });
+    } finally {
+      setUpdatingStatus('');
     }
   };
 
@@ -355,9 +364,9 @@ const AdminLiveQuiz = () => {
               </div>
 
               <div className="admin-live-quiz-controls">
-                <button type="button" onClick={() => handleStatus('draft')}><FiClock /> Draft</button>
-                <button type="button" onClick={() => handleStatus('live')}><FiPlay /> Start quiz</button>
-                <button type="button" onClick={() => handleStatus('ended')}><FiSquare /> End quiz</button>
+                <button type="button" disabled={Boolean(updatingStatus)} onClick={() => handleStatus('draft')}><FiClock /> {updatingStatus === 'draft' ? 'Updating...' : 'Draft'}</button>
+                <button type="button" disabled={Boolean(updatingStatus)} onClick={() => handleStatus('live')}><FiPlay /> {updatingStatus === 'live' ? 'Starting...' : 'Start quiz'}</button>
+                <button type="button" disabled={Boolean(updatingStatus)} onClick={() => handleStatus('ended')}><FiSquare /> {updatingStatus === 'ended' ? 'Ending...' : 'End quiz'}</button>
                 <button type="button" className="danger" onClick={handleDeleteQuiz}><FiTrash2 /> Delete</button>
               </div>
 

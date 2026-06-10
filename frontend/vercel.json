@@ -23,6 +23,14 @@
       "dest": "/manifest.json"
     },
     {
+      "src": "/push-sw.js",
+      "dest": "/push-sw.js",
+      "headers": {
+        "Content-Type": "application/javascript; charset=utf-8",
+        "Service-Worker-Allowed": "/"
+      }
+    },
+    {
       "src": "/logo(.*).png",
       "dest": "/logo$1.png"
     },
