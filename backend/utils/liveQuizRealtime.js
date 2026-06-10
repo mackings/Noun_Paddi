@@ -2,7 +2,8 @@ const { Server } = require('socket.io');
 const LiveQuizParticipant = require('../models/LiveQuizParticipant');
 
 let io = null;
-const leaderboardCache = new Map();
+const leaderboardRefreshes = new Map();
+const leaderboardGenerations = new Map();
 
 const quizRoom = (quizId) => `live-quiz:${quizId}`;
 
@@ -24,14 +25,19 @@ async function loadLeaderboard(quizId) {
     .limit(10)
     .select('username score correctCount answeredCount lastAnsweredAt createdAt');
 
-  const serialized = leaders.map(serializeLeader);
-  leaderboardCache.set(String(quizId), serialized);
-  return serialized;
+  return leaders.map(serializeLeader);
 }
 
 async function getLeaderboard(quizId) {
   const key = String(quizId);
-  if (leaderboardCache.has(key)) return leaderboardCache.get(key);
+  const pendingRefresh = leaderboardRefreshes.get(key);
+  if (pendingRefresh) {
+    try {
+      await pendingRefresh;
+    } catch {
+      // Retry with a fresh database read below.
+    }
+  }
   return loadLeaderboard(key);
 }
 
@@ -41,22 +47,41 @@ function emitToQuiz(quizId, event, payload) {
 }
 
 async function emitLeaderboard(quizId) {
-  const leaderboard = await getLeaderboard(quizId);
-  emitToQuiz(quizId, 'liveQuiz:leaderboard', {
-    quizId: String(quizId),
-    leaderboard,
-  });
+  return queueLeaderboardRefresh(quizId);
 }
 
-async function updateParticipantScore(quizId, participant) {
+function queueLeaderboardRefresh(quizId) {
   const key = String(quizId);
-  const nextLeaders = await loadLeaderboard(key);
-  leaderboardCache.set(key, nextLeaders);
+  const generation = leaderboardGenerations.get(key) || 0;
+  const previousRefresh = leaderboardRefreshes.get(key) || Promise.resolve();
+  const refresh = previousRefresh
+    .catch(() => {})
+    .then(async () => {
+      const leaderboard = await loadLeaderboard(key);
+      if ((leaderboardGenerations.get(key) || 0) === generation) {
+        emitToQuiz(key, 'liveQuiz:leaderboard', {
+          quizId: key,
+          leaderboard,
+        });
+      }
+      return leaderboard;
+    });
 
-  emitToQuiz(key, 'liveQuiz:leaderboard', {
-    quizId: key,
-    leaderboard: nextLeaders,
-  });
+  leaderboardRefreshes.set(key, refresh);
+  refresh.then(
+    () => {
+      if (leaderboardRefreshes.get(key) === refresh) leaderboardRefreshes.delete(key);
+    },
+    () => {
+      if (leaderboardRefreshes.get(key) === refresh) leaderboardRefreshes.delete(key);
+    }
+  );
+
+  return refresh;
+}
+
+async function updateParticipantScore(quizId) {
+  return queueLeaderboardRefresh(quizId);
 }
 
 function emitParticipantJoined(quizId, participant) {
@@ -105,7 +130,8 @@ function emitQuizDeleted(quizId) {
 }
 
 function clearLeaderboard(quizId) {
-  leaderboardCache.delete(String(quizId));
+  const key = String(quizId);
+  leaderboardGenerations.set(key, (leaderboardGenerations.get(key) || 0) + 1);
 }
 
 function initLiveQuizRealtime(server, corsOptions) {

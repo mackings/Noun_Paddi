@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   FiCheck,
   FiClock,
@@ -23,6 +23,9 @@ const AdminLiveQuiz = () => {
   const [importing, setImporting] = useState(false);
   const [showAnswerKey, setShowAnswerKey] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
+  const detailRequestRef = useRef(0);
+  const detailRefreshTimerRef = useRef(null);
+  const detailStateRef = useRef(null);
   const [form, setForm] = useState({
     title: 'NOU107 Live Quiz',
     courseCode: 'NOU107',
@@ -55,9 +58,11 @@ const AdminLiveQuiz = () => {
 
   const loadDetail = async (quizId, options = {}) => {
     if (!quizId) {
+      detailRequestRef.current += 1;
       setDetail(null);
       return;
     }
+    const requestId = ++detailRequestRef.current;
     try {
       const includeQuestions = options.includeQuestions ?? showAnswerKey;
       const response = await liveQuizApi.get(`/live-quiz/admin/quizzes/${quizId}`, {
@@ -67,10 +72,15 @@ const AdminLiveQuiz = () => {
           includeQuestions,
         },
       });
-      setDetail(response.data?.data || null);
+      if (requestId === detailRequestRef.current) {
+        const nextDetail = response.data?.data || null;
+        detailStateRef.current = nextDetail;
+        setDetail(nextDetail);
+      }
     } catch (error) {
-      setDetail(null);
-      setMessage({ type: 'error', text: error.response?.data?.message || 'Failed to load quiz details.' });
+      if (requestId === detailRequestRef.current) {
+        setMessage({ type: 'error', text: error.response?.data?.message || 'Failed to load quiz details.' });
+      }
     }
   };
 
@@ -81,6 +91,8 @@ const AdminLiveQuiz = () => {
 
   useEffect(() => {
     setShowAnswerKey(false);
+    detailStateRef.current = null;
+    setDetail(null);
     loadDetail(selectedQuizId, { includeQuestions: false });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedQuizId]);
@@ -88,6 +100,13 @@ const AdminLiveQuiz = () => {
   useEffect(() => {
     if (!selectedQuizId) return undefined;
     const socket = createLiveQuizSocket();
+    const scheduleDetailRefresh = () => {
+      if (detailRefreshTimerRef.current) return;
+      detailRefreshTimerRef.current = window.setTimeout(() => {
+        detailRefreshTimerRef.current = null;
+        loadDetail(selectedQuizId);
+      }, 200);
+    };
 
     const joinQuizRoom = () => {
       socket.emit('liveQuiz:joinQuiz', { quizId: selectedQuizId });
@@ -100,12 +119,32 @@ const AdminLiveQuiz = () => {
     });
     socket.on('liveQuiz:answerRecorded', (payload) => {
       if (payload?.quizId === selectedQuizId) {
-        loadDetail(selectedQuizId);
+        scheduleDetailRefresh();
       }
     });
     socket.on('liveQuiz:participantJoined', (payload) => {
       if (payload?.quizId === selectedQuizId) {
-        loadDetail(selectedQuizId);
+        scheduleDetailRefresh();
+      }
+    });
+    socket.on('liveQuiz:leaderboard', (payload) => {
+      if (payload?.quizId === selectedQuizId) {
+        const currentDetail = detailStateRef.current;
+        if (!currentDetail) return;
+        detailRequestRef.current += 1;
+        const currentById = new Map(
+          (currentDetail.leaderboard || []).map((participant) => [String(participant._id), participant])
+        );
+        const nextDetail = {
+          ...currentDetail,
+          leaderboard: (payload.leaderboard || []).map((participant) => ({
+            ...currentById.get(String(participant._id)),
+            ...participant,
+            score: participant.points ?? participant.score,
+          })),
+        };
+        detailStateRef.current = nextDetail;
+        setDetail(nextDetail);
       }
     });
     socket.on('liveQuiz:deleted', (payload) => {
@@ -118,6 +157,10 @@ const AdminLiveQuiz = () => {
     if (socket.connected) joinQuizRoom();
 
     return () => {
+      if (detailRefreshTimerRef.current) {
+        window.clearTimeout(detailRefreshTimerRef.current);
+        detailRefreshTimerRef.current = null;
+      }
       socket.emit('liveQuiz:leaveQuiz', { quizId: selectedQuizId });
       socket.disconnect();
     };

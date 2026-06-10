@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   FiAward,
   FiCheck,
@@ -45,6 +45,7 @@ const LiveQuiz = () => {
   const [stateLoading, setStateLoading] = useState(false);
   const [socketConnected, setSocketConnected] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
+  const leaderboardRequestRef = useRef(0);
 
   const loadCurrentQuiz = useCallback(async () => {
     try {
@@ -83,9 +84,12 @@ const LiveQuiz = () => {
 
   const loadLeaderboard = useCallback(async (quizId) => {
     if (!quizId) return;
+    const requestId = ++leaderboardRequestRef.current;
     try {
       const response = await liveQuizApi.get(`/live-quiz/${quizId}/leaderboard`);
-      setLeaderboard(response.data?.data || []);
+      if (requestId === leaderboardRequestRef.current) {
+        setLeaderboard(response.data?.data || []);
+      }
     } catch (error) {
       // Keep the previous leaderboard during brief polling failures.
     }
@@ -129,6 +133,7 @@ const LiveQuiz = () => {
     socket.on('disconnect', () => setSocketConnected(false));
     socket.on('liveQuiz:leaderboard', (payload) => {
       if (payload?.quizId === quiz._id) {
+        leaderboardRequestRef.current += 1;
         setLeaderboard(payload.leaderboard || []);
       }
     });
@@ -445,7 +450,7 @@ const LiveQuiz = () => {
               </div>
               <div className="live-quiz-leader-list">
                 {leaderboard.map((leader) => (
-                  <div className="live-quiz-leader" key={`${leader.rank}-${leader.username}`}>
+                  <div className="live-quiz-leader" key={leader._id}>
                     <span className="live-quiz-rank">{leader.rank}</span>
                     <div>
                       <strong>{leader.username}</strong>
