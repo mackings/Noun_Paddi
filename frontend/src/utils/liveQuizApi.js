@@ -16,6 +16,7 @@ const liveQuizApi = axios.create({
 });
 
 let sessionTokenRefresh = null;
+let adminSessionPrepared = false;
 
 const refreshSessionToken = async () => {
   if (!sessionTokenRefresh) {
@@ -44,8 +45,23 @@ const getSessionToken = async () => {
   return refreshSessionToken();
 };
 
+const prepareAdminSessionToken = async () => {
+  if (adminSessionPrepared) {
+    return getSessionToken();
+  }
+
+  const existingToken = localStorage.getItem('token') || '';
+  const refreshedToken = await refreshSessionToken();
+  if (refreshedToken) {
+    adminSessionPrepared = true;
+    return refreshedToken;
+  }
+  return existingToken;
+};
+
 const retryWithFreshSession = async (originalRequest) => {
   localStorage.removeItem('token');
+  adminSessionPrepared = false;
   const token = await refreshSessionToken();
   if (!token) {
     return null;
@@ -61,7 +77,10 @@ const retryWithFreshSession = async (originalRequest) => {
 
 liveQuizApi.interceptors.request.use(
   async (config) => {
-    const token = await getSessionToken();
+    const isAdminRequest = String(config.url || '').includes('/live-quiz/admin/');
+    const token = isAdminRequest
+      ? await prepareAdminSessionToken()
+      : await getSessionToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
