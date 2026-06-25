@@ -370,7 +370,7 @@ function buildEvidenceText(evidence = []) {
   }).join('\n\n---\n\n');
 }
 
-async function answerWithGeminiPro({ question, options = [], evidence = [], questionType = 'short_answer' }) {
+async function answerAndVerifyWithGeminiPro({ question, options = [], evidence = [], questionType = 'short_answer' }) {
   const apiKey = getGeminiApiKey();
   if (!apiKey) {
     throw new Error('Gemini API key is not configured.');
@@ -379,39 +379,47 @@ async function answerWithGeminiPro({ question, options = [], evidence = [], ques
   const genAI = new GoogleGenerativeAI(apiKey);
   const model = genAI.getGenerativeModel({ model: GEMINI_TMA_MODEL });
   const evidenceText = buildEvidenceText(evidence);
+  const optionsText = options.length
+    ? options.map((option, index) => `${String.fromCharCode(65 + index)}. ${option}`).join('\n')
+    : 'No options provided';
 
-  const prompt = `You are a careful NOUN TMA study assistant. Course material is the single source of truth. Past-question and TMA files are supporting context only. If support sources conflict with course material, course material wins.
+  const prompt = `You are a precise NOUN TMA study assistant. Answer the question from the evidence in two internal passes, then return a single JSON.
 
-Rules:
-- Answer only from the evidence below.
-- Do not guess when evidence is weak.
-- PRIMARY SOURCE evidence always outranks SUPPORTING SOURCE evidence.
-- If supporting sources conflict with course material, ignore the supporting source.
-- For objective questions, choose the best option only when the evidence supports it.
-- For fill_gap questions, return the exact missing word or phrase first, then a short explanation.
-- For true_false questions, answer exactly "True" or "False" first, then a short explanation.
-- For multiple_choice questions, answer with the option letter and option text first.
-- Return ONLY valid JSON.
+PASS 1 — Answer: Read all evidence and determine the best answer.
+PASS 2 — Verify: Re-read the evidence critically. Correct the answer if needed. PRIMARY SOURCE (course_material) always wins over SUPPORTING SOURCE (tma/past_question/other). If they conflict, trust course material.
+
+Strict rules:
+- Use ONLY the evidence below. No outside knowledge.
+- For multiple_choice: return the option letter AND the full option text (e.g. "A. Photosynthesis").
+- For fill_gap: return the exact missing word or phrase first, then a brief explanation.
+- For true_false: return exactly "True" or "False" first, then a brief explanation.
+- For short_answer: return the most precise answer the evidence supports.
+- Set needsReview to true only when evidence is genuinely ambiguous or contradictory.
+
+Question type: ${questionType}
 
 Question:
 ${question}
 
-Question type:
-${questionType}
-
 Options:
-${options.length ? options.map((option, index) => `${String.fromCharCode(65 + index)}. ${option}`).join('\n') : 'No options provided'}
+${optionsText}
 
-Evidence:
+Evidence (ranked by relevance — PRIMARY SOURCE outranks all):
 ${evidenceText}
 
-Return this JSON shape:
+Return ONLY valid JSON with no markdown or extra text:
 {
-  "answer": "final answer or option letter with answer text",
+  "answer": "best answer from first pass",
   "confidence": 0,
-  "explanation": "brief source-grounded explanation",
+  "explanation": "brief explanation citing source numbers",
   "evidenceUsed": [1, 2],
-  "needsReview": true
+  "finalAnswer": "verified or corrected answer after second pass",
+  "finalConfidence": 0,
+  "finalExplanation": "final explanation grounded in PRIMARY SOURCE where available",
+  "finalEvidenceUsed": [1, 2],
+  "isSupported": true,
+  "conflictNotes": "",
+  "needsReview": false
 }`;
 
   const result = await model.generateContent(prompt);
@@ -422,71 +430,36 @@ Return this JSON shape:
   }
 
   const parsed = JSON.parse(jsonMatch[0]);
+  const answer = String(parsed.answer || '').trim();
+  const explanation = String(parsed.explanation || '').trim();
+
   return {
-    answer: String(parsed.answer || '').trim(),
+    answer,
     confidence: Math.max(0, Math.min(100, Number(parsed.confidence || 0))),
-    explanation: String(parsed.explanation || '').trim(),
+    explanation,
     evidenceUsed: Array.isArray(parsed.evidenceUsed) ? parsed.evidenceUsed : [],
+    finalAnswer: String(parsed.finalAnswer || answer).trim(),
+    finalConfidence: Math.max(0, Math.min(100, Number(parsed.finalConfidence || parsed.confidence || 0))),
+    finalExplanation: String(parsed.finalExplanation || explanation).trim(),
+    finalEvidenceUsed: Array.isArray(parsed.finalEvidenceUsed) ? parsed.finalEvidenceUsed : [],
+    isSupported: Boolean(parsed.isSupported),
+    conflictNotes: String(parsed.conflictNotes || '').trim(),
     needsReview: Boolean(parsed.needsReview),
     model: GEMINI_TMA_MODEL,
-    rawResult: result,
   };
 }
 
-async function verifyAnswerWithGeminiPro({ question, options = [], questionType = 'short_answer', answer, explanation, evidence = [] }) {
-  const apiKey = getGeminiApiKey();
-  if (!apiKey) {
-    throw new Error('Gemini API key is not configured.');
-  }
+async function answerWithGeminiPro({ question, options = [], evidence = [], questionType = 'short_answer' }) {
+  const result = await answerAndVerifyWithGeminiPro({ question, options, evidence, questionType });
+  return result;
+}
 
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: GEMINI_TMA_MODEL });
-  const evidenceText = buildEvidenceText(evidence);
-
-  const prompt = `Verify this NOUN TMA answer against the evidence. Course material is the primary source and must win over TMA or past-question files.
-
-Question type: ${questionType}
-Question: ${question}
-Options:
-${options.length ? options.map((option, index) => `${String.fromCharCode(65 + index)}. ${option}`).join('\n') : 'No options provided'}
-
-Draft answer: ${answer}
-Draft explanation: ${explanation || ''}
-
-Evidence:
-${evidenceText}
-
-Return ONLY valid JSON:
-{
-  "isSupported": true,
-  "finalAnswer": "verified or corrected answer",
-  "confidence": 0,
-  "finalExplanation": "brief explanation grounded in primary evidence where available",
-  "evidenceUsed": [1],
-  "conflictNotes": "empty if no conflict",
-  "needsReview": false
-}`;
-
-  const result = await model.generateContent(prompt);
-  const text = result.response.text();
-  const jsonMatch = text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    throw new Error('Verification response was not parseable.');
-  }
-
-  const parsed = JSON.parse(jsonMatch[0]);
-  return {
-    isSupported: Boolean(parsed.isSupported),
-    finalAnswer: String(parsed.finalAnswer || answer || '').trim(),
-    confidence: Math.max(0, Math.min(100, Number(parsed.confidence || 0))),
-    finalExplanation: String(parsed.finalExplanation || explanation || '').trim(),
-    evidenceUsed: Array.isArray(parsed.evidenceUsed) ? parsed.evidenceUsed : [],
-    conflictNotes: String(parsed.conflictNotes || '').trim(),
-    needsReview: Boolean(parsed.needsReview),
-  };
+async function verifyAnswerWithGeminiPro() {
+  return null;
 }
 
 module.exports = {
+  answerAndVerifyWithGeminiPro,
   answerWithGeminiPro,
   chunkText,
   compactText,

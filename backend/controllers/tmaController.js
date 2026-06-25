@@ -5,7 +5,7 @@ const TmaChunk = require('../models/TmaChunk');
 const TmaAnswer = require('../models/TmaAnswer');
 const { cloudinary } = require('../config/cloudinary');
 const {
-  answerWithGeminiPro,
+  answerAndVerifyWithGeminiPro,
   chunkText,
   compactText,
   cosineSimilarity,
@@ -20,7 +20,6 @@ const {
   inferChunkMetadata,
   scoreChunk,
   tokenize,
-  verifyAnswerWithGeminiPro,
 } = require('../utils/tmaHelper');
 
 const VALID_SOURCE_TYPES = new Set(['course_material', 'past_question', 'tma_1', 'tma_2', 'tma_3', 'other']);
@@ -428,20 +427,26 @@ exports.answerTmaQuestion = async (req, res) => {
     }
 
     const filter = courseId ? { courseId } : {};
-    let chunks = [];
-    let queryEmbedding = null;
+    const textQuery = queryTerms.slice(0, 14).join(' ');
 
-    try {
-      queryEmbedding = await generateEmbedding(`${question}\n${options.join('\n')}`);
-    } catch (error) {
-      queryEmbedding = null;
-    }
+    // Run embedding generation and text search in parallel — saves 0.5–2s
+    const [queryEmbedding, textSearchChunks] = await Promise.all([
+      generateEmbedding(`${question}\n${options.join('\n')}`).catch(() => null),
+      TmaChunk.find({ ...filter, $text: { $search: textQuery } }, { score: { $meta: 'textScore' } })
+        .sort({ score: { $meta: 'textScore' } })
+        .populate('sourceId', 'title sourceType courseId sourceQuality')
+        .limit(90)
+        .lean()
+        .catch(() => []),
+    ]);
+
     const embeddingModel = getActiveEmbeddingModel();
+    let chunks = [];
 
     if (queryEmbedding) {
       try {
         chunks = await findChunksWithAtlasVectorSearch({ courseId, queryEmbedding });
-      } catch (error) {
+      } catch {
         chunks = [];
       }
 
@@ -466,46 +471,11 @@ exports.answerTmaQuestion = async (req, res) => {
       }
     }
 
-    const textQuery = queryTerms.slice(0, 14).join(' ');
-
-    if (chunks.length < 12) {
-      try {
-        const textChunks = await TmaChunk.find({
-          ...filter,
-          $text: { $search: textQuery },
-        }, {
-          score: { $meta: 'textScore' },
-        })
-          .sort({ score: { $meta: 'textScore' } })
-          .populate('sourceId', 'title sourceType courseId sourceQuality')
-          .limit(90)
-          .lean();
-
-        const seen = new Set(chunks.map((chunk) => String(chunk._id)));
-        for (const chunk of textChunks) {
-          if (!seen.has(String(chunk._id))) {
-            chunks.push(chunk);
-          }
-        }
-      } catch (error) {
-        // Keep semantic results and continue to fallback if needed.
-      }
-    }
-
-    if (chunks.length === 0) {
-      try {
-        chunks = await TmaChunk.find({
-          ...filter,
-          $text: { $search: textQuery },
-        }, {
-          score: { $meta: 'textScore' },
-        })
-          .sort({ score: { $meta: 'textScore' } })
-          .populate('sourceId', 'title sourceType courseId sourceQuality')
-          .limit(90)
-          .lean();
-      } catch (error) {
-        chunks = [];
+    // Merge text search results (already fetched in parallel above)
+    const seen = new Set(chunks.map((chunk) => String(chunk._id)));
+    for (const chunk of textSearchChunks) {
+      if (!seen.has(String(chunk._id))) {
+        chunks.push(chunk);
       }
     }
 
@@ -515,9 +485,9 @@ exports.answerTmaQuestion = async (req, res) => {
         .limit(800)
         .lean();
 
-      const seen = new Set(chunks.map((chunk) => String(chunk._id)));
+      const seen2 = new Set(chunks.map((chunk) => String(chunk._id)));
       for (const chunk of fallbackChunks) {
-        if (!seen.has(String(chunk._id))) {
+        if (!seen2.has(String(chunk._id))) {
           chunks.push(chunk);
         }
       }
@@ -548,7 +518,6 @@ exports.answerTmaQuestion = async (req, res) => {
       });
     }
 
-    
     const evidence = ranked.map(({ chunk }) => ({
       sourceId: chunk.sourceId?._id,
       title: chunk.sourceId?.title || 'TMA source',
@@ -560,32 +529,17 @@ exports.answerTmaQuestion = async (req, res) => {
       text: chunk.text,
     }));
 
-    const geminiAnswer = await answerWithGeminiPro({
-      question,
-      options,
-      evidence,
-      questionType,
-    });
+    // Single Gemini Pro call — answers and self-verifies in one round-trip
+    const result = await answerAndVerifyWithGeminiPro({ question, options, evidence, questionType });
 
-    const verifiedAnswer = await verifyAnswerWithGeminiPro({
-      question,
-      options,
-      questionType,
-      answer: geminiAnswer.answer,
-      explanation: geminiAnswer.explanation,
-      evidence,
-    }).catch(() => null);
+    const finalAnswer = result.finalAnswer || result.answer || 'Not enough evidence to answer confidently.';
+    const finalExplanation = result.finalExplanation || result.explanation;
+    const finalConfidence = Math.min(result.finalConfidence || 0, result.confidence || 0);
 
-    const finalAnswer = verifiedAnswer?.finalAnswer || geminiAnswer.answer || 'Not enough evidence to answer confidently.';
-    const finalExplanation = verifiedAnswer?.finalExplanation || geminiAnswer.explanation;
-    const finalConfidence = verifiedAnswer
-      ? Math.min(verifiedAnswer.confidence || 0, geminiAnswer.confidence || 0)
-      : geminiAnswer.confidence;
-
-    const evidenceUsed = verifiedAnswer?.evidenceUsed?.length
-      ? verifiedAnswer.evidenceUsed
-      : geminiAnswer.evidenceUsed.length
-      ? geminiAnswer.evidenceUsed
+    const evidenceUsed = result.finalEvidenceUsed?.length
+      ? result.finalEvidenceUsed
+      : result.evidenceUsed?.length
+      ? result.evidenceUsed
       : evidence.map((_, index) => index + 1);
 
     const selectedEvidence = evidenceUsed
@@ -612,11 +566,11 @@ exports.answerTmaQuestion = async (req, res) => {
         excerpt: item.text.slice(0, 900),
       })),
       verification: {
-        isSupported: Boolean(verifiedAnswer?.isSupported),
-        conflictNotes: verifiedAnswer?.conflictNotes || '',
-        needsReview: verifiedAnswer ? Boolean(verifiedAnswer.needsReview) : true,
+        isSupported: Boolean(result.isSupported),
+        conflictNotes: result.conflictNotes || '',
+        needsReview: Boolean(result.needsReview),
       },
-      model: geminiAnswer.model,
+      model: result.model,
       createdBy: req.user._id,
     });
 
