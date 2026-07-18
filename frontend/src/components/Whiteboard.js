@@ -1,24 +1,22 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import katex from 'katex';
 import 'katex/dist/katex.css';
 import WritingHand3D from './WritingHand3D';
 import './Whiteboard.css';
 
-// Reveal pacing is gated by real audio playback time (the `elapsedMs` prop, driven by
-// Tutor.js from actual Gemini audio chunks as they arrive), not an independent wall
-// clock. CHAR_INTERVAL_MS is just the fastest the visual is allowed to advance per
-// tick — the real speed limiter is whether enough narration time has actually elapsed,
-// so writing can never race ahead of (or lag behind) what's being said. MS_PER_UNIT is
-// the assumed narration pace (~16 units/sec) used to convert elapsed audio ms into a
-// target reveal position.
-const CHAR_INTERVAL_MS = 40;
-const MS_PER_UNIT = 62;
-// A rendered math expression has no "characters" to type — it's written as a whole
-// unit — but it still needs to visually sit on the board for roughly as long as the
-// spoken narration around it takes, so it gets a flat minimum dwell time instead of a
-// per-character one.
-const MATH_MIN_WEIGHT = 22;
-const LINE_SETTLE_MS = 200;
+// The board now types at a fixed, predictable pace — it no longer tries to track real
+// audio playback time at all. Earlier versions gated reveal speed against elapsed audio
+// time (an estimate of narration pace with no real word-level timing data behind it),
+// which kept breaking in new ways: dense math, mid-calculation pauses, variable speech
+// speed all defeated it, because the board was always the one trying to catch up to an
+// unpredictable target. The fix is architectural, not another tuning pass: Tutor.js now
+// buffers incoming audio and releases it to the speakers at a pace gated by THIS
+// component's own progress (see audioQueueRef/boardStartTimeRef there) — the voice
+// waits for the board, not the other way around. That means this component just needs
+// to type at a comfortable, reliable speed; it can never be "wrong" anymore.
+const CHAR_INTERVAL_MS = 45;
+const MATH_DWELL_MS = 650;
+const LINE_SETTLE_MS = 250;
 const ERASE_DURATION_MS = 550;
 
 // The model is told to keep a whole code snippet in ONE `lines` array entry with real
@@ -72,7 +70,7 @@ function renderLineSegments(line) {
   const codeBlockMatch = line.trim().match(/^```(?:[a-zA-Z0-9_+-]*\n)?([\s\S]*?)```$/);
   if (codeBlockMatch) {
     const content = codeBlockMatch[1].replace(/\n$/, '');
-    return [{ type: 'code-block', content, weight: Math.max(content.length, 1), key: 0 }];
+    return [{ type: 'code-block', content, key: 0 }];
   }
 
   const parts = [];
@@ -83,13 +81,12 @@ function renderLineSegments(line) {
 
   while ((match = regex.exec(line)) !== null) {
     if (match.index > lastIndex) {
-      const content = line.slice(lastIndex, match.index);
-      parts.push({ type: 'text', content, weight: content.length, key: key++ });
+      parts.push({ type: 'text', content: line.slice(lastIndex, match.index), key: key++ });
     }
 
     if (match[1] !== undefined || match[2] !== undefined) {
       const content = match[1] !== undefined ? match[1] : match[2];
-      parts.push({ type: 'code-inline', content, weight: Math.max(content.length, 1), key: key++ });
+      parts.push({ type: 'code-inline', content, key: key++ });
     } else {
       const isDisplay = match[3] !== undefined;
       const expr = isDisplay ? match[3] : match[4];
@@ -99,15 +96,14 @@ function renderLineSegments(line) {
       } catch (error) {
         html = expr;
       }
-      parts.push({ type: 'math', html, weight: Math.max(MATH_MIN_WEIGHT, expr.length), key: key++ });
+      parts.push({ type: 'math', html, key: key++ });
     }
 
     lastIndex = regex.lastIndex;
   }
 
   if (lastIndex < line.length) {
-    const content = line.slice(lastIndex);
-    parts.push({ type: 'text', content, weight: content.length, key: key++ });
+    parts.push({ type: 'text', content: line.slice(lastIndex), key: key++ });
   }
 
   return parts;
@@ -125,28 +121,19 @@ function renderSegment(segment) {
   return <span key={segment.key}>{segment.content}</span>;
 }
 
-// How many reveal "units" have been consumed up to the current segment/progress point.
-// Text segments consume one unit per character; a math segment consumes its whole
-// weight only once fully dwelt on (see the effect below) — while active, `progress`
-// tracks ticks elapsed within it, capped at its weight.
-function unitsConsumed(segments, segmentIndex, progress) {
-  let units = 0;
-  for (let i = 0; i < segmentIndex && i < segments.length; i++) {
-    units += segments[i].weight;
-  }
-  if (segmentIndex < segments.length) units += progress;
-  return units;
-}
+const Whiteboard = ({ title, lines: rawLines, onComplete }) => {
+  const lines = useMemo(() => normalizeLines(rawLines), [rawLines]);
+  const boardSegments = useMemo(() => lines.map(renderLineSegments), [lines]);
 
-const Whiteboard = ({ title, lines: rawLines, elapsedMs, turnComplete }) => {
-  const lines = normalizeLines(rawLines);
   const [renderedLines, setRenderedLines] = useState([]);
   const [segmentIndex, setSegmentIndex] = useState(0);
   const [progress, setProgress] = useState(0);
   const [isErasing, setIsErasing] = useState(false);
   const contentKeyRef = useRef('');
   const timeoutRef = useRef(null);
-  const lineStartElapsedMsRef = useRef(0);
+  // Guards onComplete so it only fires once per piece of content, not on every effect
+  // re-run after the board has already finished typing.
+  const completedRef = useRef(false);
 
   const contentKey = JSON.stringify({ title, lines });
 
@@ -163,7 +150,7 @@ const Whiteboard = ({ title, lines: rawLines, elapsedMs, turnComplete }) => {
       setSegmentIndex(0);
       setProgress(0);
       setIsErasing(false);
-      lineStartElapsedMsRef.current = elapsedMs || 0;
+      completedRef.current = false;
     };
 
     if (hadContent) {
@@ -176,30 +163,41 @@ const Whiteboard = ({ title, lines: rawLines, elapsedMs, turnComplete }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contentKey]);
 
-  // Typewriter: reveal one segment-unit at a time, gated by how much narration time has
-  // actually elapsed (or, once the model has finished speaking, just finish naturally
-  // without waiting further — there's no more speech left to sync against).
+  // Typewriter: reveal one segment at a time at a fixed, predictable pace. No audio
+  // timing involved here at all anymore — see the comment near CHAR_INTERVAL_MS.
   useEffect(() => {
-    if (isErasing || !lines || lines.length === 0) return undefined;
+    if (isErasing || lines.length === 0) return undefined;
     const lineIndex = renderedLines.length;
-    if (lineIndex >= lines.length) return undefined;
+    if (lineIndex >= lines.length) {
+      if (!completedRef.current) {
+        completedRef.current = true;
+        onComplete?.();
+      }
+      return undefined;
+    }
 
-    const segments = renderLineSegments(lines[lineIndex]);
+    const segments = boardSegments[lineIndex];
     if (segmentIndex >= segments.length) {
       timeoutRef.current = setTimeout(() => {
         setRenderedLines((current) => [...current, lines[lineIndex]]);
         setSegmentIndex(0);
         setProgress(0);
-        lineStartElapsedMsRef.current = elapsedMs || 0;
       }, LINE_SETTLE_MS);
       return () => clearTimeout(timeoutRef.current);
     }
 
     const segment = segments[segmentIndex];
-    // Math reveals as a whole rendered unit with a flat dwell time; text and code
-    // (inline or block) type out character-by-character up to their own length.
-    const targetLength = segment.type === 'math' ? segment.weight : segment.content.length;
-    if (progress >= targetLength) {
+    if (segment.type === 'math') {
+      // Math reveals as a whole rendered unit, then just sits for a fixed dwell —
+      // there's no "typing" a symbol character by character.
+      timeoutRef.current = setTimeout(() => {
+        setSegmentIndex((i) => i + 1);
+        setProgress(0);
+      }, MATH_DWELL_MS);
+      return () => clearTimeout(timeoutRef.current);
+    }
+
+    if (progress >= segment.content.length) {
       timeoutRef.current = setTimeout(() => {
         setSegmentIndex((i) => i + 1);
         setProgress(0);
@@ -207,36 +205,14 @@ const Whiteboard = ({ title, lines: rawLines, elapsedMs, turnComplete }) => {
       return () => clearTimeout(timeoutRef.current);
     }
 
-    const lineElapsedMs = Math.max(0, (elapsedMs || 0) - lineStartElapsedMsRef.current);
-    const targetUnits = turnComplete ? Infinity : Math.floor(lineElapsedMs / MS_PER_UNIT);
-    const behind = targetUnits - unitsConsumed(segments, segmentIndex, progress);
-
-    if (behind <= 0) {
-      // Caught up to (or ahead of) the actual narration pace — wait for more audio to
-      // arrive (which re-triggers this effect via the elapsedMs prop) rather than
-      // advancing on an independent clock, so writing never outruns speech.
-      return undefined;
-    }
-
-    // Narration can speed up mid-explanation and pull further ahead than a single
-    // normal step would ever close — left as a flat +1 per tick, the board would fall
-    // behind and simply never catch up again for the rest of that line. Once the gap
-    // exceeds a small buffer, burst forward proportionally (faster ticks, bigger
-    // steps) to close it quickly, then settle back into the normal one-at-a-time
-    // typing cadence as soon as it's caught up.
-    const CATCH_UP_THRESHOLD = 6;
-    const isCatchingUp = behind > CATCH_UP_THRESHOLD;
-    const step = isCatchingUp ? Math.min(targetLength - progress, Math.ceil(behind / 2)) : 1;
-    const tickMs = isCatchingUp ? 18 : CHAR_INTERVAL_MS;
-
-    timeoutRef.current = setTimeout(() => setProgress((p) => Math.min(targetLength, p + step)), tickMs);
+    timeoutRef.current = setTimeout(() => setProgress((p) => p + 1), CHAR_INTERVAL_MS);
     return () => clearTimeout(timeoutRef.current);
-  }, [segmentIndex, progress, renderedLines, lines, isErasing, elapsedMs, turnComplete]);
+  }, [segmentIndex, progress, renderedLines, lines, boardSegments, isErasing, onComplete]);
 
-  if (!lines || lines.length === 0) return null;
+  if (lines.length === 0) return null;
 
   const lineIndex = renderedLines.length;
-  const activeSegments = !isErasing && lineIndex < lines.length ? renderLineSegments(lines[lineIndex]) : [];
+  const activeSegments = (!isErasing && lineIndex < lines.length ? boardSegments[lineIndex] : []) || [];
 
   return (
     <div className={`whiteboard ${isErasing ? 'is-erasing' : ''}`}>
@@ -248,7 +224,13 @@ const Whiteboard = ({ title, lines: rawLines, elapsedMs, turnComplete }) => {
       {title && <p className="whiteboard-title">{title}</p>}
       <div className="whiteboard-body">
         {renderedLines.map((line, index) => {
-          const segments = renderLineSegments(line);
+          const segments = boardSegments[index];
+          // boardSegments is recomputed from `lines` the instant the prop changes, but
+          // `renderedLines` (state) only catches up once the content-reset effect runs
+          // on the NEXT render — for that one transitional render, renderedLines can be
+          // longer than the new boardSegments, making this undefined. Skip rather than
+          // crash; the reset effect clears renderedLines a moment later regardless.
+          if (!segments) return null;
           if (segments.length === 1 && segments[0].type === 'code-block') {
             return <pre key={index} className="whiteboard-code-block"><code>{segments[0].content}</code></pre>;
           }

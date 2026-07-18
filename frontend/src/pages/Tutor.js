@@ -157,10 +157,6 @@ const Tutor = () => {
   const [board, setBoard] = useState(null);
   const [pastSources, setPastSources] = useState([]);
   const [sourcesLoaded, setSourcesLoaded] = useState(false);
-  // Drives the whiteboard's writing pace directly off real audio playback time (rather
-  // than an independent timer), so the board can never race ahead of what's being said.
-  const [audioElapsedMs, setAudioElapsedMs] = useState(0);
-  const [speechTurnComplete, setSpeechTurnComplete] = useState(true);
 
   const avatarContainerRef = useRef(null);
   const headRef = useRef(null);
@@ -175,6 +171,18 @@ const Tutor = () => {
   const intentionalCloseRef = useRef(false);
   const reconnectingRef = useRef(false);
   const reconnectAttemptsRef = useRef(0);
+
+  // Audio no longer plays the instant it arrives — it's queued here and released to the
+  // speakers at a pace gated by the whiteboard's own (fixed-speed) typing progress, so
+  // the voice waits for the board instead of the board trying to chase the voice. See
+  // releaseQueuedAudio below for the actual mechanism.
+  const audioQueueRef = useRef([]);
+  const boardStartTimeRef = useRef(null); // wall-clock (performance.now()) when current board content started typing; null = nothing to sync against
+  const boardDoneRef = useRef(true); // true = board has finished typing (or has no active content) — release audio unthrottled
+  const releasedMsRef = useRef(0); // cumulative ms of audio actually released since boardStartTimeRef was last set
+  const releaseIntervalRef = useRef(null);
+  const turnEndedRef = useRef(true); // Gemini has said turnComplete for the current turn (queue may still have unreleased audio)
+  const notifiedEndRef = useRef(true); // guards against calling head.streamNotifyEnd() more than once per turn
 
   useEffect(() => {
     if (!avatarContainerRef.current || headRef.current) return undefined;
@@ -281,12 +289,65 @@ const Tutor = () => {
     source.connect(workletNode);
   };
 
+  // Releases queued audio chunks to the avatar's speaker output, gated by how much wall
+  // time has passed since the board started typing (the board itself now just types at
+  // a fixed pace, no audio awareness at all — see Whiteboard.js). When there's no active
+  // board content to sync against, audio drains immediately for lowest latency.
+  const releaseQueuedAudio = () => {
+    const head = headRef.current;
+    if (!head) return;
+
+    while (audioQueueRef.current.length > 0) {
+      const allowedMs = boardDoneRef.current || boardStartTimeRef.current === null
+        ? Infinity
+        : performance.now() - boardStartTimeRef.current;
+      if (releasedMsRef.current >= allowedMs) break;
+
+      const { int16, durationMs } = audioQueueRef.current.shift();
+      if (!streamStartedRef.current) {
+        head.streamStart({ sampleRate: AUDIO_SAMPLE_RATE, lipsyncType: 'blendshapes' });
+        streamStartedRef.current = true;
+      }
+      const anims = buildAmplitudeBlendshapes(int16, AUDIO_SAMPLE_RATE, streamElapsedMsRef.current, visemeCycleRef.current);
+      streamElapsedMsRef.current += durationMs;
+      releasedMsRef.current += durationMs;
+      head.streamAudio({ audio: int16, anims });
+    }
+
+    // Gemini said turnComplete a while ago and the queue has now actually finished
+    // draining (everything's been released) — only now is it true that streaming has
+    // ended, regardless of when Gemini itself said so.
+    if (turnEndedRef.current && !notifiedEndRef.current && audioQueueRef.current.length === 0) {
+      head.streamNotifyEnd();
+      notifiedEndRef.current = true;
+      // The library resets its audio-start anchor to null after each pause between
+      // turns, then re-anchors on the next turn's first chunk — so our cumulative
+      // offset must restart from 0 too, or the next turn's visemes land too early.
+      streamElapsedMsRef.current = 0;
+    }
+  };
+
+  // Runs for the component's whole lifetime (cheap no-op when there's nothing queued),
+  // rather than being started/stopped per session — releaseQueuedAudio only ever reads
+  // refs, never state/props, so this doesn't need to re-subscribe on every render.
+  useEffect(() => {
+    releaseIntervalRef.current = setInterval(releaseQueuedAudio, 30);
+    return () => clearInterval(releaseIntervalRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleToolCall = async (functionCalls) => {
     try {
       const responses = await Promise.all(functionCalls.map(async (call) => {
         if (call.name === 'show_working') {
           const lines = Array.isArray(call.args?.lines) ? call.args.lines : [];
           setBoard({ title: call.args?.title || '', lines });
+          // A new board just started typing (at its own fixed pace) — anchor audio
+          // release to this exact moment so narration waits to match it, instead of
+          // racing ahead the instant more audio arrives.
+          boardStartTimeRef.current = performance.now();
+          boardDoneRef.current = false;
+          releasedMsRef.current = 0;
           return { id: call.id, name: call.name, response: { result: 'Shown to the student.' } };
         }
 
@@ -332,33 +393,24 @@ const Tutor = () => {
         setStatusMessage('Listening. Ask Theresa anything about this material.');
       },
       onAudio: (base64Audio) => {
-        setSpeechTurnComplete(false);
-        if (!streamStartedRef.current) {
-          head.streamStart({ sampleRate: AUDIO_SAMPLE_RATE, lipsyncType: 'blendshapes' });
-          streamStartedRef.current = true;
-        }
+        // Queue only — released later, gated by board progress, in releaseQueuedAudio.
+        turnEndedRef.current = false;
+        notifiedEndRef.current = false;
         const int16 = base64ToInt16Array(base64Audio);
-        const anims = buildAmplitudeBlendshapes(
-          int16,
-          AUDIO_SAMPLE_RATE,
-          streamElapsedMsRef.current,
-          visemeCycleRef.current
-        );
-        streamElapsedMsRef.current += (int16.length / AUDIO_SAMPLE_RATE) * 1000;
-        setAudioElapsedMs(streamElapsedMsRef.current);
-        head.streamAudio({ audio: int16, anims });
+        audioQueueRef.current.push({ int16, durationMs: (int16.length / AUDIO_SAMPLE_RATE) * 1000 });
       },
       onToolCall: handleToolCall,
       onTurnComplete: () => {
-        head.streamNotifyEnd();
-        // The library resets its audio-start anchor to null after each pause between
-        // turns, then re-anchors on the next turn's first chunk — so our cumulative
-        // offset must restart from 0 too, or the next turn's visemes land too early.
-        streamElapsedMsRef.current = 0;
-        setSpeechTurnComplete(true);
+        // No MORE audio is coming for this turn, but whatever's already queued may not
+        // have finished playing yet (that's the whole point — it's gated by the board's
+        // pace, not Gemini's). releaseQueuedAudio notifies the avatar once the queue is
+        // actually empty, not the instant this fires.
+        turnEndedRef.current = true;
       },
       onInterrupted: () => {
+        audioQueueRef.current = [];
         head.streamInterrupt();
+        streamElapsedMsRef.current = 0;
       },
       onGoAway: (timeLeftMs) => {
         // Audio-only Live sessions hit a hard 15-minute server limit. Gemini warns us
@@ -435,8 +487,12 @@ const Tutor = () => {
     visemeCycleRef.current = { index: 0, peak: 0 };
     intentionalCloseRef.current = false;
     reconnectAttemptsRef.current = 0;
-    setAudioElapsedMs(0);
-    setSpeechTurnComplete(true);
+    audioQueueRef.current = [];
+    boardStartTimeRef.current = null;
+    boardDoneRef.current = true;
+    releasedMsRef.current = 0;
+    turnEndedRef.current = true;
+    notifiedEndRef.current = true;
 
     const client = await connectLiveSession(sourceId);
     liveClientRef.current = client;
@@ -497,6 +553,9 @@ const Tutor = () => {
     liveClientRef.current = null;
     headRef.current?.streamStop();
     streamStartedRef.current = false;
+    audioQueueRef.current = [];
+    boardStartTimeRef.current = null;
+    boardDoneRef.current = true;
     setSessionState(SESSION_STATES.IDLE);
     setStatusMessage('');
     setActiveSource(null);
@@ -604,8 +663,7 @@ const Tutor = () => {
           <Whiteboard
             title={board.title}
             lines={board.lines}
-            elapsedMs={audioElapsedMs}
-            turnComplete={speechTurnComplete}
+            onComplete={() => { boardDoneRef.current = true; }}
           />
         ) : (
           <div className="tutor-board-placeholder">
