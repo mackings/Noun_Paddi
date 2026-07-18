@@ -145,6 +145,7 @@ exports.uploadTmaSource = async (req, res) => {
 
     const title = compactText(req.body?.title || req.file.originalname || 'TMA source');
     const sourceType = VALID_SOURCE_TYPES.has(req.body?.sourceType) ? req.body.sourceType : 'course_material';
+    const confirmOverride = req.body?.confirmOverride === 'true';
 
     const extracted = await extractDocumentBuffer({
       buffer: req.file.buffer,
@@ -157,6 +158,38 @@ exports.uploadTmaSource = async (req, res) => {
       courseId: req.body?.courseId,
       detectedCourseCode: detected.detectedCourseCode,
     });
+
+    if (course) {
+      const existingSources = await TmaSource.find({ courseId: course._id })
+        .select('title sourceType createdAt chunkCount')
+        .sort({ createdAt: -1 })
+        .lean();
+
+      if (existingSources.length > 0 && !confirmOverride) {
+        return res.status(409).json({
+          success: false,
+          duplicate: true,
+          message: `${course.courseCode} already has ${existingSources.length} uploaded source${existingSources.length === 1 ? '' : 's'}.`,
+          data: {
+            course: { _id: course._id, courseCode: course.courseCode, courseName: course.courseName },
+            existingSources,
+          },
+        });
+      }
+
+      if (existingSources.length > 0 && confirmOverride) {
+        const staleSources = await TmaSource.find({ courseId: course._id }).select('_id cloudinaryPublicId');
+        const staleIds = staleSources.map((item) => item._id);
+        await Promise.allSettled([
+          TmaChunk.deleteMany({ sourceId: { $in: staleIds } }),
+          TmaAnswer.deleteMany({ 'evidence.sourceId': { $in: staleIds } }),
+          ...staleSources
+            .filter((item) => item.cloudinaryPublicId)
+            .map((item) => cloudinary.uploader.destroy(item.cloudinaryPublicId, { resource_type: 'raw' }).catch(() => {})),
+        ]);
+        await TmaSource.deleteMany({ _id: { $in: staleIds } });
+      }
+    }
 
     const chunks = chunkText(extracted.text);
     if (chunks.length === 0) {

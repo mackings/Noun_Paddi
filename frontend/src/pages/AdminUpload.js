@@ -35,6 +35,8 @@ const AdminUpload = () => {
   const [showArchivedDepartments, setShowArchivedDepartments] = useState(false);
   const [showArchivedCourses, setShowArchivedCourses] = useState(false);
   const [facultySearch, setFacultySearch] = useState('');
+  const [departmentSearch, setDepartmentSearch] = useState('');
+  const [courseSearch, setCourseSearch] = useState('');
 
   // Faculty form
   const [facultyForm, setFacultyForm] = useState({ name: '', code: '' });
@@ -309,17 +311,48 @@ const AdminUpload = () => {
       const code = String(faculty.code || '').toLowerCase();
       return name.includes(normalizedFacultySearch) || code.includes(normalizedFacultySearch);
     });
+  const normalizedDepartmentSearch = departmentSearch.trim().toLowerCase();
+  const visibleDepartments = departments
+    .filter((dept) => showArchivedDepartments || !dept.isArchived)
+    .filter((dept) => {
+      if (!normalizedDepartmentSearch) return true;
+      const name = String(dept.name || '').toLowerCase();
+      const code = String(dept.code || '').toLowerCase();
+      const faculty = String(dept.facultyId?.name || '').toLowerCase();
+      return name.includes(normalizedDepartmentSearch) || code.includes(normalizedDepartmentSearch) || faculty.includes(normalizedDepartmentSearch);
+    });
+  const normalizedCourseSearch = courseSearch.trim().toLowerCase();
+  const visibleCourses = courses
+    .filter((course) => showArchivedCourses || !course.isArchived)
+    .filter((course) => {
+      if (!normalizedCourseSearch) return true;
+      const code = String(course.courseCode || '').toLowerCase();
+      const name = String(course.courseName || '').toLowerCase();
+      const department = String(course.departmentId?.name || '').toLowerCase();
+      return code.includes(normalizedCourseSearch) || name.includes(normalizedCourseSearch) || department.includes(normalizedCourseSearch);
+    });
+  const activeFacultyCount = faculties.filter((faculty) => !faculty.isArchived).length;
+  const activeDepartmentCount = departments.filter((dept) => !dept.isArchived).length;
+  const activeCourseCount = courses.filter((course) => !course.isArchived).length;
 
   return (
     <div className="admin-container">
       <div className="container">
         <div className="admin-header">
-          <div className="admin-header-icon">
-            <FiSettings />
+          <div className="admin-header-copy">
+            <div className="admin-header-icon">
+              <FiSettings />
+            </div>
+            <div>
+              <p className="admin-kicker">Academic Structure</p>
+              <h1>Admin Management</h1>
+              <p>Set up faculties, departments, courses, and study materials from one organized workspace.</p>
+            </div>
           </div>
-          <div>
-            <h1>Admin Management</h1>
-            <p>Manage faculties, departments, courses, and upload study materials</p>
+          <div className="admin-structure-summary">
+            <span><strong>{activeFacultyCount}</strong> Faculties</span>
+            <span><strong>{activeDepartmentCount}</strong> Departments</span>
+            <span><strong>{activeCourseCount}</strong> Courses</span>
           </div>
         </div>
 
@@ -345,9 +378,9 @@ const AdminUpload = () => {
 
         {/* Faculty Tab */}
         {activeTab === 'faculties' && (
-          <div className="admin-content">
-            <div className="admin-grid">
-              <div className="admin-form-card">
+          <div className="admin-content admin-management-content">
+            <div className="admin-grid admin-management-grid">
+              <div className="admin-form-card admin-management-form">
                 <h2>
                   <FiPlus /> {editingFacultyId ? 'Update Faculty' : 'Create New Faculty'}
                 </h2>
@@ -392,7 +425,7 @@ const AdminUpload = () => {
                 </form>
               </div>
 
-              <div className="admin-list-card faculty-list-card">
+              <div className="admin-list-card faculty-list-card admin-management-list">
                 <div className="admin-list-header-modern">
                   <h2>
                     <FiBriefcase /> Existing Faculties
@@ -432,7 +465,7 @@ const AdminUpload = () => {
                 ) : (
                   <div className="item-list">
                     {visibleFaculties.map((faculty) => (
-                      <div key={faculty._id} className="item-card faculty-item-card">
+                      <div key={faculty._id} className="item-card faculty-item-card entity-item-card">
                         <div className="item-icon">
                           <FiBriefcase />
                         </div>
@@ -470,9 +503,9 @@ const AdminUpload = () => {
 
         {/* Department Tab */}
         {activeTab === 'departments' && (
-          <div className="admin-content">
-            <div className="admin-grid">
-              <div className="admin-form-card">
+          <div className="admin-content admin-management-content">
+            <div className="admin-grid admin-management-grid">
+              <div className="admin-form-card admin-management-form">
                 <h2>
                   <FiPlus /> {editingDepartmentId ? 'Update Department' : 'Create New Department'}
                 </h2>
@@ -533,11 +566,24 @@ const AdminUpload = () => {
                 </form>
               </div>
 
-              <div className="admin-list-card">
-                <h2>
-                  <FiLayers /> Existing Departments
-                </h2>
-                <div className="admin-filter-row">
+              <div className="admin-list-card admin-management-list">
+                <div className="admin-list-header-modern">
+                  <h2>
+                    <FiLayers /> Existing Departments
+                  </h2>
+                  <span className="faculty-count-badge">{visibleDepartments.length} shown</span>
+                </div>
+                <div className="faculty-toolbar">
+                  <div className="faculty-search-wrap">
+                    <FiSearch size={16} />
+                    <input
+                      type="text"
+                      placeholder="Search departments by name, code, or faculty..."
+                      value={departmentSearch}
+                      onChange={(e) => setDepartmentSearch(e.target.value)}
+                      className="faculty-search-input"
+                    />
+                  </div>
                   <label className="admin-toggle">
                     <input
                       type="checkbox"
@@ -552,12 +598,15 @@ const AdminUpload = () => {
                     <FiLayers size={32} />
                     <p>No departments yet. Create one to get started!</p>
                   </div>
+                ) : visibleDepartments.length === 0 ? (
+                  <div className="empty-state-small">
+                    <FiSearch size={32} />
+                    <p>No departments matched your search.</p>
+                  </div>
                 ) : (
                   <div className="item-list">
-                    {departments
-                      .filter((dept) => showArchivedDepartments || !dept.isArchived)
-                      .map((dept) => (
-                      <div key={dept._id} className="item-card">
+                    {visibleDepartments.map((dept) => (
+                      <div key={dept._id} className="item-card entity-item-card">
                         <div className="item-icon">
                           <FiLayers />
                         </div>
@@ -596,9 +645,9 @@ const AdminUpload = () => {
 
         {/* Courses Tab */}
         {activeTab === 'courses' && (
-          <div className="admin-content">
-            <div className="admin-grid">
-              <div className="admin-form-card">
+          <div className="admin-content admin-management-content">
+            <div className="admin-grid admin-management-grid">
+              <div className="admin-form-card admin-management-form">
                 <h2>
                   <FiPlus /> {editingCourseId ? 'Update Course' : 'Create New Course'}
                 </h2>
@@ -671,11 +720,24 @@ const AdminUpload = () => {
                 </form>
               </div>
 
-              <div className="admin-list-card">
-                <h2>
-                  <FiBookOpen /> Existing Courses
-                </h2>
-                <div className="admin-filter-row">
+              <div className="admin-list-card admin-management-list">
+                <div className="admin-list-header-modern">
+                  <h2>
+                    <FiBookOpen /> Existing Courses
+                  </h2>
+                  <span className="faculty-count-badge">{visibleCourses.length} shown</span>
+                </div>
+                <div className="faculty-toolbar">
+                  <div className="faculty-search-wrap">
+                    <FiSearch size={16} />
+                    <input
+                      type="text"
+                      placeholder="Search courses by code, title, or department..."
+                      value={courseSearch}
+                      onChange={(e) => setCourseSearch(e.target.value)}
+                      className="faculty-search-input"
+                    />
+                  </div>
                   <label className="admin-toggle">
                     <input
                       type="checkbox"
@@ -690,12 +752,15 @@ const AdminUpload = () => {
                     <FiBookOpen size={32} />
                     <p>No courses yet. Create one to get started!</p>
                   </div>
+                ) : visibleCourses.length === 0 ? (
+                  <div className="empty-state-small">
+                    <FiSearch size={32} />
+                    <p>No courses matched your search.</p>
+                  </div>
                 ) : (
                   <div className="item-list">
-                    {courses
-                      .filter((course) => showArchivedCourses || !course.isArchived)
-                      .map((course) => (
-                      <div key={course._id} className="item-card">
+                    {visibleCourses.map((course) => (
+                      <div key={course._id} className="item-card entity-item-card">
                         <div className="item-icon">
                           <FiBook />
                         </div>
@@ -855,7 +920,7 @@ const AdminUpload = () => {
                   </button>
                   <button
                     onClick={handleGenerateQuestions}
-                    className="btn btn-success btn-lg btn-action"
+                    className="btn btn-primary btn-lg btn-action"
                     disabled={generatingSummary || generatingQuestions}
                   >
                     {generatingQuestions ? (

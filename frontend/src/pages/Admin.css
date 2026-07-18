@@ -1,10 +1,7 @@
 .admin-container {
   min-height: calc(100vh - 80px);
   padding: 48px 0 64px;
-  background:
-    radial-gradient(circle at 12% 12%, rgba(37, 99, 235, 0.12), transparent 45%),
-    radial-gradient(circle at 85% 10%, rgba(16, 185, 129, 0.12), transparent 40%),
-    var(--bg-primary);
+  background: #ffffff;
 }
 
 /* Admin Header */
@@ -301,7 +298,7 @@
 }
 
 .faculty-item-card {
-  background: linear-gradient(135deg, var(--bg-secondary) 0%, rgba(99, 102, 241, 0.04) 100%);
+  background: #ffffff;
   border-radius: 14px;
 }
 
@@ -659,7 +656,7 @@
   display: flex;
   gap: 15px;
   padding: 20px;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  background: #ffffff;
   border-radius: 12px;
   transition: transform 0.2s ease;
 }
@@ -759,68 +756,137 @@
 
 /* Admin workspace rebuild */
 .admin-container {
+  --admin-manage-ink: #213547;
+  --admin-manage-mute: #64748b;
+  --admin-manage-line: #dbe4ec;
+  --admin-manage-accent: #4f46e5;
+  --admin-manage-accent-strong: #4338ca;
+  --admin-manage-accent-soft: #eef2ff;
+  --admin-manage-highlight: #111827;
+  --admin-manage-surface: #ffffff;
+  --admin-manage-surface-strong: #ffffff;
   min-height: calc(100vh - 70px);
   padding: 0;
   background: transparent;
+  color: var(--admin-manage-ink);
 }
 
 .admin-header {
-  gap: 16px;
-  padding: 22px 24px;
-  border-radius: 8px;
-  background: var(--card-bg);
-  border: 1px solid var(--border-color);
-  box-shadow: none;
-  margin-bottom: 18px;
+  gap: 20px;
+  padding: 28px;
+  border-radius: 30px;
+  background: var(--admin-manage-surface);
+  border: 1px solid var(--admin-manage-line);
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.06);
+  margin-bottom: 24px;
   animation: none;
 }
 
+.admin-header-copy {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  min-width: 0;
+}
+
 .admin-header-icon {
-  width: 42px;
-  height: 42px;
-  border-radius: 8px;
-  font-size: 22px;
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
+  font-size: 26px;
+  background: #eef2ff;
+  color: var(--admin-manage-accent-strong);
   box-shadow: none;
 }
 
+.admin-kicker {
+  margin: 0 0 8px;
+  font-size: 12px !important;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--admin-manage-accent-strong) !important;
+}
+
 .admin-header h1 {
-  font-size: 28px;
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: clamp(2.1rem, 4vw, 3.8rem);
+  line-height: 0.98;
   letter-spacing: 0;
-  margin: 0 0 6px;
+  margin: 0 0 10px;
+  color: var(--admin-manage-ink);
 }
 
 .admin-header p {
   font-size: 15px;
+  color: var(--admin-manage-mute);
+  margin: 0;
+  line-height: 1.6;
+}
+
+.admin-structure-summary {
+  margin-left: auto;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(92px, 1fr));
+  gap: 10px;
+  min-width: min(420px, 100%);
+}
+
+.admin-structure-summary span {
+  min-height: 72px;
+  border: 1px solid var(--admin-manage-line);
+  border-radius: 18px;
+  background: var(--admin-manage-surface-strong);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  color: var(--admin-manage-mute);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.admin-structure-summary strong {
+  display: block;
+  color: var(--admin-manage-ink);
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: 0;
+  margin-bottom: 6px;
 }
 
 .admin-tabs {
-  gap: 6px;
-  margin-bottom: 18px;
-  padding: 5px;
-  background: var(--card-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
+  gap: 8px;
+  margin-bottom: 24px;
+  padding: 6px;
+  background: var(--admin-manage-surface);
+  border: 1px solid var(--admin-manage-line);
+  border-radius: 999px;
   animation: none;
 }
 
 .admin-tab {
   min-width: 130px;
-  padding: 10px 12px;
+  min-height: 44px;
+  padding: 10px 14px;
   border: 1px solid transparent;
-  border-radius: 6px;
+  border-radius: 999px;
   font-size: 13px;
   font-weight: 700;
 }
 
 .admin-tab:hover {
-  background: var(--bg-secondary);
+  background: var(--admin-manage-surface-strong);
+  color: var(--admin-manage-accent-strong);
 }
 
 .admin-tab.active {
-  background: var(--primary-light);
-  color: var(--primary-color);
-  border-color: rgba(99, 102, 241, 0.28);
-  box-shadow: none;
+  background: var(--admin-manage-surface-strong);
+  color: var(--admin-manage-accent-strong);
+  border-color: #c7d2fe;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
 }
 
 .admin-content {
@@ -828,23 +894,32 @@
 }
 
 .admin-grid {
-  gap: 12px;
+  gap: 14px;
+}
+
+.admin-management-grid {
+  grid-template-columns: minmax(320px, 390px) minmax(0, 1fr);
+  align-items: start;
 }
 
 .admin-form-card,
 .admin-list-card,
 .upload-card-modern,
 .processing-card-modern {
-  background: var(--card-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  padding: 18px;
-  box-shadow: none;
+  background: var(--admin-manage-surface-strong);
+  border: 1px solid var(--admin-manage-line);
+  border-radius: 24px;
+  padding: 20px;
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.05);
+}
+
+.admin-management-form {
+  position: sticky;
+  top: 146px;
 }
 
 .admin-form-card:hover,
 .admin-list-card:hover {
-  box-shadow: none;
   transform: none;
 }
 
@@ -855,56 +930,79 @@
   font-size: 18px;
   margin-bottom: 14px;
   letter-spacing: 0;
+  color: var(--admin-manage-ink);
+}
+
+.admin-form-card h2 svg,
+.admin-list-card h2 svg {
+  color: var(--admin-manage-accent-strong);
 }
 
 .item-list {
-  gap: 8px;
-  max-height: 560px;
+  gap: 10px;
+  max-height: min(68vh, 720px);
+  padding-right: 4px;
 }
 
 .item-card,
 .faculty-item-card {
-  gap: 12px;
-  padding: 12px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  transition: border-color 0.18s ease, background-color 0.18s ease;
+  gap: 14px;
+  padding: 14px 16px;
+  background: var(--admin-manage-surface);
+  border: 1px solid var(--admin-manage-line);
+  border-radius: 18px;
+  transition: transform 180ms ease, border-color 180ms ease, background-color 180ms ease;
 }
 
 .item-card:hover {
-  border-color: var(--border-hover);
-  background: var(--bg-secondary);
-  transform: none;
+  border-color: #c7d2fe;
+  background: #ffffff;
+  transform: translateY(-1px);
 }
 
 .item-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
   font-size: 20px;
+  background: #eef2ff;
+  color: var(--admin-manage-accent-strong);
 }
 
 .item-info h3 {
   font-size: 15px;
   letter-spacing: 0;
+  color: var(--admin-manage-ink);
+  margin-bottom: 4px;
+}
+
+.item-info p {
+  color: var(--admin-manage-mute);
 }
 
 .item-actions {
   flex-direction: row;
   flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.item-actions .btn {
+  min-height: 36px;
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-size: 12px;
 }
 
 .faculty-search-wrap,
 .form-control,
 .admin-invite-form input {
-  border-radius: 8px;
+  border-radius: 18px;
   border-width: 1px;
 }
 
 .faculty-search-wrap:focus-within {
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px var(--primary-light);
+  border-color: #a5b4fc;
+  box-shadow: 0 0 0 4px rgba(125, 192, 180, 0.14);
 }
 
 .faculty-count-badge,
@@ -912,7 +1010,34 @@
 .item-meta,
 .item-meta.archived,
 .file-types {
-  border-radius: 8px;
+  border-radius: 999px;
+}
+
+.faculty-count-badge {
+  background: var(--admin-manage-accent-soft);
+  color: var(--admin-manage-accent-strong);
+}
+
+.faculty-toolbar {
+  padding: 12px;
+  border: 1px solid var(--admin-manage-line);
+  border-radius: 20px;
+  background: var(--admin-manage-surface);
+}
+
+.faculty-search-wrap {
+  border-color: var(--admin-manage-line);
+  background: var(--admin-manage-surface-strong);
+}
+
+.faculty-code-pill {
+  color: var(--admin-manage-accent-strong) !important;
+  background: var(--admin-manage-accent-soft);
+}
+
+.admin-toggle {
+  color: var(--admin-manage-mute);
+  font-weight: 700;
 }
 
 .upload-card-modern,
@@ -937,13 +1062,14 @@
 .file-drop-label {
   min-height: 220px;
   padding: 36px 24px;
-  border: 2px dashed var(--border-color);
-  border-radius: 8px;
-  background: var(--bg-secondary);
+  border: 2px dashed var(--admin-manage-line);
+  border-radius: 22px;
+  background: var(--admin-manage-surface);
 }
 
 .file-drop-label:hover {
-  background: var(--bg-secondary);
+  border-color: #c7d2fe;
+  background: #ffffff;
 }
 
 .processing-card-modern {
@@ -957,7 +1083,7 @@
 .success-icon-large {
   width: 58px;
   height: 58px;
-  border-radius: 8px;
+  border-radius: 18px;
   margin: 0 0 16px;
   font-size: 30px;
   box-shadow: none;
@@ -971,9 +1097,9 @@
 
 .info-card {
   padding: 16px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
+  background: var(--admin-manage-surface);
+  border: 1px solid var(--admin-manage-line);
+  border-radius: 18px;
 }
 
 .info-card:hover,

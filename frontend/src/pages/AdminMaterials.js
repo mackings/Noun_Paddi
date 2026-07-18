@@ -114,9 +114,45 @@ const AdminMaterials = () => {
     return (
       <div className="admin-materials-container">
         <div className="container">
-          <div className="loading-container">
-            <div className="spinner"></div>
-            <p>Loading materials...</p>
+          <div className="materials-skeleton-shell" aria-hidden="true">
+            <div className="materials-hero materials-skeleton-hero">
+              <div className="materials-skeleton-copy">
+                <span className="materials-skeleton-line title"></span>
+                <span className="materials-skeleton-line text"></span>
+              </div>
+              <span className="materials-skeleton-button"></span>
+            </div>
+
+            <div className="materials-stats">
+              {[0, 1, 2, 3].map((item) => (
+                <div className="stat-card materials-skeleton-card" key={item}>
+                  <span className="materials-skeleton-line label"></span>
+                  <span className="materials-skeleton-line value"></span>
+                </div>
+              ))}
+            </div>
+
+            <div className="materials-skeleton-toolbar">
+              <span className="materials-skeleton-search"></span>
+              <span className="materials-skeleton-filter"></span>
+              <span className="materials-skeleton-filter short"></span>
+            </div>
+
+            <div className="materials-grid">
+              {[0, 1, 2].map((item) => (
+                <div className="material-card materials-skeleton-card" key={item}>
+                  <div className="materials-skeleton-card-head">
+                    <span className="materials-skeleton-avatar"></span>
+                    <div className="materials-skeleton-copy">
+                      <span className="materials-skeleton-line text"></span>
+                      <span className="materials-skeleton-line small"></span>
+                    </div>
+                  </div>
+                  <span className="materials-skeleton-line full"></span>
+                  <span className="materials-skeleton-line text"></span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -311,7 +347,7 @@ const AdminMaterials = () => {
                     {material.hasSummary && material.questionsCount === 0 && (
                       <button
                         onClick={() => handleGenerateQuestions(material._id)}
-                        className="btn btn-sm btn-success"
+                        className="btn btn-sm btn-primary"
                         disabled={processingId === material._id && processingType === 'questions'}
                       >
                         {processingId === material._id && processingType === 'questions' ? (

@@ -465,6 +465,7 @@ module.exports = {
   compactText,
   detectCourseMetadata,
   detectQuestionType,
+  downloadDocumentBuffer,
   embedTexts,
   extractDocumentBuffer,
   extractDocumentText,

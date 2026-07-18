@@ -8,6 +8,12 @@ const {
   listTmaSources,
   uploadTmaSource,
 } = require('../controllers/tmaController');
+const {
+  createTmaRecord,
+  deleteTmaRecord,
+  listTmaRecords,
+  updateTmaRecord,
+} = require('../controllers/tmaRecordController');
 const { protect, authorize } = require('../middleware/auth');
 const { createRateLimit } = require('../middleware/rateLimit');
 
@@ -57,5 +63,10 @@ router.post('/sources/upload', handleTmaUpload, uploadTmaSource);
 router.post('/sources/backfill-embeddings', backfillTmaEmbeddings);
 router.delete('/sources/:sourceId', deleteTmaSource);
 router.post('/answer', tmaAnswerLimiter, answerTmaQuestion);
+
+router.get('/records', listTmaRecords);
+router.post('/records', createTmaRecord);
+router.patch('/records/:recordId', updateTmaRecord);
+router.delete('/records/:recordId', deleteTmaRecord);
 
 module.exports = router;

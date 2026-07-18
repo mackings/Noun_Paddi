@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { FiBell, FiImage, FiLink2, FiMail, FiSend, FiSmartphone, FiType, FiUsers } from 'react-icons/fi';
+import { FiBell, FiEdit3, FiImage, FiLink2, FiMail, FiSend, FiSmartphone, FiType, FiUsers } from 'react-icons/fi';
 import api from '../utils/api';
 import { trackFeatureVisit } from '../utils/featureTracking';
 import './AdminBroadcast.css';
@@ -203,130 +203,59 @@ const AdminBroadcast = () => {
         <p>Send updates by push notification, email, or both from one control panel.</p>
       </section>
 
-      <section className="broadcast-form-panel">
-        <form className="broadcast-modern-form" onSubmit={sendBroadcast}>
-          <div className="broadcast-main-col">
-            <article className="broadcast-card">
-              <h2>Message</h2>
-              <div className="broadcast-modern-field">
-                <label htmlFor="broadcast-title"><FiType /> Title</label>
-                <input
-                  id="broadcast-title"
-                  name="title"
-                  type="text"
-                  value={broadcastForm.title}
-                  onChange={onBroadcastInputChange}
-                  placeholder="Important update for all students"
-                  required
-                  maxLength={120}
-                />
-              </div>
+      <form className="broadcast-layout" onSubmit={sendBroadcast}>
+        <div className="broadcast-composer">
+          <div className="composer-section">
+            <p className="composer-eyebrow"><FiEdit3 /> Content</p>
+            <div className="broadcast-modern-field">
+              <label htmlFor="broadcast-title"><FiType /> Title</label>
+              <input
+                id="broadcast-title"
+                name="title"
+                type="text"
+                value={broadcastForm.title}
+                onChange={onBroadcastInputChange}
+                placeholder="Important update for all students"
+                required
+                maxLength={120}
+              />
+            </div>
 
-              <div className="broadcast-modern-field">
-                <label htmlFor="broadcast-message"><FiBell /> Message</label>
-                <textarea
-                  id="broadcast-message"
-                  name="message"
-                  value={broadcastForm.message}
-                  onChange={onBroadcastInputChange}
-                  placeholder="Write what users should see in the push notification."
-                  required
-                  maxLength={300}
-                  rows={5}
-                />
-                <small>{broadcastForm.message.length}/300</small>
-              </div>
+            <div className="broadcast-modern-field">
+              <label htmlFor="broadcast-message"><FiBell /> Message</label>
+              <textarea
+                id="broadcast-message"
+                name="message"
+                value={broadcastForm.message}
+                onChange={onBroadcastInputChange}
+                placeholder="Write what users should see in the push notification."
+                required
+                maxLength={300}
+                rows={5}
+              />
+              <small>{broadcastForm.message.length}/300</small>
+            </div>
 
-              <div className="broadcast-modern-field">
-                <label htmlFor="broadcast-url"><FiLink2 /> Open URL</label>
-                <input
-                  id="broadcast-url"
-                  name="url"
-                  type="text"
-                  value={broadcastForm.url}
-                  onChange={onBroadcastInputChange}
-                  placeholder="/explore"
-                />
-              </div>
-            </article>
+            <div className="broadcast-modern-field">
+              <label htmlFor="broadcast-url"><FiLink2 /> Open URL</label>
+              <input
+                id="broadcast-url"
+                name="url"
+                type="text"
+                value={broadcastForm.url}
+                onChange={onBroadcastInputChange}
+                placeholder="/explore"
+              />
+            </div>
+          </div>
 
-            <article className="broadcast-card">
-              <h2>Audience & Channels</h2>
-              <div className="broadcast-modern-field">
-                <label><FiSend /> Delivery Channels</label>
-                <div className="broadcast-channel-grid">
-                  <label className={`broadcast-check ${channels.push ? 'active' : ''}`}>
-                    <input
-                      type="checkbox"
-                      checked={channels.push}
-                      onChange={() => setChannels((prev) => ({ ...prev, push: !prev.push }))}
-                    />
-                    <span className="check-indicator" />
-                    <FiSmartphone />
-                    <span>Push Notification</span>
-                  </label>
-                  <label className={`broadcast-check ${channels.email ? 'active' : ''}`}>
-                    <input
-                      type="checkbox"
-                      checked={channels.email}
-                      onChange={() => setChannels((prev) => ({ ...prev, email: !prev.email }))}
-                    />
-                    <span className="check-indicator" />
-                    <FiMail />
-                    <span>Email Notification</span>
-                  </label>
-                </div>
-              </div>
+          <div className="composer-divider" />
 
-              {channels.email && (
-                <div className="broadcast-modern-field">
-                  <label><FiUsers /> Email Target</label>
-                  <div className="broadcast-target-row">
-                    <label className={`broadcast-check compact ${emailTarget === 'all' ? 'active' : ''}`}>
-                      <input
-                        type="checkbox"
-                        checked={emailTarget === 'all'}
-                        onChange={() => setEmailTarget('all')}
-                      />
-                      <span className="check-indicator" />
-                      <span>All Students</span>
-                    </label>
-                    <label className={`broadcast-check compact ${emailTarget === 'single' ? 'active' : ''}`}>
-                      <input
-                        type="checkbox"
-                        checked={emailTarget === 'single'}
-                        onChange={() => setEmailTarget('single')}
-                      />
-                      <span className="check-indicator" />
-                      <span>Specific Emails</span>
-                    </label>
-                  </div>
-
-                  {emailTarget === 'single' && (
-                    <div className="broadcast-email-grid">
-                      {singleEmails.map((email, index) => (
-                        <input
-                          key={`email-${index + 1}`}
-                          type="email"
-                          placeholder={`Recipient email ${index + 1}`}
-                          value={email}
-                          onChange={(event) => {
-                            const value = event.target.value;
-                            setSingleEmails((prev) => prev.map((item, idx) => (idx === index ? value : item)));
-                          }}
-                        />
-                      ))}
-                      <small>Enter 1 to 3 email addresses.</small>
-                    </div>
-                  )}
-                </div>
-              )}
-            </article>
-
-            <article className="broadcast-card">
-              <h2>Media</h2>
-              <div className="broadcast-modern-field">
-                <label htmlFor="broadcast-image-file"><FiImage /> Image (optional)</label>
+          <div className="composer-section">
+            <p className="composer-eyebrow"><FiImage /> Media</p>
+            <div className="broadcast-modern-field">
+              <label htmlFor="broadcast-image-file">Image (optional)</label>
+              <div className="broadcast-dropzone">
                 <input
                   id="broadcast-image-file"
                   name="image"
@@ -334,80 +263,186 @@ const AdminBroadcast = () => {
                   accept="image/*"
                   onChange={onImageFileChange}
                 />
-                <small>JPG, PNG, WEBP. Max 5MB.</small>
-                {imagePreviewUrl && (
-                  <div className="broadcast-preview-shell">
-                    <img src={imagePreviewUrl} alt="Broadcast preview" />
-                  </div>
-                )}
+                <small>JPG, PNG, WEBP. Max 5MB. Shown in the live preview.</small>
               </div>
-            </article>
+            </div>
           </div>
 
-          <aside className="broadcast-side-col">
-            <article className="broadcast-card broadcast-sticky">
-              <h2>Delivery</h2>
+          <div className="composer-divider" />
+
+          <div className="composer-section">
+            <p className="composer-eyebrow"><FiUsers /> Audience & Channels</p>
+            <div className="broadcast-modern-field">
+              <label>Delivery Channels</label>
+              <div className="broadcast-channel-grid">
+                <label className={`broadcast-check ${channels.push ? 'active' : ''}`}>
+                  <input
+                    type="checkbox"
+                    checked={channels.push}
+                    onChange={() => setChannels((prev) => ({ ...prev, push: !prev.push }))}
+                  />
+                  <span className="check-indicator" />
+                  <FiSmartphone />
+                  <span>Push Notification</span>
+                </label>
+                <label className={`broadcast-check ${channels.email ? 'active' : ''}`}>
+                  <input
+                    type="checkbox"
+                    checked={channels.email}
+                    onChange={() => setChannels((prev) => ({ ...prev, email: !prev.email }))}
+                  />
+                  <span className="check-indicator" />
+                  <FiMail />
+                  <span>Email Notification</span>
+                </label>
+              </div>
+            </div>
+
+            {channels.email && (
               <div className="broadcast-modern-field">
-                <label><FiBell /> Delivery Time</label>
+                <label>Email Target</label>
                 <div className="broadcast-target-row">
-                  <label className={`broadcast-check compact ${deliveryMode === 'now' ? 'active' : ''}`}>
+                  <label className={`broadcast-check compact ${emailTarget === 'all' ? 'active' : ''}`}>
                     <input
                       type="checkbox"
-                      checked={deliveryMode === 'now'}
-                      onChange={() => setDeliveryMode('now')}
+                      checked={emailTarget === 'all'}
+                      onChange={() => setEmailTarget('all')}
                     />
                     <span className="check-indicator" />
-                    <span>Send Now</span>
+                    <span>All Students</span>
                   </label>
-                  <label className={`broadcast-check compact ${deliveryMode === 'schedule' ? 'active' : ''}`}>
+                  <label className={`broadcast-check compact ${emailTarget === 'single' ? 'active' : ''}`}>
                     <input
                       type="checkbox"
-                      checked={deliveryMode === 'schedule'}
-                      onChange={() => setDeliveryMode('schedule')}
+                      checked={emailTarget === 'single'}
+                      onChange={() => setEmailTarget('single')}
                     />
                     <span className="check-indicator" />
-                    <span>Schedule</span>
+                    <span>Specific Emails</span>
                   </label>
                 </div>
-                {deliveryMode === 'schedule' && (
+
+                {emailTarget === 'single' && (
                   <div className="broadcast-email-grid">
-                    <input
-                      type="datetime-local"
-                      value={scheduledAt}
-                      onChange={(event) => setScheduledAt(event.target.value)}
-                    />
-                    <small>Uses your local time zone.</small>
+                    {singleEmails.map((email, index) => (
+                      <input
+                        key={`email-${index + 1}`}
+                        type="email"
+                        placeholder={`Recipient email ${index + 1}`}
+                        value={email}
+                        onChange={(event) => {
+                          const value = event.target.value;
+                          setSingleEmails((prev) => prev.map((item, idx) => (idx === index ? value : item)));
+                        }}
+                      />
+                    ))}
+                    <small>Enter 1 to 3 email addresses.</small>
                   </div>
                 )}
               </div>
+            )}
+          </div>
 
-              <div className="broadcast-summary">
-                <h3>Summary</h3>
-                <p><strong>Channels:</strong> {selectedChannels.join(' + ') || 'None selected'}</p>
-                <p><strong>Recipients:</strong> {recipientSummary}</p>
-                <p><strong>Mode:</strong> {deliveryMode === 'schedule' ? 'Scheduled' : 'Immediate'}</p>
+          <div className="composer-divider" />
+
+          <div className="composer-section">
+            <p className="composer-eyebrow"><FiSend /> Delivery Timing</p>
+            <div className="broadcast-modern-field">
+              <div className="broadcast-target-row">
+                <label className={`broadcast-check compact ${deliveryMode === 'now' ? 'active' : ''}`}>
+                  <input
+                    type="checkbox"
+                    checked={deliveryMode === 'now'}
+                    onChange={() => setDeliveryMode('now')}
+                  />
+                  <span className="check-indicator" />
+                  <span>Send Now</span>
+                </label>
+                <label className={`broadcast-check compact ${deliveryMode === 'schedule' ? 'active' : ''}`}>
+                  <input
+                    type="checkbox"
+                    checked={deliveryMode === 'schedule'}
+                    onChange={() => setDeliveryMode('schedule')}
+                  />
+                  <span className="check-indicator" />
+                  <span>Schedule</span>
+                </label>
               </div>
-
-              <button
-                type="submit"
-                className="btn btn-primary broadcast-submit-btn"
-                disabled={sendingBroadcast || uploadingImage}
-              >
-                <FiSend />
-                {sendingBroadcast || uploadingImage
-                  ? 'Sending...'
-                  : deliveryMode === 'schedule'
-                    ? 'Schedule Broadcast'
-                    : 'Send Broadcast'}
-              </button>
-
-              {broadcastResult && (
-                <p className={`broadcast-status ${broadcastResult.type}`}>{broadcastResult.text}</p>
+              {deliveryMode === 'schedule' && (
+                <div className="broadcast-email-grid">
+                  <input
+                    type="datetime-local"
+                    value={scheduledAt}
+                    onChange={(event) => setScheduledAt(event.target.value)}
+                  />
+                  <small>Uses your local time zone.</small>
+                </div>
               )}
-            </article>
-          </aside>
-        </form>
-      </section>
+            </div>
+          </div>
+        </div>
+
+        <aside className="broadcast-preview-col">
+          <div className="broadcast-preview-card">
+            <p className="preview-card-label">Live Preview</p>
+            <div className="phone-notification">
+              <div className="phone-notification-app">
+                <span className="phone-notification-icon"><FiBell /></span>
+                <span className="phone-notification-app-name">NounPaddi</span>
+                <span className="phone-notification-time">now</span>
+              </div>
+              <p className={`phone-notification-title ${!broadcastForm.title ? 'is-placeholder' : ''}`}>
+                {broadcastForm.title || 'Your notification title'}
+              </p>
+              <p className={`phone-notification-message ${!broadcastForm.message ? 'is-placeholder' : ''}`}>
+                {broadcastForm.message || 'Your message will appear here as you type.'}
+              </p>
+              {imagePreviewUrl && (
+                <img src={imagePreviewUrl} alt="Broadcast preview" className="phone-notification-image" />
+              )}
+            </div>
+
+            {channels.email && (
+              <>
+                <p className="preview-card-label">Email Preview</p>
+                <div className="email-preview-card">
+                  <p className="email-preview-subject">
+                    {broadcastForm.title || 'Subject line'}
+                  </p>
+                  <p className="email-preview-body">
+                    {broadcastForm.message || 'Email body preview will appear here as you type.'}
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
+
+          <div className="broadcast-summary-card">
+            <div className="broadcast-summary-chips">
+              <span className="summary-chip"><FiSend /> {selectedChannels.join(' + ') || 'No channel'}</span>
+              <span className="summary-chip"><FiUsers /> {recipientSummary}</span>
+              <span className="summary-chip"><FiBell /> {deliveryMode === 'schedule' ? 'Scheduled' : 'Immediate'}</span>
+            </div>
+
+            <button
+              type="submit"
+              className="btn btn-primary broadcast-submit-btn"
+              disabled={sendingBroadcast || uploadingImage}
+            >
+              <FiSend />
+              {sendingBroadcast || uploadingImage
+                ? 'Sending...'
+                : deliveryMode === 'schedule'
+                  ? 'Schedule Broadcast'
+                  : 'Send Broadcast'}
+            </button>
+
+            {broadcastResult && (
+              <p className={`broadcast-status ${broadcastResult.type}`}>{broadcastResult.text}</p>
+            )}
+          </div>
+        </aside>
+      </form>
 
       {showResultDialog && broadcastResult && (
         <div className="broadcast-result-overlay" role="dialog" aria-modal="true">

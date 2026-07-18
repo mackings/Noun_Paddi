@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import api from '../utils/api';
 import { formatDate } from '../utils/dateHelper';
 import {
@@ -8,36 +8,54 @@ import {
   FiUser,
   FiMapPin,
   FiBookOpen,
+  FiCalendar,
+  FiHash,
+  FiShield,
 } from 'react-icons/fi';
 import './AdminUsers.css';
+
+const getInitials = (name = '') => {
+  const parts = String(name).trim().split(/\s+/).filter(Boolean);
+  return (parts[0]?.[0] || 'U') + (parts[1]?.[0] || '');
+};
+
+const getUserLocation = (user = {}) => {
+  const profile = user || {};
+  return profile.location || profile.city || profile.state || profile.country || profile.studyCenter || '';
+};
 
 const AdminUsers = () => {
   const [users, setUsers] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [locationFilter, setLocationFilter] = useState('');
   const [error, setError] = useState('');
   const [inviteForm, setInviteForm] = useState({ name: '', email: '' });
   const [inviteStatus, setInviteStatus] = useState({ type: '', text: '' });
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
-  const fetchUsers = async (query = '') => {
+  const fetchUsers = useCallback(async (query = '') => {
     try {
       setLoading(true);
       setError('');
       const response = await api.get(`/users${query ? `?search=${encodeURIComponent(query)}` : ''}`);
       const data = response.data.data || [];
       setUsers(data);
-      setSelectedUser(data[0] || null);
+      if (data[0]) {
+        setSelectedUser(data[0]);
+      } else {
+        setSelectedUser(null);
+      }
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to load users.');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
 
   const handleSearch = () => {
     fetchUsers(searchTerm.trim());
@@ -66,6 +84,14 @@ const AdminUsers = () => {
   };
 
   const selectedProfile = useMemo(() => selectedUser, [selectedUser]);
+  const selectedLocation = getUserLocation(selectedProfile);
+  const locationOptions = useMemo(() => {
+    return Array.from(new Set(users.map((user) => getUserLocation(user)).filter(Boolean))).sort();
+  }, [users]);
+  const visibleUsers = useMemo(() => {
+    if (!locationFilter) return users;
+    return users.filter((user) => getUserLocation(user) === locationFilter);
+  }, [locationFilter, users]);
 
   return (
     <div className="admin-users-container">
@@ -74,7 +100,7 @@ const AdminUsers = () => {
           <div>
             <p className="admin-users-kicker">Admin Control</p>
             <h1>Users & Profiles</h1>
-            <p>Monitor user profiles, roles, and enrollment details in one place.</p>
+            <p>Monitor profile photos, roles, locations, and enrollment details in one place.</p>
           </div>
           <div className="admin-users-stat">
             <FiUsers />
@@ -98,6 +124,17 @@ const AdminUsers = () => {
           <button className="btn btn-primary" onClick={handleSearch}>
             Search
           </button>
+          <select
+            className="admin-users-location-filter"
+            value={locationFilter}
+            onChange={(event) => setLocationFilter(event.target.value)}
+            aria-label="Filter users by location"
+          >
+            <option value="">All locations</option>
+            {locationOptions.map((location) => (
+              <option key={location} value={location}>{location}</option>
+            ))}
+          </select>
         </div>
 
         <div className="admin-invite-card" id="invite">
@@ -152,10 +189,16 @@ const AdminUsers = () => {
             <h3>No users found</h3>
             <p>Try another search or clear the filters.</p>
           </div>
+        ) : visibleUsers.length === 0 ? (
+          <div className="admin-users-empty">
+            <FiMapPin size={56} />
+            <h3>No users in this location</h3>
+            <p>Choose another location or clear the filter.</p>
+          </div>
         ) : (
           <div className="admin-users-grid">
             <div className="admin-users-list">
-              {users.map((user) => (
+              {visibleUsers.map((user) => (
                 <button
                   key={user._id}
                   className={`user-card ${selectedUser?._id === user._id ? 'active' : ''}`}
@@ -165,7 +208,7 @@ const AdminUsers = () => {
                     {user.profileImage ? (
                       <img src={user.profileImage} alt={user.name} />
                     ) : (
-                      <FiUser />
+                      <span>{getInitials(user.name)}</span>
                     )}
                   </div>
                   <div className="user-info">
@@ -175,7 +218,7 @@ const AdminUsers = () => {
                     </span>
                     <div className="user-meta">
                       <span>{user.role}</span>
-                      <span>Study Center: {user.studyCenter || 'N/A'}</span>
+                      <span><FiMapPin /> {getUserLocation(user) || 'No location'}</span>
                       {user.matricNumber && <span>{user.matricNumber}</span>}
                     </div>
                   </div>
@@ -191,33 +234,54 @@ const AdminUsers = () => {
                       {selectedProfile.profileImage ? (
                         <img src={selectedProfile.profileImage} alt={selectedProfile.name} />
                       ) : (
-                        <FiUser />
+                        <span>{getInitials(selectedProfile.name)}</span>
                       )}
                     </div>
                     <div>
                       <h2>{selectedProfile.name}</h2>
                       <p>{selectedProfile.email}</p>
-                      <span className="role-chip">{selectedProfile.role}</span>
+                      <div className="profile-chip-row">
+                        <span className="role-chip"><FiShield /> {selectedProfile.role}</span>
+                        <span className="role-chip muted"><FiMapPin /> {selectedLocation || 'No location'}</span>
+                      </div>
                     </div>
                   </div>
+
+                  {selectedProfile.profileImage && (
+                    <div className="profile-photo-strip">
+                      <img src={selectedProfile.profileImage} alt={`${selectedProfile.name} profile`} />
+                      <div>
+                        <h4>User Picture</h4>
+                        <p>Uploaded profile image is available and shown across the admin user view.</p>
+                      </div>
+                    </div>
+                  )}
 
                   <div className="profile-details">
                     <div>
                       <h4>Profile Details</h4>
                       <ul>
                         <li><FiBookOpen /> Faculty: {selectedProfile.faculty || 'N/A'}</li>
-                        <li><FiMapPin /> Department: {selectedProfile.department || 'N/A'}</li>
+                        <li><FiBookOpen /> Department: {selectedProfile.department || 'N/A'}</li>
                         <li><FiMapPin /> Study Center: {selectedProfile.studyCenter || 'N/A'}</li>
-                        <li><FiUser /> Matric Number: {selectedProfile.matricNumber || 'N/A'}</li>
+                        <li><FiMapPin /> Location: {selectedLocation || 'N/A'}</li>
+                        <li><FiHash /> Matric Number: {selectedProfile.matricNumber || 'N/A'}</li>
                       </ul>
                     </div>
                     <div>
                       <h4>Account</h4>
                       <ul>
-                        <li>Joined: {formatDate(selectedProfile.createdAt)}</li>
-                        <li>Status: Active</li>
+                        <li><FiCalendar /> Joined: {formatDate(selectedProfile.createdAt)}</li>
+                        <li><FiMail /> Email: {selectedProfile.email}</li>
+                        <li><FiUser /> User ID: {selectedProfile._id}</li>
+                        <li><FiShield /> Status: Active</li>
                       </ul>
                     </div>
+                  </div>
+
+                  <div className="profile-bio-panel">
+                    <h4>Bio</h4>
+                    <p>{selectedProfile.bio || 'No bio has been added by this user.'}</p>
                   </div>
                 </>
               ) : (

@@ -155,9 +155,25 @@ const AdminDashboard = () => {
     return (
       <div className="admin-dashboard-container">
         <div className="container">
-          <div className="loading-container">
-            <div className="spinner"></div>
-            <p>Loading dashboard...</p>
+          <div className="dashboard-skeleton-shell" aria-hidden="true">
+            <div className="dashboard-header dashboard-skeleton-header">
+              <div>
+                <span className="dashboard-skeleton-line title"></span>
+                <span className="dashboard-skeleton-line text"></span>
+              </div>
+              <span className="dashboard-skeleton-button"></span>
+            </div>
+            <div className="stats-grid">
+              {Array.from({ length: 6 }).map((_, index) => (
+                <div className="stat-card dashboard-skeleton-card" key={index}>
+                  <span className="dashboard-skeleton-icon"></span>
+                  <div className="stat-details">
+                    <span className="dashboard-skeleton-line value"></span>
+                    <span className="dashboard-skeleton-line text"></span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -199,7 +215,7 @@ const AdminDashboard = () => {
             </div>
           </div>
 
-          <div className="stat-card stat-card-green">
+          <div className="stat-card stat-card-violet">
             <div className="stat-icon">
               <FiBook />
             </div>
@@ -219,7 +235,7 @@ const AdminDashboard = () => {
             </div>
           </div>
 
-          <div className="stat-card stat-card-teal">
+          <div className="stat-card stat-card-slate">
             <div className="stat-icon">
               <FiFileText />
             </div>

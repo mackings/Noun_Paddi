@@ -1,7 +1,7 @@
 .admin-dashboard-container {
   min-height: calc(100vh - 70px);
   padding: 32px 0 48px;
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  background: #ffffff;
 }
 
 [data-theme="dark"] .admin-dashboard-container {
@@ -38,6 +38,67 @@
   font-size: 16px;
   font-weight: 500;
   margin: 0;
+}
+
+.dashboard-skeleton-shell {
+  display: grid;
+  gap: 0;
+}
+
+.dashboard-skeleton-header {
+  box-shadow: var(--shadow-md);
+}
+
+.dashboard-skeleton-line,
+.dashboard-skeleton-button,
+.dashboard-skeleton-icon {
+  display: block;
+  border-radius: 12px;
+  background: linear-gradient(90deg, rgba(148, 163, 184, 0.18), rgba(79, 70, 229, 0.14), rgba(148, 163, 184, 0.18));
+  background-size: 220% 100%;
+  animation: dashboardSkeleton 1.25s ease-in-out infinite;
+}
+
+.dashboard-skeleton-line.title {
+  width: min(260px, 70vw);
+  height: 34px;
+  margin-bottom: 12px;
+}
+
+.dashboard-skeleton-line.text {
+  width: 180px;
+  height: 14px;
+}
+
+.dashboard-skeleton-line.value {
+  width: 76px;
+  height: 34px;
+  margin-bottom: 10px;
+}
+
+.dashboard-skeleton-button {
+  width: 112px;
+  height: 44px;
+}
+
+.dashboard-skeleton-icon {
+  width: 72px;
+  height: 72px;
+  flex-shrink: 0;
+  border-radius: 16px;
+}
+
+.dashboard-skeleton-card {
+  align-items: center;
+}
+
+@keyframes dashboardSkeleton {
+  0% {
+    background-position: 180% 0;
+  }
+  100% {
+    background-position: -80% 0;
+  }
 }
 
 .stats-grid {
@@ -105,16 +166,16 @@
   background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
 }
 
-.stat-card-green .stat-icon {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+.stat-card-violet .stat-icon {
+  background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
 }
 
 .stat-card-orange .stat-icon {
   background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
 }
 
-.stat-card-teal .stat-icon {
-  background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);
+.stat-card-slate .stat-icon {
+  background: linear-gradient(135deg, #111827 0%, #4f46e5 100%);
 }
 
 .stat-card-pink .stat-icon {
@@ -193,7 +254,7 @@
 
 .api-stat-card {
   padding: 24px;
-  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+  background: #ffffff;
   border-radius: 16px;
   border: 2px solid var(--border-color);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -279,7 +340,7 @@
   top: 0;
   bottom: 0;
   width: 4px;
-  background: linear-gradient(135deg, #10b981 0%, #3b82f6 100%);
+  background: linear-gradient(135deg, #111827 0%, #4f46e5 100%);
   opacity: 0;
   transition: opacity 0.3s ease;
 }

@@ -1,10 +1,13 @@
 .admin-shell {
-  --admin-shell-bg: #f6f8fb;
+  --admin-shell-bg: #ffffff;
   --admin-surface: #ffffff;
-  --admin-surface-muted: #f8fafc;
+  --admin-surface-muted: #ffffff;
   --admin-border: #e5e7eb;
   --admin-text-muted: #667085;
   --admin-text-soft: #98a2b3;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #ffffff;
+  --card-hover: #ffffff;
   --admin-sidebar-width: 282px;
   --admin-nav-offset: 73px;
   width: 100%;
@@ -208,7 +211,7 @@
   min-height: 58px;
   margin: -18px -24px 18px;
   padding: 10px 24px;
-  background: rgba(246, 248, 251, 0.92);
+  background: rgba(255, 255, 255, 0.96);
   border-bottom: 1px solid var(--admin-border);
   backdrop-filter: blur(12px);
   display: flex;
@@ -279,58 +282,34 @@
 }
 
 .admin-main-content .dashboard-header,
-.admin-main-content .materials-hero,
-.admin-main-content .admin-users-hero,
-.admin-main-content .admin-header {
+.admin-main-content .materials-hero {
   border-radius: 8px;
   border: 1px solid var(--admin-border);
   box-shadow: none;
 }
 
 .admin-main-content .stat-card,
-.admin-main-content .api-stat-card,
 .admin-main-content .dashboard-card,
-.admin-main-content .admin-form-card,
-.admin-main-content .admin-list-card,
-.admin-main-content .upload-card-modern,
-.admin-main-content .admin-invite-card,
-.admin-main-content .user-card,
-.admin-main-content .admin-user-profile,
 .admin-main-content .material-card,
 .admin-main-content .broadcast-section,
-.admin-main-content .api-usage-section,
-.admin-main-content .overview-panel,
-.admin-main-content .overview-action,
-.admin-main-content .overview-stat-card {
-  border-radius: 8px;
+.admin-main-content .api-usage-section {
   border: 1px solid var(--admin-border);
   box-shadow: none;
 }
 
+.admin-main-content .api-usage-section {
+  border-radius: 8px;
+}
+
 .admin-main-content .material-card,
-.admin-main-content .admin-form-card,
-.admin-main-content .admin-list-card,
-.admin-main-content .admin-user-profile,
-.admin-main-content .upload-card-modern {
+.admin-main-content .dashboard-card {
   background: var(--admin-surface);
 }
 
 .admin-main-content .stats-grid .stat-card:hover,
-.admin-main-content .material-card:hover,
-.admin-main-content .user-card:hover {
+.admin-main-content .material-card:hover {
   transform: none;
   border-color: var(--border-hover);
-}
-
-.admin-main-content .admin-tabs {
-  background: var(--admin-surface);
-  border: 1px solid var(--admin-border);
-  border-radius: 8px;
-  padding: 5px;
-}
-
-.admin-main-content .admin-tab {
-  border-radius: 6px;
 }
 
 .admin-main-content .materials-toolbar,

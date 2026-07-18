@@ -15,6 +15,7 @@ import {
   FiShield,
   FiEdit3,
   FiAward,
+  FiClipboard,
 } from 'react-icons/fi';
 import { useAuth } from '../contexts/AuthContext';
 import './AdminLayout.css';
@@ -28,7 +29,8 @@ const adminMenu = [
   { to: '/admin/upload?tab=courses', label: 'Courses', icon: FiBookOpen, key: 'courses', group: 'Academic Setup' },
   { to: '/admin/upload?tab=materials', label: 'Upload Materials', icon: FiUploadCloud, key: 'materials-upload', group: 'Content' },
   { to: '/admin/materials', label: 'Material Library', icon: FiLayers, key: 'materials-library', group: 'Content' },
-  { to: '/admin/tma', label: 'TMA', icon: FiEdit3, key: 'tma', group: 'Content' },
+  { to: '/admin/tma?tab=assistant', label: 'TMA', icon: FiEdit3, key: 'tma', group: 'Content' },
+  { to: '/admin/tma?tab=records', label: 'TMA Records', icon: FiClipboard, key: 'tma-records', group: 'Content' },
   { to: '/admin/quiz', label: 'Live Quiz', icon: FiAward, key: 'quiz', group: 'Content' },
   { to: '/admin/users', label: 'Users', icon: FiUsers, key: 'users', group: 'Access' },
   { to: '/admin/users#invite', label: 'Invite Admin', icon: FiShield, key: 'invite-admin', group: 'Access' },
@@ -39,6 +41,7 @@ const AdminLayout = ({ children }) => {
   const location = useLocation();
 
   const activeUploadTab = new URLSearchParams(location.search).get('tab') || 'faculties';
+  const activeTmaTab = new URLSearchParams(location.search).get('tab') || 'assistant';
   const activeHash = location.hash || '';
 
   const isItemActive = (item) => {
@@ -53,6 +56,11 @@ const AdminLayout = ({ children }) => {
       if (item.key === 'departments' && activeUploadTab === 'departments') return true;
       if (item.key === 'courses' && activeUploadTab === 'courses') return true;
       if (item.key === 'materials-upload' && activeUploadTab === 'materials') return true;
+    }
+    if (location.pathname === '/admin/tma') {
+      if (item.key === 'tma' && activeTmaTab === 'assistant') return true;
+      if (item.key === 'tma-records' && activeTmaTab === 'records') return true;
+      return false;
     }
     return location.pathname === item.to;
   };

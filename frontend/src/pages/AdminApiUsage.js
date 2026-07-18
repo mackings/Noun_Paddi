@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { FiActivity, FiRefreshCw, FiTrendingUp } from 'react-icons/fi';
+import { FiActivity, FiCheckCircle, FiDatabase, FiRefreshCw, FiTrendingUp, FiXCircle } from 'react-icons/fi';
 import api from '../utils/api';
 import { trackFeatureVisit } from '../utils/featureTracking';
 import './AdminApiUsage.css';
@@ -33,9 +33,19 @@ const AdminApiUsage = () => {
   if (loading) {
     return (
       <div className="admin-api-page">
-        <div className="loading-container">
-          <div className="spinner"></div>
-          <p>Loading API usage...</p>
+        <div className="api-skeleton-hero">
+          <div className="api-skeleton-line short"></div>
+          <div className="api-skeleton-line title"></div>
+          <div className="api-skeleton-line wide"></div>
+        </div>
+        <div className="api-skeleton-grid">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <div key={index} className="api-skeleton-card">
+              <div className="api-skeleton-icon"></div>
+              <div className="api-skeleton-line"></div>
+              <div className="api-skeleton-line short"></div>
+            </div>
+          ))}
         </div>
       </div>
     );
@@ -59,18 +69,22 @@ const AdminApiUsage = () => {
 
       <section className="api-stat-grid">
         <article className="api-stat-card">
+          <span className="api-stat-icon"><FiActivity /></span>
           <h3>{apiUsage?.overview?.totalAPICalls || 0}</h3>
           <p>Total API Calls</p>
         </article>
         <article className="api-stat-card">
+          <span className="api-stat-icon"><FiDatabase /></span>
           <h3>{apiUsage?.overview?.totalTokensUsed?.toLocaleString() || 0}</h3>
           <p>Total Tokens Used</p>
         </article>
         <article className="api-stat-card">
+          <span className="api-stat-icon success"><FiCheckCircle /></span>
           <h3>{apiUsage?.overview?.successRate || 0}%</h3>
           <p>Success Rate</p>
         </article>
         <article className="api-stat-card">
+          <span className="api-stat-icon danger"><FiXCircle /></span>
           <h3>{apiUsage?.overview?.successfulCalls || 0} / {apiUsage?.overview?.failedCalls || 0}</h3>
           <p>Success / Failed</p>
         </article>

@@ -150,6 +150,7 @@ if (!liveQuizOnly) {
   app.use('/api/push', require('./routes/push'));
   app.use('/api/ask', require('./routes/ask'));
   app.use('/api/tma', require('./routes/tma'));
+  app.use('/api/tutor', require('./routes/tutor'));
   app.use('/api/exam-timetable', require('./routes/examTimetable'));
 }
 

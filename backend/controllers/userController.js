@@ -263,7 +263,7 @@ exports.getUsers = async (req, res) => {
     }
 
     const users = await User.find(query)
-      .select('name email role faculty department studyCenter matricNumber profileImage createdAt')
+      .select('name email role faculty department studyCenter matricNumber profileImage bio createdAt')
       .sort({ createdAt: -1 });
 
     res.status(200).json({
