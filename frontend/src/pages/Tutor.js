@@ -13,6 +13,28 @@ import './Tutor.css';
 // your own GLB avatar to use instead.
 const DEFAULT_AVATAR_URL = process.env.REACT_APP_TUTOR_AVATAR_URL || '/avatars/brunette.glb';
 
+// TalkingHead internally loads its own audio-playback worklet via
+// `new URL('./playback-worklet.js', import.meta.url)` (a module-level constant with no
+// constructor option to override). That file is plain, self-contained AudioWorklet code
+// with zero imports — meant to be served untouched. CRA's production build doesn't know
+// that and bundles it as a normal webpack chunk (CommonJS-wrapped, `require()` calls and
+// all), which throws immediately once loaded, since AudioWorkletGlobalScope has no
+// `require` at all. This only breaks in the production build, not the dev server, which
+// is why it worked locally and went silent once deployed. Since there's no supported way
+// to redirect the library's internal path, intercept the one addModule() call that
+// targets it and redirect to our own static copy in public/worklets/ (same pattern
+// already used for the mic's capture-processor.js) — untouched by webpack either way.
+if (window.AudioWorklet && !window.AudioWorklet.prototype.__nounpaddiPatchedAddModule) {
+  const originalAddModule = window.AudioWorklet.prototype.addModule;
+  window.AudioWorklet.prototype.addModule = function patchedAddModule(url, ...rest) {
+    if (typeof url === 'string' && url.includes('playback-worklet')) {
+      return originalAddModule.call(this, '/worklets/playback-worklet.js', ...rest);
+    }
+    return originalAddModule.call(this, url, ...rest);
+  };
+  window.AudioWorklet.prototype.__nounpaddiPatchedAddModule = true;
+}
+
 // This is a preview model, and we've directly verified (by testing several concrete
 // hypotheses against the real API) that at least some fraction of mid-session closes
 // aren't caused by anything in our own protocol usage — they're transient server-side
