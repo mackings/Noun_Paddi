@@ -21,6 +21,26 @@ const DEFAULT_AVATAR_URL = process.env.REACT_APP_TUTOR_AVATAR_URL || '/avatars/b
 // 15-minute goAway case, and only surface an error once retries are exhausted.
 const MAX_RECONNECT_ATTEMPTS = 3;
 
+// Gemini's Live audio output is 24kHz. TalkingHead's constructor opens its AudioContext
+// at whatever rate the device defaults to (usually 44100/48000, never 24000), so the
+// first real streamStart() call finds a mismatch and recreates the whole audio graph —
+// see initAudioGraph() in talkinghead.mjs, called from streamStart when
+// sr !== this.audioCtx.sampleRate. That recreation normally happens asynchronously
+// inside the onAudio WebSocket callback, i.e. outside any user gesture. Desktop
+// browsers tolerate a context resumed outside a gesture; mobile browsers (iOS Safari
+// especially) do not — they leave it permanently suspended, which is why audio played
+// on desktop but never on mobile despite everything else (video, mic, whiteboard)
+// working. Forcing the 24000Hz graph into existence here, synchronously inside the
+// "Start Session" click handler, means streamStart() later finds the rate already
+// matches and never recreates it — the context playing audio is the same one this
+// gesture unlocked.
+const AUDIO_SAMPLE_RATE = 24000;
+
+function unlockAudioForMobile(head) {
+  head.initAudioGraph(AUDIO_SAMPLE_RATE);
+  head.audioCtx?.resume?.();
+}
+
 const SESSION_STATES = {
   IDLE: 'idle',
   UPLOADING: 'uploading',
@@ -290,17 +310,17 @@ const Tutor = () => {
       onAudio: (base64Audio) => {
         setSpeechTurnComplete(false);
         if (!streamStartedRef.current) {
-          head.streamStart({ sampleRate: 24000, lipsyncType: 'blendshapes' });
+          head.streamStart({ sampleRate: AUDIO_SAMPLE_RATE, lipsyncType: 'blendshapes' });
           streamStartedRef.current = true;
         }
         const int16 = base64ToInt16Array(base64Audio);
         const anims = buildAmplitudeBlendshapes(
           int16,
-          24000,
+          AUDIO_SAMPLE_RATE,
           streamElapsedMsRef.current,
           visemeCycleRef.current
         );
-        streamElapsedMsRef.current += (int16.length / 24000) * 1000;
+        streamElapsedMsRef.current += (int16.length / AUDIO_SAMPLE_RATE) * 1000;
         setAudioElapsedMs(streamElapsedMsRef.current);
         head.streamAudio({ audio: int16, anims });
       },
@@ -406,6 +426,8 @@ const Tutor = () => {
   const startSession = async () => {
     if (!uploadForm.file || !headRef.current) return;
 
+    unlockAudioForMobile(headRef.current);
+
     try {
       setErrorMessage('');
       setBoard(null);
@@ -432,6 +454,7 @@ const Tutor = () => {
 
   const continueWithSource = async (source) => {
     if (!headRef.current) return;
+    unlockAudioForMobile(headRef.current);
     try {
       setErrorMessage('');
       setBoard(null);
