@@ -102,10 +102,10 @@ function arrayBufferToBase64(buffer) {
 // envelope shape (see its internal _processLipsyncData) so it composes the same way.
 const VISEME_CYCLE = ['aa', 'E', 'I', 'O', 'U'];
 const WINDOW_MS = 110;
-// Tuned down from an earlier pass (0.9/0.55) that over-corrected into looking
-// exaggerated/comical — this is the middle ground between "barely opens" and "wide open".
-const JAW_OPEN_INTENSITY = 0.62;
-const MOUTH_OPEN_INTENSITY = 0.4;
+// Tuned down twice now: 0.9/0.55 (too wide/comical) -> 0.62/0.4 (still a bit wide) ->
+// this, a more moderate/natural setting.
+const JAW_OPEN_INTENSITY = 0.48;
+const MOUTH_OPEN_INTENSITY = 0.3;
 
 function buildAmplitudeBlendshapes(int16, sampleRate, startOffsetMs, cycleState) {
   const windowSize = Math.max(1, Math.round((sampleRate * WINDOW_MS) / 1000));
