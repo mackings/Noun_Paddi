@@ -14,7 +14,7 @@ const {
 
 const LIVE_MODEL = process.env.GEMINI_LIVE_MODEL || 'gemini-3.1-flash-live-preview';
 
-const SEARCH_TOOL = {
+const TUTOR_TOOLS = {
   functionDeclarations: [
     {
       name: 'search_course_material',
@@ -37,7 +37,8 @@ const SEARCH_TOOL = {
       description:
         'Write a step-by-step solution, derivation, or explanation on the shared whiteboard while you talk through it out loud. '
         + 'Call this whenever solving a math problem, working through a derivation, or explaining a topic that benefits from '
-        + 'seeing it written out step by step. Keep narrating verbally at the same time — the board is a visual aid, not a replacement for speaking.',
+        + 'seeing it written out step by step. Keep narrating verbally at the same time — the board is a visual aid, not a replacement for speaking. '
+        + 'If a diagram would explain the idea better than written lines (see draw_diagram), use that tool instead of this one.',
       parameters: {
         type: 'OBJECT',
         properties: {
@@ -59,6 +60,40 @@ const SEARCH_TOOL = {
           },
         },
         required: ['lines'],
+      },
+    },
+    {
+      name: 'draw_diagram',
+      description:
+        'Draw a diagram on the shared whiteboard using Mermaid.js syntax to visually explain a PROCESS, CYCLE, sequence of '
+        + 'steps with branches, hierarchy, or relationship between things — while talking through it out loud. Use this INSTEAD of '
+        + 'show_working whenever a diagram would make the idea clearer than a written list of lines (e.g. a cycle like the '
+        + 'water cycle, a flow with a decision/branch, a sequence of interactions, a classification/hierarchy). '
+        + 'Do NOT use this for a coordinate-axes graph, a plotted line, a chart with numeric x/y axes, or anything meant to '
+        + 'be read off a graph (e.g. a force-extension graph, a distance-time graph, any "plot y against x") — Mermaid draws '
+        + 'boxes and arrows, not axes and data, and will produce a confusing, meaningless diagram for that kind of content. '
+        + 'For graphs and plots, use show_working instead and describe it precisely in words and numbers on the board '
+        + '(e.g. "y-axis: Force / N", "x-axis: Extension / cm", "straight line through the origin"). Keep narrating '
+        + 'verbally at the same time — the board is a visual aid, not a replacement for speaking.',
+      parameters: {
+        type: 'OBJECT',
+        properties: {
+          title: {
+            type: 'STRING',
+            description: 'A short heading for the diagram, e.g. the process or topic name.',
+          },
+          mermaid: {
+            type: 'STRING',
+            description:
+              'Valid Mermaid.js diagram syntax, starting with "flowchart TD" (top-to-bottom) or "flowchart LR" '
+              + '(left-to-right) or "sequenceDiagram". ALWAYS wrap every single node/box label in double quotes inside its '
+              + 'brackets, e.g. A["Water evaporates"] — never A[Water evaporates] unquoted. This is required even for a '
+              + 'label that looks like a plain word, because unquoted labels break the syntax entirely if they happen to '
+              + 'contain a reserved word (like end, class, style) or any punctuation. Keep node labels short and simple. '
+              + 'Keep the diagram simple: a handful of nodes/steps, not an exhaustive or overly detailed graph.',
+          },
+        },
+        required: ['mermaid'],
       },
     },
   ],
@@ -145,10 +180,22 @@ exports.uploadSource = async (req, res) => {
 // @access  Private
 exports.listSources = async (req, res) => {
   try {
-    const sources = await TutorSource.find({ uploadedBy: req.user._id })
+    const allSources = await TutorSource.find({ uploadedBy: req.user._id })
       .sort({ createdAt: -1 })
       .select('title courseLabel chunkCount createdAt')
       .lean();
+
+    // Students commonly re-uploaded the same material every session before "continue
+    // with a past upload" existed — each of those is a genuine separate document, but
+    // showing every one makes the picker look like it's full of duplicates. Keep only
+    // the most recent upload per distinct title (already sorted newest-first above).
+    const seenTitles = new Set();
+    const sources = allSources.filter((source) => {
+      const key = (source.title || '').trim().toLowerCase();
+      if (seenTitles.has(key)) return false;
+      seenTitles.add(key);
+      return true;
+    });
 
     return res.status(200).json({ success: true, data: { sources } });
   } catch (error) {
@@ -255,16 +302,24 @@ exports.createSessionToken = async (req, res) => {
       + 'doing it, not just what you are doing), the way a real tutor would. Pause to check the student understands before moving on to the next idea. '
       + 'Before answering any question about specific facts, definitions, examples, or details from the material, always call the '
       + 'search_course_material tool first to find the relevant passage — never invent or guess content from the material. '
+      + 'The search takes a moment to run, so NEVER go quiet while it happens — always say something out loud first, like "let me check '
+      + 'your material for that" or "one second, let me look that up", and only THEN call the tool in that same turn, so the student '
+      + "always hears you acknowledge their question before any pause, and never wonders if you've gone silent or stopped listening. "
       + "If the search comes back empty or unrelated, tell the student honestly that you couldn't find that in the material rather than making something up. "
       + 'For EVERY substantive answer or explanation you give — not only math problems, but definitions, concepts, comparisons, lists, anything '
-      + 'worth remembering — always call the show_working tool to write the key points or steps on the shared whiteboard as you talk, even if the '
+      + 'worth remembering — always call either show_working or draw_diagram to put it on the shared whiteboard as you talk, even if the '
       + 'student did not explicitly ask you to show it on the board. Treat the board as the default way you teach, not an optional extra. '
-      + 'Call show_working exactly ONCE per explanation, passing the FULL ordered list of lines needed from start to finish in that '
-      + 'single call — do not call show_working more than once for the same explanation. Within that one call, break the working into MANY small '
-      + 'lines, one small step per line — never combine several steps or skip straight to an intermediate result on a single line. Each line should '
-      + 'be small enough that a student could follow it on its own before moving to the next. After calling the tool, keep talking through the steps '
-      + 'out loud in the same order as the lines you wrote, at a slow and clear pace matched to how long each line takes to write and understand — '
-      + 'never write silently, and never race ahead of what you are currently writing on the board. '
+      + 'Choose draw_diagram over show_working when a diagram would explain the idea more clearly than written lines — a cycle (like the '
+      + 'water cycle), a process with a branch or decision point, a sequence of interactions, or a relationship between things. Use '
+      + 'show_working for math workings, derivations, definitions, and anything better explained as a written sequence of steps — this '
+      + 'includes any coordinate-axes graph or plot (e.g. a force-extension graph): describe the axes and the shape of the line in words '
+      + 'and numbers as show_working lines, never as a draw_diagram flowchart, since Mermaid cannot draw actual axes or plotted data. '
+      + 'Call whichever ONE of these tools exactly ONCE per explanation — never both for the same explanation, and never call the same '
+      + 'one more than once. For show_working, pass the FULL ordered list of lines needed from start to finish in that single call, '
+      + 'broken into MANY small lines, one small step per line — never combine several steps or skip straight to an intermediate result on '
+      + 'a single line. Each line should be small enough that a student could follow it on its own before moving to the next. After calling '
+      + 'either tool, keep talking through what you wrote or drew out loud, in the same order, at a slow and clear pace — '
+      + 'never go silent, and never race ahead of what is currently on the board. '
       + 'If the very first message you ever receive in this session is exactly "__SESSION_START__", that is an internal signal, not '
       + 'something the student actually said — never mention or repeat that text. Respond to it by speaking first: warmly greet the '
       + `student, introduce yourself by name as Theresa, and let them know you're ready to go through "${source.title}" with them, then `
@@ -289,7 +344,7 @@ exports.createSessionToken = async (req, res) => {
           config: {
             responseModalities: ['AUDIO'],
             systemInstruction: { parts: [{ text: systemInstruction }] },
-            tools: [SEARCH_TOOL],
+            tools: [TUTOR_TOOLS],
             // "Sulafat" is Google's own "Warm" prebuilt voice — closest available fit for
             // a patient tutor persona. Native audio models auto-select the spoken
             // language/accent and don't expose an explicit accent/locale control, so the
@@ -313,13 +368,17 @@ exports.createSessionToken = async (req, res) => {
         token: token.name,
         model: LIVE_MODEL,
         source: { id: source._id, title: source.title },
-        // The client must echo these back in its own setup message — the "Constrained"
-        // endpoint validates the client's setup against what's locked in
-        // liveConnectConstraints rather than ignoring the client's setup entirely, so
-        // these need to match exactly, not be omitted.
-        systemInstruction,
-        tools: [SEARCH_TOOL],
-        speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Sulafat' } } },
+        // systemInstruction/tools/speechConfig deliberately NOT included here — they
+        // used to be, on the (wrong) assumption that the "Constrained" endpoint
+        // requires the client to echo back a matching setup or the session errors out.
+        // Verified directly against the real API (a locked test persona + a locked
+        // tool call both held correctly with a client setup containing only `model`
+        // and `responseModalities` — nothing else) that the server just applies
+        // whatever's locked into the ephemeral token's liveConnectConstraints
+        // regardless of what the client sends, silently ignoring any client-side
+        // attempt to set these fields. So the full system prompt and tool
+        // declarations never need to leave the backend or be visible in the
+        // browser's network tab at all.
       },
     });
   } catch (error) {

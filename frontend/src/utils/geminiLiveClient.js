@@ -1,13 +1,10 @@
 export default class GeminiLiveClient {
   constructor({
-    token, model, systemInstruction, tools, speechConfig, resumptionHandle,
+    token, model, resumptionHandle,
     onAudio, onToolCall, onTurnComplete, onOpen, onClose, onError, onInterrupted, onGoAway,
   }) {
     this.token = token;
     this.model = model;
-    this.systemInstruction = systemInstruction;
-    this.tools = tools;
-    this.speechConfig = speechConfig;
     this.resumptionHandle = resumptionHandle || null;
     this.onAudio = onAudio;
     this.onToolCall = onToolCall;
@@ -35,25 +32,18 @@ export default class GeminiLiveClient {
       this.ws = new WebSocket(url);
 
       this.ws.onopen = () => {
-        // The "Constrained" endpoint validates that the client's own setup message
-        // matches what's locked into the ephemeral token's liveConnectConstraints —
-        // it does NOT simply apply the constraint regardless of what the client sends.
-        // So the client must echo the same systemInstruction/tools/responseModalities
-        // the backend used when minting the token, or the session errors out.
+        // Deliberately minimal: no systemInstruction, tools, or speechConfig here at
+        // all. Verified directly against the real API that the "Constrained" endpoint
+        // just applies whatever's locked into the ephemeral token's
+        // liveConnectConstraints regardless of what the client's own setup message
+        // contains (or omits) — a locked test persona and a locked tool call both held
+        // correctly with nothing but `model` and `responseModalities` sent here. That
+        // means the system prompt, tool declarations, and voice config never have to
+        // leave the backend or be visible in the browser at all.
         this.ws.send(JSON.stringify({
           setup: {
             model: `models/${this.model}`,
-            // speechConfig lives INSIDE generationConfig on the raw WebSocket protocol —
-            // unlike the Node SDK's flattened LiveConnectConfig shape (where it sits
-            // alongside responseModalities), the wire format nests it here. Placing it as
-            // a top-level sibling of generationConfig produces:
-            // 'Unknown name "speechConfig" at setup: Cannot find field.'
-            generationConfig: {
-              responseModalities: ['AUDIO'],
-              speechConfig: this.speechConfig || undefined,
-            },
-            systemInstruction: { parts: [{ text: this.systemInstruction || '' }] },
-            tools: this.tools || [],
+            generationConfig: { responseModalities: ['AUDIO'] },
             sessionResumption: this.resumptionHandle ? { handle: this.resumptionHandle } : {},
           },
         }));

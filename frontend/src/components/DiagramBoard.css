@@ -1,0 +1,55 @@
+.diagram-board-body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 160px;
+  padding: 8px 0;
+}
+
+.diagram-board-svg {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  animation: whiteboardLineIn 250ms ease;
+}
+
+.diagram-board-svg svg {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Mermaid's "neutral" theme ships light-mode colors; the dark-mode overrides below keep
+   node fills/text/edges legible against the app's dark whiteboard background instead of
+   rendering near-invisible dark-on-dark shapes. */
+[data-theme="dark"] .diagram-board-svg .node rect,
+[data-theme="dark"] .diagram-board-svg .node circle,
+[data-theme="dark"] .diagram-board-svg .node polygon {
+  fill: rgba(45, 212, 191, 0.14) !important;
+  stroke: #2dd4bf !important;
+}
+
+[data-theme="dark"] .diagram-board-svg .nodeLabel,
+[data-theme="dark"] .diagram-board-svg .edgeLabel,
+[data-theme="dark"] .diagram-board-svg tspan {
+  fill: #e2e8f0 !important;
+  color: #e2e8f0 !important;
+}
+
+[data-theme="dark"] .diagram-board-svg .edgePath .path {
+  stroke: #94a3b8 !important;
+}
+
+[data-theme="dark"] .diagram-board-svg .arrowheadPath {
+  fill: #94a3b8 !important;
+  stroke: none !important;
+}
+
+.diagram-board-error {
+  margin: 0;
+  font-size: 15px;
+  color: #b91c1c;
+}
+
+[data-theme="dark"] .diagram-board-error {
+  color: #f87171;
+}

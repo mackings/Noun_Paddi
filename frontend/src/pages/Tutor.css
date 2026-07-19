@@ -40,10 +40,10 @@
 /* Floating circular avatar bubble, video-call style */
 .tutor-avatar-bubble {
   position: fixed;
-  top: 88px;
+  top: 120px;
   left: 24px;
-  width: 130px;
-  height: 130px;
+  width: 100px;
+  height: 100px;
   border-radius: 50%;
   overflow: hidden;
   border: 3px solid var(--tutor-surface);
@@ -70,9 +70,24 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--tutor-mute);
-  font-size: 11px;
-  font-weight: 600;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+[data-theme="dark"] .tutor-avatar-loading {
+  background: rgba(17, 28, 46, 0.5);
+}
+
+.tutor-spinner {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 3px solid var(--tutor-accent-soft);
+  border-top-color: var(--tutor-accent-strong);
+  animation: tutorSpin 800ms linear infinite;
+}
+
+@keyframes tutorSpin {
+  to { transform: rotate(360deg); }
 }
 
 .tutor-session-bar {
@@ -146,35 +161,73 @@
 }
 
 .tutor-setup-card {
-  max-width: 460px;
-  margin: 40px auto;
-  padding: 28px;
+  /* .tutor-board-stage is a grid container shared with the whiteboard/placeholder
+     views, which DO want to fill its 70vh min-height — but that meant this card
+     defaulted to align-items: stretch too, forcing it to stretch to 70vh regardless
+     of its own content and leaving a large dead-space gap below the button. Sizing
+     to content and anchoring to the top is what this card actually wants. */
+  align-self: start;
+  max-width: 540px;
+  margin: 90px auto 40px;
+  padding: 40px;
   background: var(--tutor-surface);
   border: 1px solid var(--tutor-line);
-  border-radius: 24px;
-  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.06);
+  border-radius: 28px;
+  box-shadow: 0 20px 48px rgba(15, 23, 42, 0.08);
   display: grid;
-  gap: 14px;
+  gap: 20px;
+}
+
+/* Kicker, heading, and intro read as one tight block — the section gap above only
+   applies between THIS block and the next section (dropdown/upload form), not
+   inside it, which is what was producing the large gaps between these lines. */
+.tutor-setup-header {
+  display: grid;
+  gap: 6px;
+}
+
+.tutor-setup-header .tutor-kicker {
+  margin: 0;
+  font-size: 12px;
 }
 
 .tutor-setup-card h1 {
-  margin: 0 0 4px;
+  margin: 0;
   font-family: 'Fraunces', Georgia, serif;
-  font-size: clamp(1.5rem, 2.6vw, 1.9rem);
+  font-size: clamp(1.9rem, 3.4vw, 2.3rem);
   line-height: 1.15;
 }
 
-.tutor-setup-card > p {
-  margin: 0 0 6px;
+.tutor-setup-intro {
+  margin: 6px 0 0;
   color: var(--tutor-mute);
-  font-size: 14px;
-  line-height: 1.5;
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.tutor-avatar-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: var(--tutor-accent-soft);
+  color: var(--tutor-accent-strong);
+  font-size: 13.5px;
+  font-weight: 700;
+}
+
+.tutor-avatar-status .tutor-spinner {
+  width: 16px;
+  height: 16px;
+  border-width: 2px;
+  flex: 0 0 auto;
 }
 
 .tutor-setup-card label {
   display: grid;
   gap: 8px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--tutor-ink);
 }
@@ -183,110 +236,254 @@
   width: 100%;
   border: 1px solid var(--tutor-line);
   border-radius: 14px;
-  padding: 11px 12px;
+  padding: 13px 14px;
   background: var(--tutor-surface);
   color: var(--tutor-ink);
   font: inherit;
-  font-size: 14px;
-  min-height: 46px;
+  font-size: 15px;
+  min-height: 50px;
+  transition: border-color 150ms ease;
 }
 
-.tutor-setup-card input[type="file"] {
-  font-size: 13px;
-  color: var(--tutor-mute);
-}
-
-.tutor-action-btn {
-  width: 100%;
-  min-height: 48px;
-  border-radius: 999px;
-}
-
-.tutor-past-sources {
-  display: grid;
-  gap: 10px;
-  padding: 14px;
-  border: 1px solid var(--tutor-line);
-  border-radius: 16px;
-  background: var(--tutor-accent-soft);
-}
-
-.tutor-past-sources-label {
-  font-size: 11px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--tutor-accent-strong);
-}
-
-.tutor-past-sources-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 6px;
-  max-height: 180px;
-  overflow-y: auto;
-}
-
-.tutor-past-source-btn {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid var(--tutor-line);
-  background: var(--tutor-surface);
-  color: var(--tutor-ink);
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.tutor-past-source-btn:hover:not(:disabled) {
+.tutor-setup-card input[type="text"]:focus {
+  outline: none;
   border-color: var(--tutor-accent);
 }
 
-.tutor-past-source-btn:disabled {
+.tutor-file-input {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px dashed var(--tutor-line);
+  border-radius: 14px;
+  padding: 13px 14px;
+  background: var(--tutor-accent-soft);
+  color: var(--tutor-accent-strong);
+}
+
+.tutor-file-input svg {
+  flex: 0 0 auto;
+  font-size: 20px;
+}
+
+.tutor-file-input input[type="file"] {
+  width: 100%;
+  font-size: 14px;
+  color: var(--tutor-mute);
+  font-family: inherit;
+}
+
+/* Theresa's own teal identity, not the site-wide purple .btn-primary gradient meant
+   for the general app — this overrides it with higher specificity. */
+.tutor-action-btn.btn-primary {
+  width: 100%;
+  height: 52px;
+  min-height: 0;
+  padding: 0 24px;
+  font-size: 15.5px;
+  margin-top: 4px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--tutor-accent) 0%, var(--tutor-accent-strong) 100%);
+  box-shadow: 0 10px 22px rgba(15, 118, 110, 0.22);
+  border: none;
+}
+
+.tutor-action-btn.btn-primary:hover:not(:disabled) {
+  box-shadow: 0 12px 26px rgba(15, 118, 110, 0.3);
+}
+
+.tutor-upload-toggle {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: none;
+  background: none;
+  padding: 2px 0;
+  color: var(--tutor-accent-strong);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.tutor-upload-toggle svg {
+  font-size: 14px;
+}
+
+.tutor-upload-toggle:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
+.tutor-upload-toggle:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
 
-.tutor-past-source-btn strong {
-  font-size: 13px;
+.tutor-field-label {
+  font-size: 14px;
   font-weight: 700;
+  color: var(--tutor-ink);
 }
 
-.tutor-past-source-btn span {
-  font-size: 12px;
+.tutor-source-select {
+  position: relative;
+  display: grid;
+  gap: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--tutor-line);
+}
+
+.tutor-source-trigger {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--tutor-line);
+  border-radius: 14px;
+  padding: 13px 16px;
+  min-height: 50px;
+  background: var(--tutor-surface);
+  color: var(--tutor-ink);
+  font: inherit;
+  font-size: 15px;
+  cursor: pointer;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.tutor-source-trigger:hover:not(:disabled) {
+  border-color: var(--tutor-accent);
+}
+
+.tutor-source-trigger.is-open {
+  border-color: var(--tutor-accent);
+  box-shadow: 0 0 0 3px var(--tutor-accent-soft);
+}
+
+.tutor-source-trigger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.tutor-select-icon {
+  flex: 0 0 auto;
+  color: var(--tutor-accent-strong);
+  font-size: 18px;
+}
+
+.tutor-source-trigger-label {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+}
+
+.tutor-select-caret {
+  flex: 0 0 auto;
   color: var(--tutor-mute);
+  font-size: 15px;
+  transition: transform 150ms ease;
+}
+
+.tutor-select-caret.is-open {
+  transform: rotate(180deg);
+}
+
+.tutor-source-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  display: grid;
+  gap: 2px;
+  padding: 6px;
+  max-height: 260px;
+  overflow-y: auto;
+  background: var(--tutor-surface);
+  border: 1px solid var(--tutor-line);
+  border-radius: 16px;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.16);
+}
+
+.tutor-source-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  border: none;
+  border-radius: 10px;
+  padding: 11px 12px;
+  background: transparent;
+  color: var(--tutor-ink);
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tutor-source-option svg {
+  flex: 0 0 auto;
+  color: var(--tutor-accent-strong);
+  font-size: 16px;
+}
+
+.tutor-source-option:hover,
+.tutor-source-option.is-selected {
+  background: var(--tutor-accent-soft);
+}
+
+.tutor-source-option-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+}
+
+.tutor-source-option-text strong {
+  font-size: 14px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.tutor-past-sources-divider {
-  font-size: 11px;
+.tutor-source-option-text span {
+  font-size: 12.5px;
   color: var(--tutor-mute);
-  text-align: center;
+}
+
+.tutor-source-option-upload {
+  margin-top: 4px;
+  border-top: 1px solid var(--tutor-line);
+  border-radius: 0 0 10px 10px;
+  padding-top: 12px;
+  color: var(--tutor-accent-strong);
+}
+
+.tutor-source-option-upload strong {
+  color: var(--tutor-accent-strong);
 }
 
 @media (max-width: 640px) {
   .tutor-avatar-bubble {
-    width: 90px;
-    height: 90px;
-    top: 78px;
+    width: 76px;
+    height: 76px;
+    top: 100px;
     left: 14px;
   }
 
   .tutor-session-bar,
   .tutor-error-banner {
     margin-left: 0;
-    margin-top: 100px;
+    margin-top: 120px;
     flex-wrap: wrap;
   }
 
   .tutor-setup-card {
-    margin: 110px auto 0;
+    margin: 140px auto 0;
+    padding: 22px;
   }
 }

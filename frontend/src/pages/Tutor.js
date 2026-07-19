@@ -1,8 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { FiArrowLeft, FiBookOpen, FiChevronDown, FiPlusCircle, FiUploadCloud } from 'react-icons/fi';
 import { TalkingHead } from '@met4citizen/talkinghead';
 import api from '../utils/api';
 import GeminiLiveClient from '../utils/geminiLiveClient';
 import Whiteboard from '../components/Whiteboard';
+import DiagramBoard from '../components/DiagramBoard';
 import './Tutor.css';
 
 // Ready Player Me's hosting service shut down (acquired by Netflix, sunset Jan 2026),
@@ -155,8 +157,13 @@ const Tutor = () => {
   const [avatarReady, setAvatarReady] = useState(false);
   const [activeSource, setActiveSource] = useState(null);
   const [board, setBoard] = useState(null);
+  const [diagram, setDiagram] = useState(null);
   const [pastSources, setPastSources] = useState([]);
   const [sourcesLoaded, setSourcesLoaded] = useState(false);
+  const [selectedSourceId, setSelectedSourceId] = useState('');
+  const [sourceMenuOpen, setSourceMenuOpen] = useState(false);
+  const [wantsNewUpload, setWantsNewUpload] = useState(false);
+  const sourceMenuRef = useRef(null);
 
   const avatarContainerRef = useRef(null);
   const headRef = useRef(null);
@@ -240,7 +247,12 @@ const Tutor = () => {
   const loadPastSources = async () => {
     try {
       const response = await api.get('/tutor/sources');
-      setPastSources(response.data.data.sources || []);
+      const sources = response.data.data.sources || [];
+      setPastSources(sources);
+      // Default to the most recent upload (already sorted newest-first) so returning
+      // students can pick up where they left off with one click, without clobbering a
+      // selection already in progress if this reloads later (e.g. after a fresh upload).
+      setSelectedSourceId((current) => current || (sources[0]?._id || ''));
     } catch (error) {
       console.error('Failed to load past materials:', error);
     } finally {
@@ -251,6 +263,24 @@ const Tutor = () => {
   useEffect(() => {
     loadPastSources();
   }, []);
+
+  useEffect(() => {
+    if (!sourceMenuOpen) return undefined;
+    const handleClickOutside = (event) => {
+      if (sourceMenuRef.current && !sourceMenuRef.current.contains(event.target)) {
+        setSourceMenuOpen(false);
+      }
+    };
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') setSourceMenuOpen(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [sourceMenuOpen]);
 
   const stopMic = () => {
     micWorkletRef.current?.disconnect();
@@ -341,6 +371,7 @@ const Tutor = () => {
       const responses = await Promise.all(functionCalls.map(async (call) => {
         if (call.name === 'show_working') {
           const lines = Array.isArray(call.args?.lines) ? call.args.lines : [];
+          setDiagram(null);
           setBoard({ title: call.args?.title || '', lines });
           // A new board just started typing (at its own fixed pace) — anchor audio
           // release to this exact moment so narration waits to match it, instead of
@@ -351,7 +382,27 @@ const Tutor = () => {
           return { id: call.id, name: call.name, response: { result: 'Shown to the student.' } };
         }
 
+        if (call.name === 'draw_diagram') {
+          const mermaidText = call.args?.mermaid || '';
+          setBoard(null);
+          setDiagram({ title: call.args?.title || '', mermaid: mermaidText });
+          // Same audio-gating anchor as show_working — see releaseQueuedAudio/DiagramBoard's
+          // own dwell period for how "done" gets signalled for a diagram instead of a typed line.
+          boardStartTimeRef.current = performance.now();
+          boardDoneRef.current = false;
+          releasedMsRef.current = 0;
+          return { id: call.id, name: call.name, response: { result: 'Drawn on the board for the student.' } };
+        }
+
         if (call.name === 'search_course_material') {
+          // Theresa is now prompted to say something out loud before this runs, but
+          // that's only a spoken cue — this is the visual backstop for the actual
+          // wait, so it's never just silence + a static "Listening..." label if the
+          // search happens to take a moment.
+          setStatusMessage('Checking your material...');
+          const stillCheckingTimer = setTimeout(() => {
+            setStatusMessage('Still checking your material...');
+          }, 2500);
           try {
             const response = await api.post(`/tutor/sources/${sourceIdRef.current}/search`, {
               query: call.args?.query || '',
@@ -359,6 +410,9 @@ const Tutor = () => {
             return { id: call.id, name: call.name, response: { result: response.data.data.results } };
           } catch (error) {
             return { id: call.id, name: call.name, response: { result: 'Search failed.' } };
+          } finally {
+            clearTimeout(stillCheckingTimer);
+            setStatusMessage('Listening. Ask Theresa anything about this material.');
           }
         }
 
@@ -377,15 +431,12 @@ const Tutor = () => {
   // (re)starting, both handled by the caller.
   const connectLiveSession = async (sourceId, { resumptionHandle } = {}) => {
     const tokenResponse = await api.post('/tutor/session-token', { sourceId });
-    const { token, model, systemInstruction, tools, speechConfig } = tokenResponse.data.data;
+    const { token, model } = tokenResponse.data.data;
     const head = headRef.current;
 
     const client = new GeminiLiveClient({
       token,
       model,
-      systemInstruction,
-      tools,
-      speechConfig,
       resumptionHandle,
       onOpen: () => {
         reconnectAttemptsRef.current = 0;
@@ -511,6 +562,7 @@ const Tutor = () => {
     try {
       setErrorMessage('');
       setBoard(null);
+      setDiagram(null);
       setSessionState(SESSION_STATES.UPLOADING);
       setStatusMessage('Reading your material. This can take a minute for larger files...');
 
@@ -538,6 +590,7 @@ const Tutor = () => {
     try {
       setErrorMessage('');
       setBoard(null);
+      setDiagram(null);
       await beginSession(source._id, source.title);
     } catch (error) {
       console.error('Failed to resume tutor session:', error);
@@ -560,17 +613,42 @@ const Tutor = () => {
     setStatusMessage('');
     setActiveSource(null);
     setBoard(null);
+    setDiagram(null);
     setUploadForm({ title: '', courseLabel: '', file: null });
+    setWantsNewUpload(false);
   };
 
   const isBusy = sessionState === SESSION_STATES.UPLOADING || sessionState === SESSION_STATES.CONNECTING;
   const isActive = sessionState === SESSION_STATES.ACTIVE;
+  const selectedSource = pastSources.find((source) => source._id === selectedSourceId) || null;
+  // Gating on sourcesLoaded (not just pastSources.length) matters: pastSources starts
+  // as [] before the fetch resolves, which used to make this default to "show upload
+  // form" for a frame, then flip to the dropdown once real data arrived — a visible
+  // flash on every page load. Waiting for sourcesLoaded means nothing in this section
+  // renders until we actually know which case applies.
+  const showUploadFields = sourcesLoaded && (pastSources.length === 0 || wantsNewUpload);
+  const primaryLabel = !sourcesLoaded
+    ? 'Loading...'
+    : !avatarReady
+      ? 'Loading avatar...'
+      : isBusy
+        ? (showUploadFields ? 'Starting...' : 'Connecting...')
+        : (showUploadFields ? 'Start Session' : 'Continue Session');
+  const primaryDisabled = !sourcesLoaded || !avatarReady || isBusy || (showUploadFields ? !uploadForm.file : !selectedSource);
+  const handlePrimaryAction = () => {
+    if (showUploadFields) startSession();
+    else if (selectedSource) continueWithSource(selectedSource);
+  };
 
   return (
     <div className="tutor-page">
       <div className="tutor-avatar-bubble">
         <div className="tutor-avatar-canvas" ref={avatarContainerRef}>
-          {!avatarReady && <div className="tutor-avatar-loading">...</div>}
+          {!avatarReady && (
+            <div className="tutor-avatar-loading">
+              <span className="tutor-spinner" aria-hidden="true" />
+            </div>
+          )}
         </div>
       </div>
 
@@ -592,77 +670,131 @@ const Tutor = () => {
       <div className="tutor-board-stage">
         {!isActive ? (
           <div className="tutor-setup-card">
-            <p className="tutor-kicker">Theresa</p>
-            <h1>Learn With Theresa</h1>
-            <p>Upload the material you want to learn, then ask Theresa anything. Solutions and explanations will be written out right here.</p>
+            <div className="tutor-setup-header">
+              <p className="tutor-kicker">Theresa</p>
+              <h1>Learn With Theresa</h1>
+              <p className="tutor-setup-intro">Upload the material you want to learn, then ask Theresa anything. Solutions and explanations will be written out right here.</p>
+            </div>
 
-            {sourcesLoaded && pastSources.length > 0 && (
-              <div className="tutor-past-sources">
-                <span className="tutor-past-sources-label">Continue with material you already uploaded</span>
-                <ul className="tutor-past-sources-list">
-                  {pastSources.map((source) => (
-                    <li key={source._id}>
-                      <button
-                        type="button"
-                        className="tutor-past-source-btn"
-                        onClick={() => continueWithSource(source)}
-                        disabled={isBusy}
-                      >
-                        <strong>{source.title}</strong>
-                        {source.courseLabel && <span>{source.courseLabel}</span>}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-                <span className="tutor-past-sources-divider">or upload something new</span>
+            {!avatarReady && (
+              <div className="tutor-avatar-status">
+                <span className="tutor-spinner" aria-hidden="true" />
+                <span>Preparing Theresa's avatar — this only takes a moment, hang tight...</span>
               </div>
             )}
 
-            <label>
-              <span>Title (optional)</span>
-              <input
-                type="text"
-                value={uploadForm.title}
-                onChange={(event) => setUploadForm((current) => ({ ...current, title: event.target.value }))}
-                placeholder="e.g. GST 105 Chapter 3"
-                disabled={isBusy}
-              />
-            </label>
+            {sourcesLoaded && pastSources.length > 0 && !wantsNewUpload && (
+              <div className="tutor-source-select" ref={sourceMenuRef}>
+                <span className="tutor-field-label">Choose material</span>
+                <button
+                  type="button"
+                  className={`tutor-source-trigger ${sourceMenuOpen ? 'is-open' : ''}`}
+                  onClick={() => setSourceMenuOpen((open) => !open)}
+                  disabled={isBusy}
+                  aria-haspopup="listbox"
+                  aria-expanded={sourceMenuOpen}
+                >
+                  <FiBookOpen className="tutor-select-icon" aria-hidden="true" />
+                  <span className="tutor-source-trigger-label">{selectedSource?.title || 'Select material'}</span>
+                  <FiChevronDown className={`tutor-select-caret ${sourceMenuOpen ? 'is-open' : ''}`} aria-hidden="true" />
+                </button>
 
-            <label>
-              <span>Course (optional)</span>
-              <input
-                type="text"
-                value={uploadForm.courseLabel}
-                onChange={(event) => setUploadForm((current) => ({ ...current, courseLabel: event.target.value }))}
-                placeholder="e.g. GST 105"
-                disabled={isBusy}
-              />
-            </label>
+                {sourceMenuOpen && (
+                  <div className="tutor-source-menu" role="listbox">
+                    {pastSources.map((source) => (
+                      <button
+                        type="button"
+                        key={source._id}
+                        role="option"
+                        aria-selected={source._id === selectedSourceId}
+                        className={`tutor-source-option ${source._id === selectedSourceId ? 'is-selected' : ''}`}
+                        onClick={() => { setSelectedSourceId(source._id); setSourceMenuOpen(false); }}
+                      >
+                        <FiBookOpen aria-hidden="true" />
+                        <span className="tutor-source-option-text">
+                          <strong>{source.title}</strong>
+                          {source.courseLabel && <span>{source.courseLabel}</span>}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
 
-            <label>
-              <span>Document</span>
-              <input
-                type="file"
-                accept=".pdf,.doc,.docx,.txt,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
-                onChange={(event) => setUploadForm((current) => ({ ...current, file: event.target.files?.[0] || null }))}
+            {sourcesLoaded && pastSources.length > 0 && (
+              <button
+                type="button"
+                className="tutor-upload-toggle"
+                onClick={() => setWantsNewUpload((current) => !current)}
                 disabled={isBusy}
-              />
-            </label>
+              >
+                {wantsNewUpload ? (
+                  <><FiArrowLeft aria-hidden="true" /> Back to your materials</>
+                ) : (
+                  <><FiPlusCircle aria-hidden="true" /> Upload new material instead</>
+                )}
+              </button>
+            )}
+
+            {showUploadFields && (
+              <>
+                <label>
+                  <span>Title (optional)</span>
+                  <input
+                    type="text"
+                    value={uploadForm.title}
+                    onChange={(event) => setUploadForm((current) => ({ ...current, title: event.target.value }))}
+                    placeholder="e.g. GST 105 Chapter 3"
+                    disabled={isBusy}
+                  />
+                </label>
+
+                <label>
+                  <span>Course (optional)</span>
+                  <input
+                    type="text"
+                    value={uploadForm.courseLabel}
+                    onChange={(event) => setUploadForm((current) => ({ ...current, courseLabel: event.target.value }))}
+                    placeholder="e.g. GST 105"
+                    disabled={isBusy}
+                  />
+                </label>
+
+                <label className="tutor-file-label">
+                  <span>Document</span>
+                  <div className="tutor-file-input">
+                    <FiUploadCloud aria-hidden="true" />
+                    <input
+                      type="file"
+                      accept=".pdf,.doc,.docx,.txt,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
+                      onChange={(event) => setUploadForm((current) => ({ ...current, file: event.target.files?.[0] || null }))}
+                      disabled={isBusy}
+                    />
+                  </div>
+                </label>
+              </>
+            )}
 
             <button
               type="button"
               className="btn btn-primary tutor-action-btn"
-              onClick={startSession}
-              disabled={!uploadForm.file || isBusy || !avatarReady}
+              onClick={handlePrimaryAction}
+              disabled={primaryDisabled}
             >
-              {isBusy ? 'Starting...' : 'Start Session'}
+              {primaryLabel}
             </button>
           </div>
         ) : board ? (
           <Whiteboard
             title={board.title}
             lines={board.lines}
+            onComplete={() => { boardDoneRef.current = true; }}
+          />
+        ) : diagram ? (
+          <DiagramBoard
+            title={diagram.title}
+            mermaid={diagram.mermaid}
             onComplete={() => { boardDoneRef.current = true; }}
           />
         ) : (
