@@ -3,12 +3,14 @@ import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { FiLock, FiCheckCircle } from 'react-icons/fi';
 import api from '../utils/api';
 import SEO from '../components/SEO';
+import { useAuth } from '../contexts/AuthContext';
 import './Auth.css';
 
 const ResetPassword = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
+  const { syncUser } = useAuth();
 
   const [passwords, setPasswords] = useState({
     password: '',
@@ -40,8 +42,8 @@ const ResetPassword = () => {
       return;
     }
 
-    if (passwords.password.length < 6) {
-      setMessage({ type: 'error', text: 'Password must be at least 6 characters long' });
+    if (passwords.password.length < 8) {
+      setMessage({ type: 'error', text: 'Password must be at least 8 characters long' });
       setLoading(false);
       return;
     }
@@ -51,18 +53,22 @@ const ResetPassword = () => {
         password: passwords.password,
       });
 
-      // Store the new token
-      if (response.data.data.token) {
-        localStorage.setItem('token', response.data.data.token);
-        localStorage.setItem('user', JSON.stringify(response.data.data));
+      // Sync the returned user into AuthContext (not just localStorage) so
+      // ProtectedRoute sees them as logged in immediately, the same way
+      // Login.js/Signup.js do via useAuth().login()/signup().
+      const { token: authToken, ...userData } = response.data.data;
+      if (authToken) {
+        localStorage.setItem('token', authToken);
+        syncUser(userData);
       }
 
       setResetSuccess(true);
       setMessage({ type: 'success', text: 'Password reset successful!' });
 
-      // Redirect to dashboard after 2 seconds
+      // Redirect to the student explore page after 2 seconds — matches where
+      // Login.js/Signup.js send students post-auth (there is no /student-dashboard route).
       setTimeout(() => {
-        navigate('/student-dashboard');
+        navigate(userData.role === 'admin' ? '/admin/upload' : '/explore');
       }, 2000);
     } catch (error) {
       console.error('Error:', error);
@@ -120,7 +126,7 @@ const ResetPassword = () => {
                   onChange={handleChange}
                   placeholder="Enter new password"
                   required
-                  minLength="6"
+                  minLength="8"
                 />
               </div>
 
@@ -137,7 +143,7 @@ const ResetPassword = () => {
                   onChange={handleChange}
                   placeholder="Confirm new password"
                   required
-                  minLength="6"
+                  minLength="8"
                 />
               </div>
 
