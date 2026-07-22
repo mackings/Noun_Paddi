@@ -1,7 +1,11 @@
 {
   "permissions": {
     "allow": [
-      "Bash(node tmp-test-voice.js)"
+      "Bash(node tmp-test-voice.js)",
+      "Bash(curl -s http://localhost:3000/static/js/bundle.js -o /private/tmp/claude-501/-Users-mac-OpenSource-nounpaddi/77617bba-6658-4db8-8d31-965f264a3486/scratchpad/bundle_check2.js)",
+      "Bash(curl -s http://localhost:3000/static/js/bundle.js -o /tmp/bc.js)",
+      "Bash(lsof -iTCP:3000 -sTCP:LISTEN -P -n)",
+      "Bash(curl -s http://127.0.0.1:3000/static/js/bundle.js -o /tmp/bc2.js)"
     ]
   }
 }

@@ -1,7 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import api from '../utils/api';
 import SEO from '../components/SEO';
 import { FiUser, FiMail, FiLock, FiBook, FiHash, FiFileText, FiMapPin, FiEye, FiEyeOff } from 'react-icons/fi';
 import './Auth.css';
@@ -133,30 +132,22 @@ const getPasswordHelper = (password) => {
   return 'Minimum length reached';
 };
 
-const FACULTY_CACHE_KEY = 'np_signup_faculties_v1';
-const FACULTY_CACHE_TTL = 12 * 60 * 60 * 1000;
-
-const readFacultyCache = () => {
-  try {
-    const cached = JSON.parse(localStorage.getItem(FACULTY_CACHE_KEY) || 'null');
-    if (!cached || !Array.isArray(cached.data) || !cached.savedAt) return [];
-    if (Date.now() - cached.savedAt > FACULTY_CACHE_TTL) return [];
-    return cached.data;
-  } catch (error) {
-    return [];
-  }
-};
-
-const writeFacultyCache = (data) => {
-  try {
-    localStorage.setItem(FACULTY_CACHE_KEY, JSON.stringify({
-      data,
-      savedAt: Date.now(),
-    }));
-  } catch (error) {
-    // Ignore cache write failures
-  }
-};
+// Hardcoded for now — the /faculties API-backed dropdown was coming up empty for
+// students on signup. faculty._id here only needs to be a stable local key (the
+// submit handler resolves it back to .name, which is the only part that's actually
+// sent to the signup API), so it doesn't need to match a real Faculty document id.
+const FACULTIES = [
+  { _id: 'faculty-of-science', name: 'Faculty of Science' },
+  { _id: 'faculty-of-agriculture', name: 'Faculty of Agriculture' },
+  { _id: 'faculty-of-arts', name: 'Faculty of Arts' },
+  { _id: 'faculty-of-education', name: 'Faculty of Education' },
+  { _id: 'faculty-of-health-sciences', name: 'Faculty of Health Sciences' },
+  { _id: 'faculty-of-law', name: 'Faculty of Law' },
+  { _id: 'faculty-of-management-sciences', name: 'Faculty of Management Sciences' },
+  { _id: 'faculty-of-social-sciences', name: 'Faculty of Social Sciences' },
+  { _id: 'faculty-of-computing', name: 'Faculty of Computing' },
+  { _id: 'de-and-general-studies', name: 'DE & General Studies' },
+];
 
 const Signup = () => {
   const [formData, setFormData] = useState({
@@ -173,25 +164,10 @@ const Signup = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [faculties, setFaculties] = useState(() => readFacultyCache());
+  const faculties = FACULTIES;
   const { signup } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-
-  useEffect(() => {
-    const fetchFaculties = async () => {
-      try {
-        const response = await api.get('/faculties');
-        const nextFaculties = Array.isArray(response.data?.data) ? response.data.data : [];
-        setFaculties(nextFaculties);
-        writeFacultyCache(nextFaculties);
-      } catch (err) {
-        console.error('Error fetching faculties:', err);
-      }
-    };
-
-    fetchFaculties();
-  }, []);
 
   const getSafeRedirect = () => {
     const params = new URLSearchParams(location.search);
