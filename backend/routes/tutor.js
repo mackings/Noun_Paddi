@@ -3,6 +3,7 @@ const multer = require('multer');
 const router = express.Router();
 const {
   createSessionToken,
+  deleteSource,
   getTutorUploadSignature,
   listSources,
   searchSource,
@@ -63,6 +64,7 @@ router.use(protect);
 router.get('/sources', listSources);
 router.post('/upload-signature', getTutorUploadSignature);
 router.post('/upload', uploadLimiter, handleTutorUpload, uploadSource);
+router.delete('/sources/:sourceId', deleteSource);
 router.post('/sources/:sourceId/search', searchSource);
 router.post('/session-token', tokenLimiter, createSessionToken);
 

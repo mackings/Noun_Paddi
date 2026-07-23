@@ -167,15 +167,15 @@
      of its own content and leaving a large dead-space gap below the button. Sizing
      to content and anchoring to the top is what this card actually wants. */
   align-self: start;
-  max-width: 540px;
+  max-width: 620px;
   margin: 90px auto 40px;
-  padding: 40px;
+  padding: 48px;
   background: var(--tutor-surface);
   border: 1px solid var(--tutor-line);
   border-radius: 28px;
   box-shadow: 0 20px 48px rgba(15, 23, 42, 0.08);
   display: grid;
-  gap: 20px;
+  gap: 22px;
 }
 
 /* Kicker, heading, and intro read as one tight block — the section gap above only
@@ -411,28 +411,65 @@
 .tutor-source-option {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 2px;
   width: 100%;
+  border-radius: 10px;
+  color: var(--tutor-ink);
+}
+
+.tutor-source-option:hover,
+.tutor-source-option.is-selected {
+  background: var(--tutor-accent-soft);
+}
+
+.tutor-source-option-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
   border: none;
   border-radius: 10px;
   padding: 11px 12px;
   background: transparent;
-  color: var(--tutor-ink);
+  color: inherit;
   font: inherit;
   font-size: 14px;
   text-align: left;
   cursor: pointer;
 }
 
-.tutor-source-option svg {
+.tutor-source-option-main svg {
   flex: 0 0 auto;
   color: var(--tutor-accent-strong);
   font-size: 16px;
 }
 
-.tutor-source-option:hover,
-.tutor-source-option.is-selected {
-  background: var(--tutor-accent-soft);
+.tutor-source-option-delete {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin-right: 6px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--tutor-mute);
+  font-size: 15px;
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.tutor-source-option-delete:hover:not(:disabled) {
+  background: rgba(220, 38, 38, 0.12);
+  color: #dc2626;
+}
+
+.tutor-source-option-delete:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 .tutor-source-option-text {

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { FiArrowLeft, FiBookOpen, FiChevronDown, FiPlusCircle, FiUploadCloud } from 'react-icons/fi';
+import { FiArrowLeft, FiBookOpen, FiChevronDown, FiPlusCircle, FiTrash2, FiUploadCloud } from 'react-icons/fi';
 import { TalkingHead } from '@met4citizen/talkinghead';
 import api from '../utils/api';
 import GeminiLiveClient from '../utils/geminiLiveClient';
@@ -163,6 +163,7 @@ const Tutor = () => {
   const [selectedSourceId, setSelectedSourceId] = useState('');
   const [sourceMenuOpen, setSourceMenuOpen] = useState(false);
   const [wantsNewUpload, setWantsNewUpload] = useState(false);
+  const [deletingSourceId, setDeletingSourceId] = useState('');
   const sourceMenuRef = useRef(null);
 
   const avatarContainerRef = useRef(null);
@@ -263,6 +264,27 @@ const Tutor = () => {
   useEffect(() => {
     loadPastSources();
   }, []);
+
+  const handleDeleteSource = async (event, source) => {
+    // Stops the click from also bubbling to the option's own select button underneath it.
+    event.stopPropagation();
+    if (!window.confirm(`Delete "${source.title}"? This can't be undone.`)) return;
+
+    setDeletingSourceId(source._id);
+    try {
+      await api.delete(`/tutor/sources/${source._id}`);
+      const remaining = pastSources.filter((item) => item._id !== source._id);
+      setPastSources(remaining);
+      if (selectedSourceId === source._id) {
+        setSelectedSourceId(remaining[0]?._id || '');
+      }
+    } catch (error) {
+      console.error('Failed to delete material:', error);
+      setErrorMessage(error.response?.data?.message || 'Could not delete this material.');
+    } finally {
+      setDeletingSourceId('');
+    }
+  };
 
   useEffect(() => {
     if (!sourceMenuOpen) return undefined;
@@ -746,20 +768,34 @@ const Tutor = () => {
                 {sourceMenuOpen && (
                   <div className="tutor-source-menu" role="listbox">
                     {pastSources.map((source) => (
-                      <button
-                        type="button"
+                      <div
                         key={source._id}
                         role="option"
                         aria-selected={source._id === selectedSourceId}
                         className={`tutor-source-option ${source._id === selectedSourceId ? 'is-selected' : ''}`}
-                        onClick={() => { setSelectedSourceId(source._id); setSourceMenuOpen(false); }}
                       >
-                        <FiBookOpen aria-hidden="true" />
-                        <span className="tutor-source-option-text">
-                          <strong>{source.title}</strong>
-                          {source.courseLabel && <span>{source.courseLabel}</span>}
-                        </span>
-                      </button>
+                        <button
+                          type="button"
+                          className="tutor-source-option-main"
+                          onClick={() => { setSelectedSourceId(source._id); setSourceMenuOpen(false); }}
+                        >
+                          <FiBookOpen aria-hidden="true" />
+                          <span className="tutor-source-option-text">
+                            <strong>{source.title}</strong>
+                            {source.courseLabel && <span>{source.courseLabel}</span>}
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          className="tutor-source-option-delete"
+                          onClick={(event) => handleDeleteSource(event, source)}
+                          disabled={deletingSourceId === source._id}
+                          aria-label={`Delete ${source.title}`}
+                          title="Delete this material"
+                        >
+                          <FiTrash2 aria-hidden="true" />
+                        </button>
+                      </div>
                     ))}
                   </div>
                 )}

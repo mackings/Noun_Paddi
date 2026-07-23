@@ -268,6 +268,35 @@ exports.listSources = async (req, res) => {
   }
 };
 
+// @desc    Delete a material the student previously uploaded, and its chunks
+// @route   DELETE /api/tutor/sources/:sourceId
+// @access  Private
+exports.deleteSource = async (req, res) => {
+  try {
+    const { sourceId } = req.params;
+    const source = await TutorSource.findOne({ _id: sourceId, uploadedBy: req.user._id });
+    if (!source) {
+      return res.status(404).json({
+        success: false,
+        message: 'Material not found.',
+      });
+    }
+
+    await Promise.all([
+      TutorChunk.deleteMany({ sourceId: source._id }),
+      TutorSource.deleteOne({ _id: source._id }),
+    ]);
+
+    return res.status(200).json({ success: true, data: {} });
+  } catch (error) {
+    console.error('deleteSource error:', error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to delete this material.',
+    });
+  }
+};
+
 // @desc    Search a source's chunks (used as the Live session's tool call)
 // @route   POST /api/tutor/sources/:sourceId/search
 // @access  Private
