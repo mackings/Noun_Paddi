@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { FiArrowLeft, FiBookOpen, FiChevronDown, FiPlusCircle, FiTrash2, FiUploadCloud } from 'react-icons/fi';
 import { TalkingHead } from '@met4citizen/talkinghead';
 import api from '../utils/api';
@@ -388,11 +388,50 @@ const Tutor = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Whiteboard/DiagramBoard both list this in a typewriter/dwell effect's dependency
+  // array — passing a fresh arrow function here on every Tutor render would reset that
+  // effect (and restart its pending timeout) on any unrelated re-render while a board is
+  // still mid-reveal, not just when the board actually finishes. useCallback keeps the
+  // identity stable so the effect only re-runs for reasons that actually matter.
+  const handleBoardComplete = useCallback(() => {
+    boardDoneRef.current = true;
+  }, []);
+
   const handleToolCall = async (functionCalls) => {
     try {
       const responses = await Promise.all(functionCalls.map(async (call) => {
         if (call.name === 'show_working') {
-          const lines = Array.isArray(call.args?.lines) ? call.args.lines : [];
+          // Gemini's function calling occasionally hands back an array-typed parameter
+          // as a JSON-encoded STRING instead of a real array (a known quirk of LLM tool
+          // calling, not specific to our prompt) — Array.isArray on that string was
+          // silently false, so `lines` fell through to [], we still showed an "empty"
+          // board (which just renders nothing, see Whiteboard's lines.length===0 guard),
+          // and still told Gemini it succeeded. That's exactly the "board never shows
+          // until you ask again" bug: the model had no idea its call was effectively a
+          // no-op, so it never retried on its own — only a fresh student question
+          // happened to produce a valid call later. Coerce the string case here, and
+          // when lines still comes up empty, leave whatever's on the board alone
+          // (no erase-to-blank) and tell Gemini the call failed so it retries now.
+          let lines = call.args?.lines;
+          if (typeof lines === 'string') {
+            try {
+              const parsed = JSON.parse(lines);
+              lines = Array.isArray(parsed) ? parsed : [lines];
+            } catch (error) {
+              lines = lines ? [lines] : [];
+            }
+          }
+          if (!Array.isArray(lines)) lines = [];
+          lines = lines.filter((line) => typeof line === 'string' && line.trim().length > 0);
+
+          if (lines.length === 0) {
+            return {
+              id: call.id,
+              name: call.name,
+              response: { result: 'No lines were received. Call show_working again with the full ordered lines array.' },
+            };
+          }
+
           setDiagram(null);
           setBoard({ title: call.args?.title || '', lines });
           // A new board just started typing (at its own fixed pace) — anchor audio
@@ -405,7 +444,16 @@ const Tutor = () => {
         }
 
         if (call.name === 'draw_diagram') {
-          const mermaidText = call.args?.mermaid || '';
+          const mermaidText = typeof call.args?.mermaid === 'string' ? call.args.mermaid.trim() : '';
+
+          if (!mermaidText) {
+            return {
+              id: call.id,
+              name: call.name,
+              response: { result: 'No diagram was received. Call draw_diagram again with valid Mermaid syntax.' },
+            };
+          }
+
           setBoard(null);
           setDiagram({ title: call.args?.title || '', mermaid: mermaidText });
           // Same audio-gating anchor as show_working — see releaseQueuedAudio/DiagramBoard's
@@ -573,7 +621,29 @@ const Tutor = () => {
     // connectLiveSession too) — otherwise the tutor would re-greet the student every
     // time a reconnect happens behind the scenes.
     client.sendTextTurn('__SESSION_START__');
-    await startMic();
+
+    try {
+      await startMic();
+    } catch (error) {
+      // connectLiveSession's onOpen already fired by the time we get here (setupComplete
+      // arrives before this function's await returns), so the Live session is open and
+      // Theresa may already be greeting the student — but without a working mic she can
+      // never hear them back. Left alone, that's a connected, billable, one-way session
+      // with no visible "End Session" button (isActive flips false once the caller below
+      // sets sessionState to ERROR) — a real stuck-and-uncontrollable state, not just an
+      // error message. Tear the connection down immediately instead of leaving it orphaned.
+      intentionalCloseRef.current = true;
+      client.close();
+      liveClientRef.current = null;
+      headRef.current?.streamStop();
+      streamStartedRef.current = false;
+      audioQueueRef.current = [];
+
+      if (error?.name === 'NotAllowedError' || error?.name === 'PermissionDeniedError') {
+        throw new Error('Microphone access was blocked. Please allow microphone access for this site in your browser settings, then try again.');
+      }
+      throw error;
+    }
   };
 
   const startSession = async () => {
@@ -869,13 +939,13 @@ const Tutor = () => {
           <Whiteboard
             title={board.title}
             lines={board.lines}
-            onComplete={() => { boardDoneRef.current = true; }}
+            onComplete={handleBoardComplete}
           />
         ) : diagram ? (
           <DiagramBoard
             title={diagram.title}
             mermaid={diagram.mermaid}
-            onComplete={() => { boardDoneRef.current = true; }}
+            onComplete={handleBoardComplete}
           />
         ) : (
           <div className="tutor-board-placeholder">
