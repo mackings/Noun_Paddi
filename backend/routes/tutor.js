@@ -3,6 +3,7 @@ const multer = require('multer');
 const router = express.Router();
 const {
   createSessionToken,
+  getTutorUploadSignature,
   listSources,
   searchSource,
   uploadSource,
@@ -60,6 +61,7 @@ const tokenLimiter = createRateLimit({
 router.use(protect);
 
 router.get('/sources', listSources);
+router.post('/upload-signature', getTutorUploadSignature);
 router.post('/upload', uploadLimiter, handleTutorUpload, uploadSource);
 router.post('/sources/:sourceId/search', searchSource);
 router.post('/session-token', tokenLimiter, createSessionToken);

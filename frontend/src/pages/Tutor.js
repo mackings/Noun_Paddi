@@ -564,22 +564,66 @@ const Tutor = () => {
       setBoard(null);
       setDiagram(null);
       setSessionState(SESSION_STATES.UPLOADING);
+      setStatusMessage('Uploading your file...');
+
+      // Vercel's serverless functions hard-cap request bodies at 4.5MB, which most real
+      // course material (scanned PDFs, slide decks) blows past — sending the file
+      // through our own /tutor/upload endpoint as multipart would just fail for anyone
+      // with a real document. Instead, upload the file straight from the browser to
+      // Cloudinary (same signed-upload pattern StudentDashboard.js already uses for the
+      // exact same reason), then hand our backend only the resulting URL — a JSON body
+      // nowhere near the size limit.
+      const cloudName = process.env.REACT_APP_CLOUDINARY_CLOUD_NAME;
+      const apiKey = process.env.REACT_APP_CLOUDINARY_API_KEY;
+      if (!cloudName || !apiKey) {
+        throw new Error('Cloudinary configuration is missing on the frontend');
+      }
+
+      const signatureResponse = await api.post('/tutor/upload-signature');
+      const { timestamp, signature, folder } = signatureResponse.data.data;
+
+      const cloudinaryData = new FormData();
+      cloudinaryData.append('file', uploadForm.file);
+      cloudinaryData.append('api_key', apiKey);
+      cloudinaryData.append('timestamp', timestamp);
+      cloudinaryData.append('signature', signature);
+      cloudinaryData.append('folder', folder);
+
+      const cloudinaryResp = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/raw/upload`, {
+        method: 'POST',
+        body: cloudinaryData,
+      });
+      const cloudinaryJson = await cloudinaryResp.json().catch(() => null);
+      if (!cloudinaryResp.ok) {
+        throw new Error(cloudinaryJson?.error?.message || 'Failed to upload your file to storage.');
+      }
+
+      const cloudinaryUrl = cloudinaryJson?.secure_url;
+      const cloudinaryPublicId = cloudinaryJson?.public_id;
+      if (!cloudinaryUrl || !cloudinaryPublicId) {
+        throw new Error('Upload failed. Missing storage reference for uploaded file.');
+      }
+
       setStatusMessage('Reading your material. This can take a minute for larger files...');
 
-      const formData = new FormData();
-      formData.append('file', uploadForm.file);
-      formData.append('title', uploadForm.title || uploadForm.file.name);
-      formData.append('courseLabel', uploadForm.courseLabel);
-
-      const uploadResponse = await api.post('/tutor/upload', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+      const uploadResponse = await api.post('/tutor/upload', {
+        title: uploadForm.title || uploadForm.file.name,
+        courseLabel: uploadForm.courseLabel,
+        cloudinaryUrl,
+        cloudinaryPublicId,
+        fileType: uploadForm.file.type,
+        originalFilename: uploadForm.file.name,
       });
       const { sourceId, title } = uploadResponse.data.data;
       loadPastSources();
       await beginSession(sourceId, title);
     } catch (error) {
       console.error('Failed to start tutor session:', error);
-      setErrorMessage(error.response?.data?.message || 'Could not start the tutor session.');
+      const message = error.response?.data?.error?.message
+        || error.response?.data?.message
+        || error.message
+        || 'Could not start the tutor session.';
+      setErrorMessage(message);
       setSessionState(SESSION_STATES.ERROR);
     }
   };

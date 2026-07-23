@@ -1,4 +1,6 @@
+const axios = require('axios');
 const { GoogleGenAI } = require('@google/genai');
+const { cloudinary } = require('../config/cloudinary');
 const TutorSource = require('../models/TutorSource');
 const TutorChunk = require('../models/TutorChunk');
 const {
@@ -104,31 +106,87 @@ function getGeminiApiKey() {
   return keysEnv.split(',').map((item) => item.trim()).find(Boolean) || '';
 }
 
-// @desc    Upload a document directly, extract/chunk/embed it in memory (no Cloudinary)
+const TUTOR_UPLOAD_FOLDER = 'nounpaddi-tutor-materials';
+
+// Best-effort cleanup only — the extracted text chunks are what the tutor actually
+// keeps and reads from, so the raw file in Cloudinary was only ever a relay to get the
+// bytes past Vercel's 4.5MB function body limit. A delete failure here shouldn't fail
+// the request that already succeeded (or already failed for its own reason).
+async function cleanupCloudinaryAsset(publicId) {
+  if (!publicId) return;
+  try {
+    await cloudinary.uploader.destroy(publicId, { resource_type: 'raw' });
+  } catch (error) {
+    console.error('Failed to clean up Cloudinary tutor upload:', publicId, error.message);
+  }
+}
+
+// @desc    Get a signed Cloudinary upload for the browser to upload a course material
+//          document directly to, bypassing Vercel's 4.5MB serverless function body limit.
+// @route   POST /api/tutor/upload-signature
+// @access  Private
+exports.getTutorUploadSignature = async (req, res) => {
+  try {
+    const timestamp = Math.round(Date.now() / 1000);
+    const signature = cloudinary.utils.api_sign_request(
+      { timestamp, folder: TUTOR_UPLOAD_FOLDER },
+      process.env.CLOUDINARY_API_SECRET,
+    );
+
+    return res.status(200).json({
+      success: true,
+      data: { timestamp, signature, folder: TUTOR_UPLOAD_FOLDER },
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to generate upload signature',
+    });
+  }
+};
+
+// @desc    Extract/chunk/embed a document into the tutor's knowledge base. Accepts either
+//          a direct multipart file (small files, e.g. non-browser callers) or a
+//          cloudinaryUrl/cloudinaryPublicId pair from the direct-to-Cloudinary upload flow
+//          (see getTutorUploadSignature) — the latter is what the web app actually uses,
+//          since routing the file through our own serverless function hits Vercel's
+//          4.5MB request body cap for anything but the smallest documents.
 // @route   POST /api/tutor/upload
 // @access  Private
 exports.uploadSource = async (req, res) => {
   let source = null;
+  let cloudinaryPublicId = null;
 
   try {
-    if (!req.file) {
+    let buffer;
+    let mimeType;
+    let filename;
+
+    if (req.file) {
+      buffer = req.file.buffer;
+      mimeType = req.file.mimetype;
+      filename = req.file.originalname;
+    } else if (req.body?.cloudinaryUrl && req.body?.cloudinaryPublicId) {
+      cloudinaryPublicId = req.body.cloudinaryPublicId;
+      const fileResponse = await axios.get(req.body.cloudinaryUrl, { responseType: 'arraybuffer' });
+      buffer = Buffer.from(fileResponse.data);
+      mimeType = req.body.fileType || '';
+      filename = req.body.originalFilename || '';
+    } else {
       return res.status(400).json({
         success: false,
         message: 'Please upload a PDF, DOC, DOCX, or TXT file.',
       });
     }
 
-    const title = compactText(req.body?.title || req.file.originalname || 'Course material');
+    const title = compactText(req.body?.title || filename || 'Course material');
     const courseLabel = compactText(req.body?.courseLabel || '');
 
-    const extracted = await extractDocumentBuffer({
-      buffer: req.file.buffer,
-      mimeType: req.file.mimetype,
-      filename: req.file.originalname,
-    });
+    const extracted = await extractDocumentBuffer({ buffer, mimeType, filename });
 
     const chunks = chunkText(extracted.text);
     if (chunks.length === 0) {
+      await cleanupCloudinaryAsset(cloudinaryPublicId);
       return res.status(422).json({
         success: false,
         message: 'This document could not be read into usable text chunks.',
@@ -156,12 +214,15 @@ exports.uploadSource = async (req, res) => {
       embeddingModel,
     })));
 
+    await cleanupCloudinaryAsset(cloudinaryPublicId);
+
     return res.status(201).json({
       success: true,
       data: { sourceId: source._id, title: source.title, chunkCount: chunks.length },
     });
   } catch (error) {
     console.error('uploadSource error:', error);
+    await cleanupCloudinaryAsset(cloudinaryPublicId);
     if (source?._id) {
       await Promise.allSettled([
         TutorChunk.deleteMany({ sourceId: source._id }),
