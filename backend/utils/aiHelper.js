@@ -1418,6 +1418,7 @@ module.exports = {
   generateSummaryAndQuestionsParallel,
   generateQuestionsParallel,
   getClientCount,
+  getCloudinarySignedUrl,
 };
 
 async function gradePopAnswers(qaItems, defaultMaxScore = 10) {

@@ -1,6 +1,7 @@
 const axios = require('axios');
 const { GoogleGenAI } = require('@google/genai');
 const { cloudinary } = require('../config/cloudinary');
+const { getCloudinarySignedUrl } = require('../utils/aiHelper');
 const TutorSource = require('../models/TutorSource');
 const TutorChunk = require('../models/TutorChunk');
 const {
@@ -168,7 +169,11 @@ exports.uploadSource = async (req, res) => {
       filename = req.file.originalname;
     } else if (req.body?.cloudinaryUrl && req.body?.cloudinaryPublicId) {
       cloudinaryPublicId = req.body.cloudinaryPublicId;
-      const fileResponse = await axios.get(req.body.cloudinaryUrl, { responseType: 'arraybuffer' });
+      // This Cloudinary account restricts public delivery of raw PDF/ZIP files (verified
+      // directly: uploading succeeds, but a plain GET on the public secure_url comes back
+      // 401) — getCloudinarySignedUrl (already used elsewhere for the same reason, see
+      // aiHelper.js) turns it into a signed download URL that's actually fetchable.
+      const fileResponse = await axios.get(getCloudinarySignedUrl(req.body.cloudinaryUrl), { responseType: 'arraybuffer' });
       buffer = Buffer.from(fileResponse.data);
       mimeType = req.body.fileType || '';
       filename = req.body.originalFilename || '';
