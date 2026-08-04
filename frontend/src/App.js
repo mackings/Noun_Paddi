@@ -8,7 +8,9 @@ import Navbar from './components/Navbar';
 import Signup from './pages/Signup';
 import Login from './pages/Login';
 import Explore from './pages/Explore';
-import Tutor from './pages/Tutor';
+// Theresa (AI Tutor) now lives at asktheresa.com instead of this in-app page — see the
+// /tutor route below. Re-add this import if the in-app page ever comes back.
+// import Tutor from './pages/Tutor';
 import Ask from './pages/Ask';
 import AllCourses from './pages/AllCourses';
 import Practice from './pages/Practice';
@@ -173,6 +175,18 @@ const WelcomeLanding = () => {
 };
 
 // Protected Route Component
+// Theresa (AI Tutor) now lives on its own domain rather than as a page inside this app.
+// React Router's <Navigate> only handles internal routes, so a real page navigation is
+// needed to send the browser to an external origin.
+const THERESA_URL = 'https://asktheresa.com/';
+
+const ExternalRedirect = ({ to }) => {
+  useEffect(() => {
+    window.location.replace(to);
+  }, [to]);
+  return null;
+};
+
 const ProtectedRoute = ({ children, adminOnly = false }) => {
   const { user, loading } = useAuth();
 
@@ -405,13 +419,11 @@ const AppLayout = () => {
                   path="/ask"
                   element={<Ask />}
                 />
+                {/* Theresa (AI Tutor) now lives at asktheresa.com — send any bookmark or
+                    direct link to /tutor straight there instead of loading the old page. */}
                 <Route
                   path="/tutor"
-                  element={
-                    <ProtectedRoute>
-                      <Tutor />
-                    </ProtectedRoute>
-                  }
+                  element={<ExternalRedirect to={THERESA_URL} />}
                 />
                 <Route
                   path="/courses"
