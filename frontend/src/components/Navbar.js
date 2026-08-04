@@ -3,10 +3,10 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { FiMenu, FiX, FiLogOut, FiUser, FiSun, FiMoon, FiBook, FiBell, FiFolder, FiChevronDown, FiAlertTriangle, FiMessageSquare, FiCalendar, FiPlayCircle, FiAward, FiHeadphones } from 'react-icons/fi';
+import './Navbar.css';
 
 // Theresa (AI Tutor) now lives on its own domain rather than as a page inside this app.
 const THERESA_URL = 'https://asktheresa.com/';
-import './Navbar.css';
 
 const Navbar = () => {
   const { user, logout } = useAuth();
