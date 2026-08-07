@@ -3,12 +3,18 @@ import api from '../utils/api';
 import SEO from '../components/SEO';
 import { trackFeatureVisit } from '../utils/featureTracking';
 import {
-  FiUpload, FiFileText, FiCheckCircle, FiAlertTriangle,
-  FiAlertCircle, FiClock, FiTrash2, FiEye, FiX,
-  FiExternalLink, FiRefreshCw, FiInfo, FiChevronDown,
-  FiChevronUp
-} from 'react-icons/fi';
-import './PlagiarismChecker.css';
+  Upload, FileText, CheckCircle2, AlertTriangle,
+  AlertCircle, Clock, Trash2, Eye, X,
+  ExternalLink, RefreshCw, Info, ChevronDown,
+  ChevronUp,
+} from 'lucide-react';
+import ShellHeader from '../shell/ShellHeader';
+import { Card, CardContent } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Badge } from '../components/ui/badge';
+import { Dialog, DialogPopup, DialogHeader, DialogTitle } from '../components/ui/dialog';
+import { cn } from '../lib/utils';
 
 const PlagiarismChecker = () => {
   const [activeTab, setActiveTab] = useState('upload');
@@ -235,6 +241,12 @@ const PlagiarismChecker = () => {
     return '#ef4444'; // Red
   };
 
+  const getScoreVariant = (score) => {
+    if (score >= 80) return 'success';
+    if (score >= 60) return 'warning';
+    return 'danger';
+  };
+
   const getScoreLabel = (score) => {
     if (score >= 80) return 'Excellent';
     if (score >= 60) return 'Moderate';
@@ -258,270 +270,256 @@ const PlagiarismChecker = () => {
     });
   };
 
+  const TABS = [
+    { id: 'upload', label: 'Upload & Check', icon: Upload },
+    { id: 'result', label: 'Latest Result', icon: CheckCircle2, disabled: !result },
+    { id: 'history', label: `History (${reports.length})`, icon: Clock },
+  ];
+
   return (
-    <div className="plagiarism-checker-container">
+    <div className="np-shell">
       <SEO
         title="Plagiarism Checker - NounPaddi"
         description="Check your academic projects for plagiarism and system-detected content patterns"
       />
+      <ShellHeader title="Plagiarism Checker" />
 
-      <div className="plagiarism-header">
-        <h1>Plagiarism Checker</h1>
-        <p>Check your projects for system-detected content patterns and web matches</p>
-      </div>
+      <div className="tw:space-y-4 tw:p-4">
+        <p className="tw:text-sm tw:text-slate-500 tw:dark:text-slate-400">Check your projects for system-detected content patterns and web matches.</p>
 
-      <div className="plagiarism-tabs">
-        <button
-          className={`tab-btn ${activeTab === 'upload' ? 'active' : ''}`}
-          onClick={() => setActiveTab('upload')}
-        >
-          <FiUpload /> Upload & Check
-        </button>
-        <button
-          className={`tab-btn ${activeTab === 'result' ? 'active' : ''}`}
-          onClick={() => setActiveTab('result')}
-          disabled={!result}
-        >
-          <FiCheckCircle /> Latest Result
-        </button>
-        <button
-          className={`tab-btn ${activeTab === 'history' ? 'active' : ''}`}
-          onClick={() => setActiveTab('history')}
-        >
-          <FiClock /> History ({reports.length})
-        </button>
-      </div>
+        <div className="tw:flex tw:gap-2 tw:overflow-x-auto">
+          {TABS.map(({ id, label, icon: Icon, disabled }) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setActiveTab(id)}
+              disabled={disabled}
+              className={cn(
+                'tw:flex tw:flex-none tw:items-center tw:gap-1.5 tw:rounded-xl tw:border tw:px-3 tw:py-2 tw:text-xs tw:font-semibold tw:whitespace-nowrap tw:transition-colors tw:disabled:opacity-40',
+                activeTab === id
+                  ? 'tw:border-brand-600 tw:bg-brand-600 tw:text-white'
+                  : 'tw:border-slate-200 tw:text-slate-600 tw:dark:border-slate-800 tw:dark:text-slate-300',
+              )}
+            >
+              <Icon className="tw:h-3.5 tw:w-3.5" /> {label}
+            </button>
+          ))}
+        </div>
 
-      <div className="plagiarism-content">
-        {/* Upload Tab */}
         {activeTab === 'upload' && (
-          <div className="upload-section">
-            <form onSubmit={handleSubmit}>
-              <div className="form-group">
-                <label>Project Title *</label>
-                <input
-                  type="text"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Enter your project title"
-                  disabled={checking}
-                />
-              </div>
+          <div className="tw:space-y-4">
+            <Card>
+              <CardContent className="tw:space-y-4 tw:p-5">
+                <form onSubmit={handleSubmit} className="tw:space-y-4">
+                  <label className="tw:block tw:space-y-1.5">
+                    <span className="tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300">Project Title *</span>
+                    <Input
+                      type="text"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      placeholder="Enter your project title"
+                      disabled={checking}
+                    />
+                  </label>
 
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Faculty *</label>
-                  <select
-                    value={selectedFaculty}
-                    onChange={handleFacultyChange}
-                    disabled={checking}
-                  >
-                    <option value="">Select Faculty</option>
-                    {faculties.map(faculty => (
-                      <option key={faculty._id} value={faculty._id}>
-                        {faculty.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="form-group">
-                  <label>Department (Optional)</label>
-                  <select
-                    value={selectedDepartment}
-                    onChange={(e) => setSelectedDepartment(e.target.value)}
-                    disabled={checking || !selectedFaculty}
-                  >
-                    <option value="">Select Department</option>
-                    {departments.map(dept => (
-                      <option key={dept._id} value={dept._id}>
-                        {dept.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div
-                className={`file-upload-zone ${dragActive ? 'drag-active' : ''} ${file ? 'has-file' : ''}`}
-                onDragEnter={handleDrag}
-                onDragLeave={handleDrag}
-                onDragOver={handleDrag}
-                onDrop={handleDrop}
-              >
-                <input
-                  type="file"
-                  id="file-input"
-                  accept=".pdf,.doc,.docx"
-                  onChange={(e) => handleFileSelect(e.target.files[0])}
-                  disabled={checking}
-                />
-                <label htmlFor="file-input">
-                  {file ? (
-                    <div className="file-selected">
-                      <FiFileText size={40} />
-                      <p className="file-name">{file.name}</p>
-                      <p className="file-size">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
-                      <button
-                        type="button"
-                        className="remove-file-btn"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          setFile(null);
-                        }}
+                  <div className="tw:grid tw:grid-cols-2 tw:gap-3">
+                    <label className="tw:block tw:space-y-1.5">
+                      <span className="tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300">Faculty *</span>
+                      <select
+                        value={selectedFaculty}
+                        onChange={handleFacultyChange}
+                        disabled={checking}
+                        className="tw:h-11 tw:w-full tw:rounded-xl tw:border tw:border-slate-200 tw:bg-white tw:px-3 tw:text-sm tw:outline-none tw:focus:border-brand-500 tw:dark:border-slate-800 tw:dark:bg-slate-900 tw:dark:text-slate-100"
                       >
-                        <FiX /> Remove
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="upload-prompt">
-                      <FiUpload size={40} />
-                      <p>Drag & drop your document here</p>
-                      <p className="upload-hint">or click to browse</p>
-                      <p className="file-types">Supported: PDF, DOC, DOCX (Max 50MB)</p>
+                        <option value="">Select Faculty</option>
+                        {faculties.map(faculty => (
+                          <option key={faculty._id} value={faculty._id}>{faculty.name}</option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label className="tw:block tw:space-y-1.5">
+                      <span className="tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300">Department</span>
+                      <select
+                        value={selectedDepartment}
+                        onChange={(e) => setSelectedDepartment(e.target.value)}
+                        disabled={checking || !selectedFaculty}
+                        className="tw:h-11 tw:w-full tw:rounded-xl tw:border tw:border-slate-200 tw:bg-white tw:px-3 tw:text-sm tw:outline-none tw:focus:border-brand-500 tw:disabled:opacity-50 tw:dark:border-slate-800 tw:dark:bg-slate-900 tw:dark:text-slate-100"
+                      >
+                        <option value="">Select Department</option>
+                        {departments.map(dept => (
+                          <option key={dept._id} value={dept._id}>{dept.name}</option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+
+                  <div
+                    onDragEnter={handleDrag}
+                    onDragLeave={handleDrag}
+                    onDragOver={handleDrag}
+                    onDrop={handleDrop}
+                    className={cn(
+                      'tw:relative tw:rounded-2xl tw:border-2 tw:border-dashed tw:p-6 tw:text-center tw:transition-colors',
+                      dragActive ? 'tw:border-brand-500 tw:bg-brand-50 tw:dark:bg-brand-950/30' : 'tw:border-slate-200 tw:dark:border-slate-800',
+                      file && 'tw:border-emerald-400 tw:bg-emerald-50 tw:dark:bg-emerald-950/20',
+                    )}
+                  >
+                    <input
+                      type="file"
+                      id="file-input"
+                      accept=".pdf,.doc,.docx"
+                      onChange={(e) => handleFileSelect(e.target.files[0])}
+                      disabled={checking}
+                      className="tw:absolute tw:inset-0 tw:h-full tw:w-full tw:cursor-pointer tw:opacity-0"
+                    />
+                    <label htmlFor="file-input" className="tw:pointer-events-none tw:flex tw:flex-col tw:items-center tw:gap-1.5">
+                      {file ? (
+                        <>
+                          <FileText className="tw:h-8 tw:w-8 tw:text-emerald-600" />
+                          <p className="tw:text-sm tw:font-semibold">{file.name}</p>
+                          <p className="tw:text-xs tw:text-slate-400">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                          <button
+                            type="button"
+                            onClick={(e) => { e.preventDefault(); setFile(null); }}
+                            className="tw:pointer-events-auto tw:mt-1 tw:flex tw:items-center tw:gap-1 tw:text-xs tw:font-semibold tw:text-red-600 tw:dark:text-red-400"
+                          >
+                            <X className="tw:h-3.5 tw:w-3.5" /> Remove
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="tw:h-8 tw:w-8 tw:text-slate-400" />
+                          <p className="tw:text-sm tw:font-semibold">Drag &amp; drop your document here</p>
+                          <p className="tw:text-xs tw:text-slate-400">or click to browse</p>
+                          <p className="tw:text-xs tw:text-slate-400">Supported: PDF, DOC, DOCX (Max 50MB)</p>
+                        </>
+                      )}
+                    </label>
+                  </div>
+
+                  {error && (
+                    <div className="tw:flex tw:items-center tw:gap-2 tw:rounded-xl tw:bg-red-100 tw:px-3.5 tw:py-2.5 tw:text-sm tw:text-red-700 tw:dark:bg-red-500/15 tw:dark:text-red-300">
+                      <AlertCircle className="tw:h-4 tw:w-4 tw:flex-none" /> {error}
                     </div>
                   )}
-                </label>
-              </div>
 
-              {error && (
-                <div className="error-message">
-                  <FiAlertCircle /> {error}
-                </div>
-              )}
+                  <Button type="submit" disabled={checking || !file || !title || !selectedFaculty} className="tw:w-full">
+                    {checking ? (
+                      <><RefreshCw className="tw:h-4 tw:w-4 tw:animate-spin" /> Checking... (This may take a minute)</>
+                    ) : (
+                      <><CheckCircle2 className="tw:h-4 tw:w-4" /> Check for Plagiarism</>
+                    )}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
 
-              <button
-                type="submit"
-                className="check-btn"
-                disabled={checking || !file || !title || !selectedFaculty}
-              >
-                {checking ? (
-                  <>
-                    <FiRefreshCw className="spinning" /> Checking... (This may take a minute)
-                  </>
-                ) : (
-                  <>
-                    <FiCheckCircle /> Check for Plagiarism
-                  </>
-                )}
-              </button>
-            </form>
-
-            <div className="info-box">
-              <FiInfo />
+            <Card className="tw:flex tw:items-start tw:gap-3 tw:p-4">
+              <Info className="tw:h-5 tw:w-5 tw:flex-none tw:text-brand-600 tw:dark:text-brand-400" />
               <div>
-                <strong>What we check:</strong>
-                <ul>
+                <strong className="tw:text-sm tw:font-semibold">What we check:</strong>
+                <ul className="tw:mt-1.5 tw:list-disc tw:space-y-1 tw:pl-4 tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">
                   <li>System-detected content patterns (including machine-generated text)</li>
                   <li>Web content matching and plagiarism</li>
                   <li>Paraphrased content identification</li>
                   <li>Personalized improvement suggestions</li>
                 </ul>
               </div>
-            </div>
+            </Card>
           </div>
         )}
 
-        {/* Result Tab */}
         {activeTab === 'result' && result && (
-          <div className="result-section">
-            <div className="result-header">
-              <h2>{result.title}</h2>
-              <p className="result-date">Checked on {formatDate(result.plagiarismReport?.checkedAt)}</p>
+          <div className="tw:space-y-4">
+            <div>
+              <h2 className="tw:font-heading tw:text-lg tw:font-bold">{result.title}</h2>
+              <p className="tw:text-xs tw:text-slate-400">Checked on {formatDate(result.plagiarismReport?.checkedAt)}</p>
             </div>
 
-            <div className="scores-grid">
-              <div className="score-card overall">
+            <div className="tw:grid tw:grid-cols-1 tw:gap-3">
+              <Card className="tw:flex tw:flex-col tw:items-center tw:gap-2 tw:p-5 tw:text-center">
                 <div
-                  className="score-circle"
+                  className="tw:flex tw:h-24 tw:w-24 tw:items-center tw:justify-center tw:rounded-full"
                   style={{
-                    background: `conic-gradient(${getScoreColor(result.plagiarismReport?.overallScore)} ${result.plagiarismReport?.overallScore}%, #e5e7eb ${result.plagiarismReport?.overallScore}%)`
+                    background: `conic-gradient(${getScoreColor(result.plagiarismReport?.overallScore)} ${result.plagiarismReport?.overallScore}%, #e5e7eb ${result.plagiarismReport?.overallScore}%)`,
                   }}
                 >
-                  <div className="score-inner">
-                    <span className="score-value">{result.plagiarismReport?.overallScore}%</span>
-                    <span className="score-label">Original</span>
+                  <div className="tw:flex tw:h-[76px] tw:w-[76px] tw:flex-col tw:items-center tw:justify-center tw:rounded-full tw:bg-white tw:dark:bg-slate-900">
+                    <span className="tw:font-heading tw:text-xl tw:font-bold">{result.plagiarismReport?.overallScore}%</span>
+                    <span className="tw:text-[10px] tw:text-slate-400">Original</span>
                   </div>
                 </div>
-                <h3>Overall Originality</h3>
-                <span className={`score-badge ${getScoreLabel(result.plagiarismReport?.overallScore).toLowerCase().replace(' ', '-')}`}>
-                  {getScoreLabel(result.plagiarismReport?.overallScore)}
-                </span>
-              </div>
+                <h3 className="tw:font-heading tw:text-sm tw:font-bold">Overall Originality</h3>
+                <Badge variant={getScoreVariant(result.plagiarismReport?.overallScore)}>{getScoreLabel(result.plagiarismReport?.overallScore)}</Badge>
+              </Card>
 
-              <div className="score-card ai-score">
-                <div className="score-icon">
-                  {result.plagiarismReport?.aiAnalysis?.isAiGenerated ?
-                    <FiAlertTriangle color="#ef4444" size={32} /> :
-                    <FiCheckCircle color="#10b981" size={32} />
-                  }
+              <Card className="tw:flex tw:items-center tw:gap-3 tw:p-4">
+                {result.plagiarismReport?.aiAnalysis?.isAiGenerated
+                  ? <AlertTriangle className="tw:h-7 tw:w-7 tw:flex-none tw:text-red-500" />
+                  : <CheckCircle2 className="tw:h-7 tw:w-7 tw:flex-none tw:text-emerald-500" />}
+                <div>
+                  <h3 className="tw:font-heading tw:text-sm tw:font-bold">System Detection</h3>
+                  <p className="tw:text-sm tw:font-semibold">{100 - (result.plagiarismReport?.aiScore || 0)}% Human-Written</p>
+                  <p className="tw:text-xs tw:text-slate-400">
+                    {result.plagiarismReport?.aiAnalysis?.isAiGenerated ? 'System patterns detected' : 'Appears human-written'}
+                  </p>
                 </div>
-                <h3>System Detection</h3>
-                <p className="score-percent">{100 - (result.plagiarismReport?.aiScore || 0)}% Human-Written</p>
-                <p className="score-detail">
-                  {result.plagiarismReport?.aiAnalysis?.isAiGenerated ?
-                    'System patterns detected' : 'Appears human-written'}
-                </p>
-              </div>
+              </Card>
 
-              <div className="score-card web-score">
-                <div className="score-icon">
-                  <FiExternalLink size={32} />
+              <Card className="tw:flex tw:items-center tw:gap-3 tw:p-4">
+                <ExternalLink className="tw:h-7 tw:w-7 tw:flex-none tw:text-brand-500" />
+                <div>
+                  <h3 className="tw:font-heading tw:text-sm tw:font-bold">Web Matches</h3>
+                  <p className="tw:text-sm tw:font-semibold">{result.plagiarismReport?.webMatchScore || 0}% Matched</p>
+                  <p className="tw:text-xs tw:text-slate-400">{result.plagiarismReport?.webMatches?.length || 0} source(s) found</p>
                 </div>
-                <h3>Web Matches</h3>
-                <p className="score-percent">{result.plagiarismReport?.webMatchScore || 0}% Matched</p>
-                <p className="score-detail">
-                  {result.plagiarismReport?.webMatches?.length || 0} source(s) found
-                </p>
-              </div>
+              </Card>
             </div>
 
-            {/* System Analysis Details */}
             {result.plagiarismReport?.aiAnalysis?.indicators?.length > 0 && (
-              <div className="analysis-section">
-                <h3><FiAlertTriangle /> System Content Indicators</h3>
-                <ul className="indicators-list">
+              <Card className="tw:space-y-2 tw:p-4">
+                <h3 className="tw:flex tw:items-center tw:gap-1.5 tw:font-heading tw:text-sm tw:font-bold"><AlertTriangle className="tw:h-4 tw:w-4 tw:text-amber-500" /> System Content Indicators</h3>
+                <ul className="tw:list-disc tw:space-y-1 tw:pl-4 tw:text-xs tw:text-slate-600 tw:dark:text-slate-300">
                   {result.plagiarismReport.aiAnalysis.indicators.map((indicator, idx) => (
                     <li key={idx}>{indicator}</li>
                   ))}
                 </ul>
                 {result.plagiarismReport.aiAnalysis.details && (
-                  <p className="analysis-details">{result.plagiarismReport.aiAnalysis.details}</p>
+                  <p className="tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">{result.plagiarismReport.aiAnalysis.details}</p>
                 )}
-              </div>
+              </Card>
             )}
 
-            {/* Web Matches */}
             {result.plagiarismReport?.webMatches?.length > 0 && (
-              <div className="analysis-section">
-                <h3><FiExternalLink /> Web Matches Found</h3>
-                <div className="matches-list">
+              <Card className="tw:space-y-2 tw:p-4">
+                <h3 className="tw:flex tw:items-center tw:gap-1.5 tw:font-heading tw:text-sm tw:font-bold"><ExternalLink className="tw:h-4 tw:w-4 tw:text-brand-500" /> Web Matches Found</h3>
+                <div className="tw:space-y-2">
                   {result.plagiarismReport.webMatches.map((match, idx) => (
-                    <div key={idx} className="match-item">
-                      <div
-                        className="match-header"
+                    <div key={idx} className="tw:rounded-xl tw:bg-slate-50 tw:dark:bg-slate-800/60">
+                      <button
+                        type="button"
                         onClick={() => toggleMatchExpand(idx)}
+                        className="tw:flex tw:w-full tw:items-center tw:justify-between tw:gap-2 tw:p-3 tw:text-left"
                       >
-                        <div className="match-info">
-                          <span className={`match-type ${match.matchType}`}>
-                            {match.matchType}
-                          </span>
-                          <span className="match-title">{match.sourceTitle}</span>
-                          <span className="match-percent">{match.matchPercentage}% match</span>
+                        <div className="tw:min-w-0 tw:flex-1">
+                          <Badge variant="neutral" className="tw:capitalize">{match.matchType}</Badge>
+                          <p className="tw:mt-1 tw:truncate tw:text-xs tw:font-semibold">{match.sourceTitle}</p>
+                          <p className="tw:text-xs tw:text-slate-400">{match.matchPercentage}% match</p>
                         </div>
-                        {expandedMatches[idx] ? <FiChevronUp /> : <FiChevronDown />}
-                      </div>
+                        {expandedMatches[idx] ? <ChevronUp className="tw:h-4 tw:w-4 tw:flex-none" /> : <ChevronDown className="tw:h-4 tw:w-4 tw:flex-none" />}
+                      </button>
                       {expandedMatches[idx] && (
-                        <div className="match-details">
-                          <p className="matched-text">"{match.matchedText}"</p>
+                        <div className="tw:space-y-2 tw:border-t tw:border-slate-200 tw:p-3 tw:dark:border-slate-700">
+                          <p className="tw:text-xs tw:text-slate-600 tw:italic tw:dark:text-slate-300">&quot;{match.matchedText}&quot;</p>
                           {match.sourceUrl && match.sourceUrl !== 'Unknown' && (
                             <a
                               href={match.sourceUrl}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="source-link"
+                              className="tw:flex tw:w-fit tw:items-center tw:gap-1 tw:text-xs tw:font-semibold tw:text-brand-600 tw:dark:text-brand-400"
                             >
-                              <FiExternalLink /> View Source
+                              <ExternalLink className="tw:h-3 tw:w-3" /> View Source
                             </a>
                           )}
                         </div>
@@ -529,75 +527,74 @@ const PlagiarismChecker = () => {
                     </div>
                   ))}
                 </div>
-              </div>
+              </Card>
             )}
 
-            {/* Suggestions */}
             {result.plagiarismReport?.suggestions?.length > 0 && (
-              <div className="analysis-section suggestions">
-                <h3><FiInfo /> Improvement Suggestions</h3>
-                <ul className="suggestions-list">
+              <Card className="tw:space-y-2 tw:p-4">
+                <h3 className="tw:flex tw:items-center tw:gap-1.5 tw:font-heading tw:text-sm tw:font-bold"><Info className="tw:h-4 tw:w-4 tw:text-brand-500" /> Improvement Suggestions</h3>
+                <ul className="tw:list-disc tw:space-y-1 tw:pl-4 tw:text-xs tw:text-slate-600 tw:dark:text-slate-300">
                   {result.plagiarismReport.suggestions.map((suggestion, idx) => (
                     <li key={idx}>{suggestion}</li>
                   ))}
                 </ul>
-              </div>
+              </Card>
             )}
           </div>
         )}
 
-        {/* History Tab */}
         {activeTab === 'history' && (
-          <div className="history-section">
+          <div>
             {loading ? (
-              <div className="loading-state">
-                <FiRefreshCw className="spinning" />
-                <p>Loading reports...</p>
+              <div className="tw:flex tw:flex-col tw:items-center tw:gap-2 tw:py-16 tw:text-slate-500 tw:dark:text-slate-400">
+                <RefreshCw className="tw:h-6 tw:w-6 tw:animate-spin" />
+                <p className="tw:text-sm">Loading reports...</p>
               </div>
             ) : reports.length === 0 ? (
-              <div className="empty-state">
-                <FiFileText size={48} />
-                <h3>No Reports Yet</h3>
-                <p>Upload a document to check for plagiarism</p>
-                <button onClick={() => setActiveTab('upload')} className="primary-btn">
-                  <FiUpload /> Upload Document
-                </button>
-              </div>
+              <Card className="tw:flex tw:flex-col tw:items-center tw:gap-2 tw:p-10 tw:text-center">
+                <FileText className="tw:h-8 tw:w-8 tw:text-slate-300 tw:dark:text-slate-600" />
+                <h3 className="tw:font-heading tw:text-sm tw:font-bold">No Reports Yet</h3>
+                <p className="tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">Upload a document to check for plagiarism</p>
+                <Button size="sm" onClick={() => setActiveTab('upload')} className="tw:mt-2">
+                  <Upload className="tw:h-3.5 tw:w-3.5" /> Upload Document
+                </Button>
+              </Card>
             ) : (
-              <div className="reports-list">
+              <div className="tw:space-y-2">
                 {reports.map(report => (
-                  <div key={report._id} className="report-card">
-                    <div className="report-info">
-                      <h4>{report.title}</h4>
-                      <p className="report-meta">
-                        <span><FiClock /> {formatDate(report.createdAt)}</span>
-                        <span><FiFileText /> {report.originalFilename}</span>
+                  <Card key={report._id} className="tw:flex tw:items-center tw:gap-3 tw:p-3">
+                    <div
+                      className="tw:flex tw:h-11 tw:w-11 tw:flex-none tw:items-center tw:justify-center tw:rounded-full tw:text-xs tw:font-bold tw:text-white"
+                      style={{ backgroundColor: getScoreColor(report.plagiarismReport?.overallScore) }}
+                    >
+                      {report.plagiarismReport?.overallScore || 0}%
+                    </div>
+                    <div className="tw:min-w-0 tw:flex-1">
+                      <h4 className="tw:truncate tw:text-sm tw:font-semibold">{report.title}</h4>
+                      <p className="tw:flex tw:flex-wrap tw:gap-2 tw:text-[11px] tw:text-slate-400">
+                        <span className="tw:flex tw:items-center tw:gap-1"><Clock className="tw:h-3 tw:w-3" /> {formatDate(report.createdAt)}</span>
+                        <span className="tw:flex tw:items-center tw:gap-1 tw:truncate"><FileText className="tw:h-3 tw:w-3" /> {report.originalFilename}</span>
                       </p>
                     </div>
-                    <div className="report-score">
-                      <div
-                        className="mini-score"
-                        style={{ backgroundColor: getScoreColor(report.plagiarismReport?.overallScore) }}
-                      >
-                        {report.plagiarismReport?.overallScore || 0}%
-                      </div>
-                      <span className="score-text">Original</span>
-                    </div>
-                    <div className="report-actions">
+                    <div className="tw:flex tw:flex-none tw:items-center tw:gap-1">
                       <button
-                        className="view-btn"
+                        type="button"
                         onClick={() => openReportModal(report)}
+                        className="tw:rounded-lg tw:p-2 tw:text-slate-500 tw:hover:bg-slate-100 tw:dark:text-slate-400 tw:dark:hover:bg-slate-800"
+                        aria-label="View report"
                       >
-                        <FiEye /> View
+                        <Eye className="tw:h-4 tw:w-4" />
                       </button>
                       <button
-                        className="delete-btn"
+                        type="button"
                         onClick={() => handleDeleteReport(report._id)}
+                        className="tw:rounded-lg tw:p-2 tw:text-slate-400 tw:hover:bg-red-50 tw:hover:text-red-600 tw:dark:hover:bg-red-500/10 tw:dark:hover:text-red-400"
+                        aria-label="Delete report"
                       >
-                        <FiTrash2 />
+                        <Trash2 className="tw:h-4 tw:w-4" />
                       </button>
                     </div>
-                  </div>
+                  </Card>
                 ))}
               </div>
             )}
@@ -605,51 +602,49 @@ const PlagiarismChecker = () => {
         )}
       </div>
 
-      {/* Report Modal */}
-      {showReportModal && selectedReport && (
-        <div className="modal-overlay" onClick={() => setShowReportModal(false)}>
-          <div className="modal-content report-modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>{selectedReport.title}</h2>
-              <button className="close-btn" onClick={() => setShowReportModal(false)}>
-                <FiX />
-              </button>
-            </div>
-            <div className="modal-body">
-              <div className="modal-scores">
-                <div className="modal-score-item">
-                  <span className="label">Originality</span>
-                  <span
-                    className="value"
-                    style={{ color: getScoreColor(selectedReport.plagiarismReport?.overallScore) }}
-                  >
-                    {selectedReport.plagiarismReport?.overallScore || 0}%
-                  </span>
+      <Dialog open={showReportModal} onOpenChange={setShowReportModal}>
+        <DialogPopup>
+          {selectedReport && (
+            <>
+              <DialogHeader>
+                <DialogTitle>{selectedReport.title}</DialogTitle>
+              </DialogHeader>
+              <div className="tw:mt-4 tw:space-y-4">
+                <div className="tw:grid tw:grid-cols-3 tw:gap-2 tw:text-center">
+                  <div className="tw:rounded-xl tw:bg-slate-50 tw:p-2.5 tw:dark:bg-slate-800/60">
+                    <p className="tw:text-[10px] tw:text-slate-400">Originality</p>
+                    <p
+                      className="tw:font-heading tw:text-base tw:font-bold"
+                      style={{ color: getScoreColor(selectedReport.plagiarismReport?.overallScore) }}
+                    >
+                      {selectedReport.plagiarismReport?.overallScore || 0}%
+                    </p>
+                  </div>
+                  <div className="tw:rounded-xl tw:bg-slate-50 tw:p-2.5 tw:dark:bg-slate-800/60">
+                    <p className="tw:text-[10px] tw:text-slate-400">System Score</p>
+                    <p className="tw:font-heading tw:text-base tw:font-bold">{100 - (selectedReport.plagiarismReport?.aiScore || 0)}%</p>
+                  </div>
+                  <div className="tw:rounded-xl tw:bg-slate-50 tw:p-2.5 tw:dark:bg-slate-800/60">
+                    <p className="tw:text-[10px] tw:text-slate-400">Web Matches</p>
+                    <p className="tw:font-heading tw:text-base tw:font-bold">{selectedReport.plagiarismReport?.webMatchScore || 0}%</p>
+                  </div>
                 </div>
-                <div className="modal-score-item">
-                  <span className="label">System Score</span>
-                  <span className="value">{100 - (selectedReport.plagiarismReport?.aiScore || 0)}% Human</span>
-                </div>
-                <div className="modal-score-item">
-                  <span className="label">Web Matches</span>
-                  <span className="value">{selectedReport.plagiarismReport?.webMatchScore || 0}%</span>
-                </div>
-              </div>
 
-              {selectedReport.plagiarismReport?.suggestions?.length > 0 && (
-                <div className="modal-suggestions">
-                  <h4>Suggestions</h4>
-                  <ul>
-                    {selectedReport.plagiarismReport.suggestions.map((s, i) => (
-                      <li key={i}>{s}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+                {selectedReport.plagiarismReport?.suggestions?.length > 0 && (
+                  <div>
+                    <h4 className="tw:font-heading tw:text-sm tw:font-bold">Suggestions</h4>
+                    <ul className="tw:mt-1.5 tw:list-disc tw:space-y-1 tw:pl-4 tw:text-xs tw:text-slate-600 tw:dark:text-slate-300">
+                      {selectedReport.plagiarismReport.suggestions.map((s, i) => (
+                        <li key={i}>{s}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </DialogPopup>
+      </Dialog>
     </div>
   );
 };

@@ -1,49 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiCamera, FiUser, FiMail, FiBook, FiMapPin, FiLock, FiSave, FiLogOut, FiArrowLeft, FiMessageCircle, FiStar, FiSend } from 'react-icons/fi';
+import { Camera, User, Mail, BookOpen, MapPin, Lock, Save, LogOut, MessageCircle, Star, Send, Loader2 } from 'lucide-react';
 import api from '../utils/api';
-import './Profile.css';
+import { Card, CardContent } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Dialog, DialogPopup, DialogHeader, DialogTitle, DialogDescription } from '../components/ui/dialog';
+import ShellHeader from '../shell/ShellHeader';
+import { cn } from '../lib/utils';
 
 const NIGERIA_STATES = [
-  'Abia',
-  'Adamawa',
-  'Akwa Ibom',
-  'Anambra',
-  'Bauchi',
-  'Bayelsa',
-  'Benue',
-  'Borno',
-  'Cross River',
-  'Delta',
-  'Ebonyi',
-  'Edo',
-  'Ekiti',
-  'Enugu',
-  'Gombe',
-  'Imo',
-  'Jigawa',
-  'Kaduna',
-  'Kano',
-  'Katsina',
-  'Kebbi',
-  'Kogi',
-  'Kwara',
-  'Lagos',
-  'Nasarawa',
-  'Niger',
-  'Ogun',
-  'Ondo',
-  'Osun',
-  'Oyo',
-  'Plateau',
-  'Rivers',
-  'Sokoto',
-  'Taraba',
-  'Yobe',
-  'Zamfara',
-  'Federal Capital Territory (FCT)',
+  'Abia', 'Adamawa', 'Akwa Ibom', 'Anambra', 'Bauchi', 'Bayelsa', 'Benue', 'Borno',
+  'Cross River', 'Delta', 'Ebonyi', 'Edo', 'Ekiti', 'Enugu', 'Gombe', 'Imo', 'Jigawa',
+  'Kaduna', 'Kano', 'Katsina', 'Kebbi', 'Kogi', 'Kwara', 'Lagos', 'Nasarawa', 'Niger',
+  'Ogun', 'Ondo', 'Osun', 'Oyo', 'Plateau', 'Rivers', 'Sokoto', 'Taraba', 'Yobe',
+  'Zamfara', 'Federal Capital Territory (FCT)',
 ];
 const OTHER_STUDY_CENTER_OPTION = '__other__';
+
+const TABS = [
+  { id: 'profile', label: 'Profile Information', icon: User },
+  { id: 'password', label: 'Change Password', icon: Lock },
+  { id: 'review', label: 'Send us a Review', icon: MessageCircle },
+];
+
+const selectClass = 'tw:h-11 tw:w-full tw:rounded-xl tw:border tw:border-slate-200 tw:bg-white tw:px-3 tw:text-sm tw:outline-none tw:focus:border-brand-500 tw:dark:border-slate-800 tw:dark:bg-slate-900 tw:dark:text-slate-100';
+const textareaClass = 'tw:w-full tw:resize-none tw:rounded-xl tw:border tw:border-slate-200 tw:bg-white tw:p-3 tw:text-sm tw:outline-none tw:focus:border-brand-500 tw:dark:border-slate-800 tw:dark:bg-slate-900 tw:dark:text-slate-100';
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -298,419 +280,306 @@ const Profile = () => {
 
   if (loading) {
     return (
-      <div className="profile-container">
-        <div className="loading-spinner">Loading profile...</div>
+      <div className="np-shell tw:flex tw:flex-col tw:items-center tw:gap-2 tw:py-16 tw:text-slate-500 tw:dark:text-slate-400">
+        <Loader2 className="tw:h-6 tw:w-6 tw:animate-spin" />
+        <p className="tw:text-sm">Loading profile...</p>
       </div>
     );
   }
 
   return (
-    <div className="profile-container">
-      <div className="profile-wrapper">
-        <div className="profile-header">
-          <button className="back-button" onClick={() => navigate(-1)}>
-            <FiArrowLeft size={20} />
-            Back
-          </button>
-          <h1>My Profile</h1>
-          <button className="logout-button" onClick={handleLogout}>
-            <FiLogOut size={18} />
-            Logout
-          </button>
+    <div className="np-shell">
+      <ShellHeader title="My Profile" />
+      <div className="tw:space-y-4 tw:p-4">
+      <div className="tw:flex tw:justify-end">
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="tw:flex tw:items-center tw:gap-1.5 tw:rounded-xl tw:border tw:border-slate-200 tw:px-3 tw:py-2 tw:text-xs tw:font-semibold tw:text-slate-600 tw:dark:border-slate-800 tw:dark:text-slate-300"
+        >
+          <LogOut className="tw:h-3.5 tw:w-3.5" /> Logout
+        </button>
+      </div>
+
+      {message.text && (
+        <div
+          className={cn(
+            'tw:rounded-xl tw:px-3.5 tw:py-2.5 tw:text-sm',
+            message.type === 'success'
+              ? 'tw:bg-emerald-100 tw:text-emerald-700 tw:dark:bg-emerald-950 tw:dark:text-emerald-300'
+              : 'tw:bg-red-100 tw:text-red-700 tw:dark:bg-red-500/15 tw:dark:text-red-300',
+          )}
+        >
+          {message.text}
         </div>
+      )}
 
-        {message.text && (
-          <div className={`message-banner ${message.type}`}>
-            {message.text}
-          </div>
-        )}
+      <Card className="tw:flex tw:flex-col tw:items-center tw:gap-2 tw:p-5 tw:text-center">
+        <div className="tw:relative">
+          <img
+            src={imagePreview || profile.profileImage || `https://ui-avatars.com/api/?name=${profile.name}&size=200&background=4f46e5&color=fff`}
+            alt={profile.name}
+            className="tw:h-20 tw:w-20 tw:rounded-full tw:object-cover"
+          />
+          <label
+            htmlFor="avatar-upload"
+            className="tw:absolute tw:right-0 tw:bottom-0 tw:flex tw:h-7 tw:w-7 tw:cursor-pointer tw:items-center tw:justify-center tw:rounded-full tw:bg-brand-600 tw:text-white tw:ring-2 tw:ring-white tw:dark:ring-slate-900"
+          >
+            <Camera className="tw:h-3.5 tw:w-3.5" />
+          </label>
+          <input id="avatar-upload" type="file" accept="image/*" onChange={handleImageSelect} className="tw:hidden" />
+        </div>
+        <h2 className="tw:font-heading tw:text-base tw:font-bold">{profile.name}</h2>
+        <p className="tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">{profile.email}</p>
+      </Card>
 
-        {showStudyCenterDialog && (
-          <div className="study-center-dialog-overlay">
-            <div className="study-center-dialog" role="dialog" aria-modal="true">
-              <h3>Update Your Study Center</h3>
-              <p>
-                Your profile is missing a study center. Please update it so your account information is complete.
-              </p>
-              <div className="form-group">
-                <label htmlFor="studyCenterDialogSelect">
-                  <FiMapPin size={16} />
-                  Choose Study Center
+      <div className="tw:flex tw:gap-2 tw:overflow-x-auto">
+        {TABS.map(({ id, label, icon: Icon }) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => setActiveTab(id)}
+            className={cn(
+              'tw:flex tw:flex-none tw:items-center tw:gap-1.5 tw:rounded-xl tw:border tw:px-3 tw:py-2 tw:text-xs tw:font-semibold tw:whitespace-nowrap tw:transition-colors',
+              activeTab === id
+                ? 'tw:border-brand-600 tw:bg-brand-600 tw:text-white'
+                : 'tw:border-slate-200 tw:text-slate-600 tw:dark:border-slate-800 tw:dark:text-slate-300',
+            )}
+          >
+            <Icon className="tw:h-3.5 tw:w-3.5" /> {label}
+          </button>
+        ))}
+      </div>
+
+      <Card>
+        <CardContent className="tw:p-5">
+          {activeTab === 'profile' && (
+            <form onSubmit={handleProfileUpdate} className="tw:space-y-4">
+              <label className="tw:block tw:space-y-1.5">
+                <span className="tw:flex tw:items-center tw:gap-1 tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300"><User className="tw:h-3.5 tw:w-3.5" /> Full Name</span>
+                <Input type="text" name="name" value={profile.name} onChange={handleProfileChange} required />
+              </label>
+
+              <label className="tw:block tw:space-y-1.5">
+                <span className="tw:flex tw:items-center tw:gap-1 tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300"><Mail className="tw:h-3.5 tw:w-3.5" /> Email (Cannot be changed)</span>
+                <Input type="email" name="email" value={profile.email} disabled />
+              </label>
+
+              <label className="tw:block tw:space-y-1.5">
+                <span className="tw:flex tw:items-center tw:gap-1 tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300"><BookOpen className="tw:h-3.5 tw:w-3.5" /> Bio</span>
+                <textarea
+                  name="bio"
+                  value={profile.bio}
+                  onChange={handleProfileChange}
+                  rows={4}
+                  maxLength={500}
+                  placeholder="Tell us about yourself..."
+                  className={textareaClass}
+                />
+                <small className="tw:text-xs tw:text-slate-400">{profile.bio.length}/500 characters</small>
+              </label>
+
+              <div className="tw:grid tw:grid-cols-1 tw:gap-3 tw:sm:grid-cols-2">
+                <label className="tw:block tw:space-y-1.5">
+                  <span className="tw:flex tw:items-center tw:gap-1 tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300"><MapPin className="tw:h-3.5 tw:w-3.5" /> Faculty</span>
+                  <Input type="text" name="faculty" value={profile.faculty} onChange={handleProfileChange} />
                 </label>
-                <select
-                  id="studyCenterDialogSelect"
-                  value={studyCenterSelection}
-                  onChange={(e) => setStudyCenterSelection(e.target.value)}
-                >
-                  <option value="">Select your study center</option>
-                  {NIGERIA_STATES.map((state) => (
-                    <option key={state} value={state}>
-                      {state}
-                    </option>
-                  ))}
-                  <option value={OTHER_STUDY_CENTER_OPTION}>Other (write manually)</option>
-                </select>
+                <label className="tw:block tw:space-y-1.5">
+                  <span className="tw:flex tw:items-center tw:gap-1 tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300"><BookOpen className="tw:h-3.5 tw:w-3.5" /> Department</span>
+                  <Input type="text" name="department" value={profile.department} onChange={handleProfileChange} />
+                </label>
               </div>
 
-              {studyCenterSelection === OTHER_STUDY_CENTER_OPTION && (
-                <div className="form-group">
-                  <label htmlFor="customStudyCenterInput">
-                    <FiMapPin size={16} />
-                    Enter Study Center
-                  </label>
-                  <input
-                    id="customStudyCenterInput"
-                    type="text"
-                    value={customStudyCenter}
-                    onChange={(e) => setCustomStudyCenter(e.target.value)}
-                    placeholder="Type your study center"
-                  />
+              <div className="tw:grid tw:grid-cols-1 tw:gap-3 tw:sm:grid-cols-2">
+                <label className="tw:block tw:space-y-1.5">
+                  <span className="tw:flex tw:items-center tw:gap-1 tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300"><MapPin className="tw:h-3.5 tw:w-3.5" /> Study Center</span>
+                  <select name="studyCenter" value={profile.studyCenter || ''} onChange={handleProfileChange} required className={selectClass}>
+                    <option value="">Select your study center</option>
+                    {NIGERIA_STATES.map((state) => <option key={state} value={state}>{state}</option>)}
+                  </select>
+                </label>
+                <label className="tw:block tw:space-y-1.5">
+                  <span className="tw:flex tw:items-center tw:gap-1 tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300"><BookOpen className="tw:h-3.5 tw:w-3.5" /> Matric Number</span>
+                  <Input type="text" name="matricNumber" value={profile.matricNumber} onChange={handleProfileChange} />
+                </label>
+              </div>
+
+              <Button type="submit" disabled={saving} className="tw:w-full">
+                <Save className="tw:h-4 tw:w-4" /> {saving ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </form>
+          )}
+
+          {activeTab === 'password' && (
+            <form onSubmit={handlePasswordUpdate} className="tw:space-y-4">
+              <label className="tw:block tw:space-y-1.5">
+                <span className="tw:flex tw:items-center tw:gap-1 tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300"><Lock className="tw:h-3.5 tw:w-3.5" /> Current Password</span>
+                <Input type="password" name="currentPassword" value={passwords.currentPassword} onChange={handlePasswordChange} required />
+              </label>
+              <label className="tw:block tw:space-y-1.5">
+                <span className="tw:flex tw:items-center tw:gap-1 tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300"><Lock className="tw:h-3.5 tw:w-3.5" /> New Password</span>
+                <Input type="password" name="newPassword" value={passwords.newPassword} onChange={handlePasswordChange} required minLength={6} />
+              </label>
+              <label className="tw:block tw:space-y-1.5">
+                <span className="tw:flex tw:items-center tw:gap-1 tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300"><Lock className="tw:h-3.5 tw:w-3.5" /> Confirm New Password</span>
+                <Input type="password" name="confirmPassword" value={passwords.confirmPassword} onChange={handlePasswordChange} required minLength={6} />
+              </label>
+
+              <Button type="submit" disabled={saving} className="tw:w-full">
+                <Save className="tw:h-4 tw:w-4" /> {saving ? 'Updating...' : 'Update Password'}
+              </Button>
+            </form>
+          )}
+
+          {activeTab === 'review' && (
+            <form onSubmit={handleReviewSubmit} className="tw:space-y-4">
+              <label className="tw:block tw:space-y-1.5">
+                <span className="tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300">Which feature did you use?</span>
+                <select
+                  value={review.featureUsed}
+                  onChange={(e) => handleReviewChange('featureUsed', e.target.value)}
+                  required
+                  className={selectClass}
+                >
+                  <option value="">Select a feature</option>
+                  <option value="Course Summaries">Course Summaries</option>
+                  <option value="Practice Exams">Practice Exams</option>
+                  <option value="POP Exams">POP Exams</option>
+                  <option value="Projects Topics">Project Topics</option>
+                  <option value="Plagiarism Check">Plagiarism Check</option>
+                  <option value="Project Consultation">Project Consultation</option>
+                  <option value="IT Placement">IT Placement</option>
+                  <option value="Reminders">Reminders</option>
+                  <option value="Other">Other</option>
+                </select>
+              </label>
+
+              <div className="tw:space-y-1.5">
+                <span className="tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300">How was your experience?</span>
+                <div className="tw:flex tw:gap-2">
+                  {['positive', 'neutral', 'negative'].map((option) => (
+                    <label
+                      key={option}
+                      className={cn(
+                        'tw:flex-1 tw:cursor-pointer tw:rounded-xl tw:border tw:px-3 tw:py-2 tw:text-center tw:text-xs tw:font-semibold tw:transition-colors',
+                        review.sentiment === option
+                          ? 'tw:border-brand-600 tw:bg-brand-600 tw:text-white'
+                          : 'tw:border-slate-200 tw:text-slate-600 tw:dark:border-slate-800 tw:dark:text-slate-300',
+                      )}
+                    >
+                      <input
+                        type="radio"
+                        name="sentiment"
+                        value={option}
+                        checked={review.sentiment === option}
+                        onChange={(e) => handleReviewChange('sentiment', e.target.value)}
+                        className="tw:hidden"
+                      />
+                      {option.charAt(0).toUpperCase() + option.slice(1)}
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="tw:space-y-1.5">
+                <span className="tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300">Your rating</span>
+                <div className="tw:flex tw:items-center tw:gap-1">
+                  {[1, 2, 3, 4, 5].map((value) => (
+                    <button
+                      type="button"
+                      key={value}
+                      onClick={() => handleReviewChange('rating', value)}
+                      aria-label={`Rate ${value} star${value > 1 ? 's' : ''}`}
+                      className={cn('tw:p-0.5', review.rating >= value ? 'tw:text-amber-400' : 'tw:text-slate-200 tw:dark:text-slate-700')}
+                    >
+                      <Star className="tw:h-6 tw:w-6" fill="currentColor" />
+                    </button>
+                  ))}
+                  <span className="tw:ml-1 tw:text-xs tw:text-slate-400">{review.rating}/5</span>
+                </div>
+              </div>
+
+              <label className="tw:block tw:space-y-1.5">
+                <span className="tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300">Why did you rate it this way?</span>
+                <textarea
+                  value={review.reasons}
+                  onChange={(e) => handleReviewChange('reasons', e.target.value)}
+                  rows={4}
+                  required
+                  placeholder="Tell us what worked well or what needs improvement."
+                  className={textareaClass}
+                />
+              </label>
+
+              <label className="tw:block tw:space-y-1.5">
+                <span className="tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300">More details (optional)</span>
+                <textarea
+                  value={review.details}
+                  onChange={(e) => handleReviewChange('details', e.target.value)}
+                  rows={3}
+                  placeholder="Extra context or suggestions."
+                  className={textareaClass}
+                />
+              </label>
+
+              {reviewMessage.text && (
+                <div
+                  className={cn(
+                    'tw:rounded-xl tw:px-3.5 tw:py-2.5 tw:text-sm',
+                    reviewMessage.type === 'success'
+                      ? 'tw:bg-emerald-100 tw:text-emerald-700 tw:dark:bg-emerald-950 tw:dark:text-emerald-300'
+                      : 'tw:bg-red-100 tw:text-red-700 tw:dark:bg-red-500/15 tw:dark:text-red-300',
+                  )}
+                >
+                  {reviewMessage.text}
                 </div>
               )}
 
-              <button
-                type="button"
-                className="save-button study-center-dialog-btn"
-                onClick={handleStudyCenterDialogSave}
-                disabled={studyCenterSaving}
-              >
-                {studyCenterSaving ? 'Saving...' : 'Save Study Center'}
-              </button>
-            </div>
-          </div>
-        )}
-
-        <div className="profile-content">
-          <div className="profile-sidebar">
-            <div className="profile-avatar-section">
-              <div className="avatar-wrapper">
-                <img
-                  src={imagePreview || profile.profileImage || `https://ui-avatars.com/api/?name=${profile.name}&size=200&background=667eea&color=fff`}
-                  alt={profile.name}
-                  className="profile-avatar"
-                />
-                <label htmlFor="avatar-upload" className="avatar-upload-label">
-                  <FiCamera size={20} />
-                </label>
-                <input
-                  id="avatar-upload"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageSelect}
-                  style={{ display: 'none' }}
-                />
-              </div>
-              <h2>{profile.name}</h2>
-              <p className="profile-email">{profile.email}</p>
-            </div>
-
-            <nav className="profile-nav">
-              <button
-                className={`nav-item ${activeTab === 'profile' ? 'active' : ''}`}
-                onClick={() => setActiveTab('profile')}
-              >
-                <FiUser size={18} />
-                Profile Information
-              </button>
-              <button
-                className={`nav-item ${activeTab === 'password' ? 'active' : ''}`}
-                onClick={() => setActiveTab('password')}
-              >
-                <FiLock size={18} />
-                Change Password
-              </button>
-              <button
-                className={`nav-item ${activeTab === 'review' ? 'active' : ''}`}
-                onClick={() => setActiveTab('review')}
-              >
-                <FiMessageCircle size={18} />
-                Send us a Review
-              </button>
-            </nav>
-          </div>
-
-          <div className="profile-main">
-            {activeTab === 'profile' && (
-              <form onSubmit={handleProfileUpdate} className="profile-form">
-                <h3>Profile Information</h3>
-
-                <div className="form-group">
-                  <label htmlFor="name">
-                    <FiUser size={16} />
-                    Full Name
-                  </label>
-                  <input
-                    type="text"
-                    id="name"
-                    name="name"
-                    value={profile.name}
-                    onChange={handleProfileChange}
-                    required
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="email">
-                    <FiMail size={16} />
-                    Email (Cannot be changed)
-                  </label>
-                  <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    value={profile.email}
-                    disabled
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="bio">
-                    <FiBook size={16} />
-                    Bio
-                  </label>
-                  <textarea
-                    id="bio"
-                    name="bio"
-                    value={profile.bio}
-                    onChange={handleProfileChange}
-                    rows="4"
-                    maxLength="500"
-                    placeholder="Tell us about yourself..."
-                  />
-                  <small>{profile.bio.length}/500 characters</small>
-                </div>
-
-                <div className="form-row">
-                  <div className="form-group">
-                    <label htmlFor="faculty">
-                      <FiMapPin size={16} />
-                      Faculty
-                    </label>
-                    <input
-                      type="text"
-                      id="faculty"
-                      name="faculty"
-                      value={profile.faculty}
-                      onChange={handleProfileChange}
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label htmlFor="department">
-                      <FiBook size={16} />
-                      Department
-                    </label>
-                    <input
-                      type="text"
-                      id="department"
-                      name="department"
-                      value={profile.department}
-                      onChange={handleProfileChange}
-                    />
-                  </div>
-                </div>
-
-                <div className="form-row">
-                  <div className="form-group">
-                    <label htmlFor="studyCenter">
-                      <FiMapPin size={16} />
-                      Study Center
-                    </label>
-                    <select
-                      id="studyCenter"
-                      name="studyCenter"
-                      value={profile.studyCenter || ''}
-                      onChange={handleProfileChange}
-                      required
-                    >
-                      <option value="">Select your study center</option>
-                      {NIGERIA_STATES.map((state) => (
-                        <option key={state} value={state}>
-                          {state}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="form-group">
-                    <label htmlFor="matricNumber">
-                      <FiBook size={16} />
-                      Matric Number
-                    </label>
-                    <input
-                      type="text"
-                      id="matricNumber"
-                      name="matricNumber"
-                      value={profile.matricNumber}
-                      onChange={handleProfileChange}
-                    />
-                  </div>
-                </div>
-
-                <button type="submit" className="save-button" disabled={saving}>
-                  <FiSave size={18} />
-                  {saving ? 'Saving...' : 'Save Changes'}
-                </button>
-              </form>
-            )}
-
-            {activeTab === 'password' && (
-              <form onSubmit={handlePasswordUpdate} className="profile-form">
-                <h3>Change Password</h3>
-
-                <div className="form-group">
-                  <label htmlFor="currentPassword">
-                    <FiLock size={16} />
-                    Current Password
-                  </label>
-                  <input
-                    type="password"
-                    id="currentPassword"
-                    name="currentPassword"
-                    value={passwords.currentPassword}
-                    onChange={handlePasswordChange}
-                    required
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="newPassword">
-                    <FiLock size={16} />
-                    New Password
-                  </label>
-                  <input
-                    type="password"
-                    id="newPassword"
-                    name="newPassword"
-                    value={passwords.newPassword}
-                    onChange={handlePasswordChange}
-                    required
-                    minLength="6"
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="confirmPassword">
-                    <FiLock size={16} />
-                    Confirm New Password
-                  </label>
-                  <input
-                    type="password"
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    value={passwords.confirmPassword}
-                    onChange={handlePasswordChange}
-                    required
-                    minLength="6"
-                  />
-                </div>
-
-                <button type="submit" className="save-button" disabled={saving}>
-                  <FiSave size={18} />
-                  {saving ? 'Updating...' : 'Update Password'}
-                </button>
-              </form>
-            )}
-
-            {activeTab === 'review' && (
-              <form onSubmit={handleReviewSubmit} className="profile-form review-form">
-                <h3>Send us a Review</h3>
-
-                <div className="form-group">
-                  <label htmlFor="featureUsed">Which feature did you use?</label>
-                  <select
-                    id="featureUsed"
-                    value={review.featureUsed}
-                    onChange={(e) => handleReviewChange('featureUsed', e.target.value)}
-                    required
-                  >
-                    <option value="">Select a feature</option>
-                    <option value="Course Summaries">Course Summaries</option>
-                    <option value="Practice Exams">Practice Exams</option>
-                    <option value="POP Exams">POP Exams</option>
-                    <option value="Projects Topics">Project Topics</option>
-                    <option value="Plagiarism Check">Plagiarism Check</option>
-                    <option value="Project Consultation">Project Consultation</option>
-                    <option value="IT Placement">IT Placement</option>
-                    <option value="Reminders">Reminders</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </div>
-
-                <div className="form-group">
-                  <label>How was your experience?</label>
-                  <div className="review-sentiment">
-                    {['positive', 'neutral', 'negative'].map((option) => (
-                      <label key={option} className={`sentiment-chip ${review.sentiment === option ? 'active' : ''}`}>
-                        <input
-                          type="radio"
-                          name="sentiment"
-                          value={option}
-                          checked={review.sentiment === option}
-                          onChange={(e) => handleReviewChange('sentiment', e.target.value)}
-                        />
-                        {option.charAt(0).toUpperCase() + option.slice(1)}
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="form-group">
-                  <label>Your rating</label>
-                  <div className="review-rating">
-                    {[1, 2, 3, 4, 5].map((value) => (
-                      <button
-                        type="button"
-                        key={value}
-                        className={`star-button ${review.rating >= value ? 'active' : ''}`}
-                        onClick={() => handleReviewChange('rating', value)}
-                        aria-label={`Rate ${value} star${value > 1 ? 's' : ''}`}
-                      >
-                        <FiStar />
-                      </button>
-                    ))}
-                    <span className="rating-label">{review.rating}/5</span>
-                  </div>
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="reasons">Why did you rate it this way?</label>
-                  <textarea
-                    id="reasons"
-                    value={review.reasons}
-                    onChange={(e) => handleReviewChange('reasons', e.target.value)}
-                    rows="4"
-                    required
-                    placeholder="Tell us what worked well or what needs improvement."
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="details">More details (optional)</label>
-                  <textarea
-                    id="details"
-                    value={review.details}
-                    onChange={(e) => handleReviewChange('details', e.target.value)}
-                    rows="3"
-                    placeholder="Extra context or suggestions."
-                  />
-                </div>
-
-                {reviewMessage.text && (
-                  <div className={`message-banner ${reviewMessage.type}`}>
-                    {reviewMessage.text}
-                  </div>
-                )}
-
-                <button type="submit" className="save-button" disabled={reviewSubmitting}>
-                  <FiSend size={18} />
-                  {reviewSubmitting ? 'Submitting...' : 'Submit Review'}
-                </button>
-              </form>
-            )}
-          </div>
-        </div>
+              <Button type="submit" disabled={reviewSubmitting} className="tw:w-full">
+                <Send className="tw:h-4 tw:w-4" /> {reviewSubmitting ? 'Submitting...' : 'Submit Review'}
+              </Button>
+            </form>
+          )}
+        </CardContent>
+      </Card>
       </div>
+
+      <Dialog open={showStudyCenterDialog} onOpenChange={setShowStudyCenterDialog}>
+        <DialogPopup showClose={false}>
+          <DialogHeader>
+            <DialogTitle>Update Your Study Center</DialogTitle>
+            <DialogDescription>
+              Your profile is missing a study center. Please update it so your account information is complete.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="tw:mt-4 tw:space-y-3">
+            <label className="tw:block tw:space-y-1.5">
+              <span className="tw:flex tw:items-center tw:gap-1 tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300"><MapPin className="tw:h-3.5 tw:w-3.5" /> Choose Study Center</span>
+              <select
+                value={studyCenterSelection}
+                onChange={(e) => setStudyCenterSelection(e.target.value)}
+                className={selectClass}
+              >
+                <option value="">Select your study center</option>
+                {NIGERIA_STATES.map((state) => <option key={state} value={state}>{state}</option>)}
+                <option value={OTHER_STUDY_CENTER_OPTION}>Other (write manually)</option>
+              </select>
+            </label>
+
+            {studyCenterSelection === OTHER_STUDY_CENTER_OPTION && (
+              <label className="tw:block tw:space-y-1.5">
+                <span className="tw:flex tw:items-center tw:gap-1 tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300"><MapPin className="tw:h-3.5 tw:w-3.5" /> Enter Study Center</span>
+                <Input type="text" value={customStudyCenter} onChange={(e) => setCustomStudyCenter(e.target.value)} placeholder="Type your study center" />
+              </label>
+            )}
+
+            <Button type="button" onClick={handleStudyCenterDialogSave} disabled={studyCenterSaving} className="tw:w-full">
+              {studyCenterSaving ? 'Saving...' : 'Save Study Center'}
+            </Button>
+          </div>
+        </DialogPopup>
+      </Dialog>
     </div>
   );
 };

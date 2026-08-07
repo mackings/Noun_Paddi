@@ -1,17 +1,19 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  HiOutlineArrowDownTray,
-  HiOutlineChatBubbleLeftRight,
-  HiOutlineMagnifyingGlass,
-  HiOutlinePaperAirplane,
-  HiOutlineUserCircle,
-  HiOutlineUsers,
-} from 'react-icons/hi2';
-import { FiLoader } from 'react-icons/fi';
+  Download,
+  MessageSquare,
+  Search,
+  Send,
+  UserCircle,
+  Users,
+  Loader2,
+} from 'lucide-react';
 import api from '../utils/api';
 import { trackFeatureVisit } from '../utils/featureTracking';
 import SEO from '../components/SEO';
-import './Ask.css';
+import { Card } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { cn } from '../lib/utils';
 
 const ASK_EXAMPLES = [
   'GST 105',
@@ -111,87 +113,87 @@ function ResponseCard({ message, onSuggestionClick }) {
 
   if (loading) {
     return (
-      <div className="ask-card ask-card-loading">
-        <FiLoader className="spin" />
+      <Card className="tw:flex tw:items-center tw:gap-3 tw:p-4">
+        <Loader2 className="tw:h-5 tw:w-5 tw:flex-none tw:animate-spin tw:text-brand-600 tw:dark:text-brand-400" />
         <div>
-          <h3>{data?.loadingTitle || 'Loading Your Request'}</h3>
-          <p>{data?.loadingMessage || 'Searching and preparing the result.'}</p>
+          <h3 className="tw:font-heading tw:text-sm tw:font-bold">{data?.loadingTitle || 'Loading Your Request'}</h3>
+          <p className="tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">{data?.loadingMessage || 'Searching and preparing the result.'}</p>
         </div>
-      </div>
+      </Card>
     );
   }
 
   if (error) {
     return (
-      <div className="ask-card ask-card-error">
-        <h3>Past Questions could not complete that request</h3>
-        <p>{error}</p>
-      </div>
+      <Card className="tw:space-y-1 tw:border-red-200 tw:bg-red-50 tw:p-4 tw:dark:border-red-500/20 tw:dark:bg-red-500/10">
+        <h3 className="tw:font-heading tw:text-sm tw:font-bold tw:text-red-700 tw:dark:text-red-300">Past Questions could not complete that request</h3>
+        <p className="tw:text-xs tw:text-red-600 tw:dark:text-red-300">{error}</p>
+      </Card>
     );
   }
 
   if (!data) return null;
 
   return (
-    <div className="ask-card">
+    <Card className="tw:space-y-3 tw:p-4">
       {data.intent && (
-        <div className="ask-response-tag">
+        <span className="tw:inline-block tw:w-fit tw:rounded-full tw:bg-brand-100 tw:px-2 tw:py-0.5 tw:text-[11px] tw:font-semibold tw:text-brand-700 tw:capitalize tw:dark:bg-brand-950 tw:dark:text-brand-300">
           {data.intent.replace(/_/g, ' ')}
-        </div>
+        </span>
       )}
 
-      {data.title && <h3>{data.title}</h3>}
-      {data.answer && <p className="ask-card-summary">{data.answer}</p>}
+      {data.title && <h3 className="tw:font-heading tw:text-sm tw:font-bold">{data.title}</h3>}
+      {data.answer && <p className="tw:text-sm tw:text-slate-600 tw:dark:text-slate-300">{data.answer}</p>}
       {data.fileStatus && (
-        <div className="ask-file-status">
-          <HiOutlineArrowDownTray />
+        <div className="tw:flex tw:items-center tw:gap-2 tw:rounded-xl tw:bg-slate-50 tw:p-3 tw:text-xs tw:text-slate-600 tw:dark:bg-slate-800/60 tw:dark:text-slate-300">
+          <Download className="tw:h-4 tw:w-4 tw:flex-none" />
           <span>{data.fileStatus}</span>
         </div>
       )}
       {data.followUpQuestion && (
-        <div className="ask-followup-box">
-          <HiOutlineChatBubbleLeftRight />
+        <div className="tw:flex tw:items-center tw:gap-2 tw:rounded-xl tw:bg-brand-50 tw:p-3 tw:text-xs tw:text-brand-700 tw:dark:bg-brand-950/40 tw:dark:text-brand-300">
+          <MessageSquare className="tw:h-4 tw:w-4 tw:flex-none" />
           <span>{data.followUpQuestion}</span>
         </div>
       )}
 
       {Array.isArray(data.sections) && data.sections.length > 0 && (
-        <div className="ask-section-grid">
+        <div className="tw:space-y-3">
           {data.sections.map((section, index) => (
-            <article className="ask-section-card" key={`${section.title}-${index}`}>
-              <h4>{section.title}</h4>
-              <ul>
+            <div key={`${section.title}-${index}`} className="tw:rounded-xl tw:bg-slate-50 tw:p-3 tw:dark:bg-slate-800/60">
+              <h4 className="tw:font-heading tw:text-xs tw:font-bold">{section.title}</h4>
+              <ul className="tw:mt-1.5 tw:list-disc tw:space-y-1 tw:pl-4 tw:text-xs tw:text-slate-600 tw:dark:text-slate-300">
                 {(section.items || []).map((item, itemIndex) => (
                   <li key={`${section.title}-${itemIndex}`}>{item}</li>
                 ))}
               </ul>
-            </article>
+            </div>
           ))}
         </div>
       )}
 
       {(data.type === 'past_question_pdf' || data.type === 'timetable_pdf') && (
-        <div className="ask-pdf-panel">
-          <div className="ask-pdf-meta">
+        <div className="tw:space-y-2 tw:rounded-xl tw:border tw:border-slate-200 tw:p-3 tw:dark:border-slate-800">
+          <div className="tw:flex tw:items-center tw:justify-between tw:gap-2">
             <div>
-              <p className="ask-console-kicker">{data.type === 'timetable_pdf' ? 'Timetable File' : 'Past Question PDF'}</p>
-              <h4>{data.pdf?.fileName || (data.type === 'timetable_pdf' ? 'NOUN timetable' : 'NOUN past question')}</h4>
+              <p className="tw:text-[11px] tw:font-bold tw:tracking-wide tw:text-brand-600 tw:uppercase tw:dark:text-brand-400">
+                {data.type === 'timetable_pdf' ? 'Timetable File' : 'Past Question PDF'}
+              </p>
+              <h4 className="tw:text-sm tw:font-semibold">{data.pdf?.fileName || (data.type === 'timetable_pdf' ? 'NOUN timetable' : 'NOUN past question')}</h4>
             </div>
-            <div className="ask-pdf-actions">
+            <div className="tw:flex-none">
               {data.pdfLoading && (
-                <div className="ask-loading-pill">
-                  <FiLoader className="spin" />
-                  Preparing file
-                </div>
+                <span className="tw:flex tw:items-center tw:gap-1.5 tw:text-xs tw:text-slate-400">
+                  <Loader2 className="tw:h-3.5 tw:w-3.5 tw:animate-spin" /> Preparing
+                </span>
               )}
               {data.pdfBlobUrl && (
                 <a
                   href={data.pdfBlobUrl}
                   download={data.pdf?.fileName || 'noun-past-question.pdf'}
-                  className="ask-download-btn"
+                  className={cn('tw:inline-flex tw:items-center tw:gap-1.5 tw:rounded-xl tw:bg-brand-600 tw:px-3 tw:py-1.5 tw:text-xs tw:font-semibold tw:text-white tw:hover:bg-brand-500')}
                 >
-                  <HiOutlineArrowDownTray />
-                  Download
+                  <Download className="tw:h-3.5 tw:w-3.5" /> Download
                 </a>
               )}
             </div>
@@ -200,32 +202,29 @@ function ResponseCard({ message, onSuggestionClick }) {
             <iframe
               title={data.pdf?.fileName || 'Past Questions PDF Viewer'}
               src={data.pdfBlobUrl}
-              className="ask-pdf-frame"
+              className="tw:h-80 tw:w-full tw:rounded-lg tw:border tw:border-slate-200 tw:dark:border-slate-800"
             />
           )}
           {data.pdfBlobUrl && data.pdfCanPreview === false && (
-            <div className="ask-mobile-file-note">
-              PDF preview is limited on this device. Download above.
-            </div>
+            <p className="tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">PDF preview is limited on this device. Download above.</p>
           )}
         </div>
       )}
 
       {Array.isArray(data.files) && data.files.length > 0 && (
-        <div className="ask-file-list">
+        <div className="tw:space-y-2">
           {data.files.map((file) => (
-            <div className="ask-file-row" key={`${file.fileName}-${file.token}`}>
-              <div>
-                <h4>{file.label || file.fileName}</h4>
-                <p className="ask-file-meta">{file.fileName}</p>
+            <div key={`${file.fileName}-${file.token}`} className="tw:flex tw:items-center tw:justify-between tw:gap-2 tw:rounded-xl tw:bg-slate-50 tw:p-3 tw:dark:bg-slate-800/60">
+              <div className="tw:min-w-0">
+                <h4 className="tw:truncate tw:text-sm tw:font-semibold">{file.label || file.fileName}</h4>
+                <p className="tw:truncate tw:text-xs tw:text-slate-400">{file.fileName}</p>
               </div>
               <button
                 type="button"
-                className="ask-download-btn ask-download-btn-button"
                 onClick={() => data.onOpenFile?.(file)}
+                className="tw:flex tw:flex-none tw:items-center tw:gap-1.5 tw:rounded-xl tw:bg-brand-600 tw:px-3 tw:py-1.5 tw:text-xs tw:font-semibold tw:text-white tw:hover:bg-brand-500"
               >
-                <HiOutlineArrowDownTray />
-                Download
+                <Download className="tw:h-3.5 tw:w-3.5" /> Download
               </button>
             </div>
           ))}
@@ -233,39 +232,38 @@ function ResponseCard({ message, onSuggestionClick }) {
       )}
 
       {data.whatsappGroup?.url && (
-        <div className="ask-community-card">
+        <div className="tw:flex tw:items-center tw:justify-between tw:gap-3 tw:rounded-xl tw:bg-emerald-50 tw:p-3 tw:dark:bg-emerald-950/30">
           <div>
-            <p className="ask-console-kicker">Community</p>
-            <h4>Need updates from other NOUN students?</h4>
-            <p className="ask-card-summary">Join the WhatsApp group from here for shared updates and discussion.</p>
+            <p className="tw:text-[11px] tw:font-bold tw:tracking-wide tw:text-emerald-700 tw:uppercase tw:dark:text-emerald-300">Community</p>
+            <h4 className="tw:text-sm tw:font-semibold">Need updates from other NOUN students?</h4>
+            <p className="tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">Join the WhatsApp group from here for shared updates and discussion.</p>
           </div>
           <a
             href={data.whatsappGroup.url}
             target="_blank"
             rel="noreferrer"
-            className="ask-whatsapp-btn"
+            className="tw:flex tw:flex-none tw:items-center tw:gap-1.5 tw:rounded-xl tw:bg-emerald-600 tw:px-3 tw:py-1.5 tw:text-xs tw:font-semibold tw:text-white tw:hover:bg-emerald-500"
           >
-            <HiOutlineUsers />
-            {data.whatsappGroup.label || 'Join WhatsApp Group'}
+            <Users className="tw:h-3.5 tw:w-3.5" /> {data.whatsappGroup.label || 'Join Group'}
           </a>
         </div>
       )}
 
       {Array.isArray(data.suggestions) && data.suggestions.length > 0 && (
-        <div className="ask-suggestion-row">
+        <div className="tw:flex tw:flex-wrap tw:gap-2">
           {data.suggestions.map((item) => (
             <button
               key={item}
               type="button"
-              className="ask-chip"
               onClick={() => onSuggestionClick(item)}
+              className="tw:rounded-full tw:border tw:border-slate-200 tw:px-3 tw:py-1.5 tw:text-xs tw:font-semibold tw:text-slate-600 tw:transition-colors tw:hover:bg-slate-50 tw:dark:border-slate-800 tw:dark:text-slate-300 tw:dark:hover:bg-slate-800"
             >
               {item}
             </button>
           ))}
         </div>
       )}
-    </div>
+    </Card>
   );
 }
 
@@ -516,7 +514,7 @@ const Ask = () => {
   };
 
   return (
-    <div className="ask-page">
+    <div className="np-shell tw:space-y-4 tw:p-4">
       <SEO
         title="Past Questions: NOUN Past Questions, Timetable, Matriculation and TMA Help"
         description="Past Questions helps NOUN students find past questions, timetable updates, matriculation information, TMA help, and NOUN study files in one place."
@@ -526,102 +524,92 @@ const Ask = () => {
         structuredData={askStructuredData}
       />
 
-      <div className="container ask-page-container">
-        <section className="ask-hero">
-          <div className="ask-hero-copy">
-            <p className="ask-kicker">Past Questions</p>
-            <h1>Find NOUN past questions with just course codes like GST 101.</h1>
-            <div className="ask-example-stack">
-              {ASK_EXAMPLES.map((example) => (
-                <button
-                  key={example}
-                  type="button"
-                  className="ask-example-card"
-                  onClick={() => submitQuery(example)}
-                  disabled={loading}
-                >
-                  <div className="ask-example-icon">
-                    <HiOutlineMagnifyingGlass />
-                  </div>
-                  <div className="ask-example-content">
-                    <strong>{example}</strong>
-                    <span>Tap to search past questions</span>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="ask-thread-shell" ref={threadShellRef}>
-          <section className="ask-thread-stage">
-            <div className="ask-thread" ref={threadRef}>
-              {messages.map((message) => (
-                <div
-                  key={message.id}
-                  id={`ask-message-${message.id}`}
-                  className={`ask-message ask-message-${message.role}`}
-                >
-                  <div className={`ask-avatar ask-avatar-${message.role}`}>
-                    {message.role === 'assistant' ? <HiOutlineChatBubbleLeftRight /> : <HiOutlineUserCircle />}
-                  </div>
-                  <div className="ask-bubble">
-                    {message.role === 'user' ? (
-                      <p className="ask-user-text">{message.text}</p>
-                    ) : (
-                      <ResponseCard
-                        message={message}
-                        onSuggestionClick={submitQuery}
-                      />
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <form
-              className="ask-composer"
-              onSubmit={(event) => {
-                event.preventDefault();
-                submitQuery();
-              }}
+      <div>
+        <p className="tw:text-xs tw:font-bold tw:tracking-wide tw:text-brand-600 tw:uppercase tw:dark:text-brand-400">Past Questions</p>
+        <h1 className="tw:font-heading tw:mt-1 tw:text-lg tw:font-bold tw:tracking-tight">Find NOUN past questions with just course codes like GST 101.</h1>
+        <div className="tw:mt-3 tw:flex tw:flex-wrap tw:gap-2">
+          {ASK_EXAMPLES.map((example) => (
+            <button
+              key={example}
+              type="button"
+              onClick={() => submitQuery(example)}
+              disabled={loading}
+              className="tw:flex tw:items-center tw:gap-2 tw:rounded-xl tw:border tw:border-slate-200 tw:bg-white tw:px-3 tw:py-2 tw:text-left tw:transition-colors tw:hover:bg-slate-50 tw:disabled:opacity-50 tw:dark:border-slate-800 tw:dark:bg-slate-900 tw:dark:hover:bg-slate-800"
             >
-              <label className="ask-composer-label" htmlFor="ask-input">
-                Enter your course code
-              </label>
-              <div className="ask-form">
-                <textarea
-                  id="ask-input"
-                  className="ask-input"
-                  placeholder="Example: GST 101"
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter' && !event.shiftKey) {
-                      event.preventDefault();
-                      submitQuery();
-                    }
-                  }}
-                  rows={1}
-                />
-                <p className="ask-composer-hint">
-                  Examples: GST 101, ECO 202, MAC 211.
-                </p>
-                <button
-                  type="submit"
-                  className="ask-submit"
-                  disabled={loading}
-                  aria-label="Search Past Questions"
-                  title="Search Past Questions"
-                >
-                  {loading ? <FiLoader className="spin" /> : <HiOutlinePaperAirplane />}
-                  <span>{loading ? 'Searching...' : 'Search Past Questions'}</span>
-                </button>
+              <span className="tw:flex tw:h-8 tw:w-8 tw:flex-none tw:items-center tw:justify-center tw:rounded-lg tw:bg-brand-100 tw:text-brand-600 tw:dark:bg-brand-950 tw:dark:text-brand-300">
+                <Search className="tw:h-4 tw:w-4" />
+              </span>
+              <span>
+                <strong className="tw:block tw:text-sm">{example}</strong>
+                <span className="tw:text-xs tw:text-slate-400">Tap to search past questions</span>
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div ref={threadShellRef} className="tw:space-y-3">
+        <div ref={threadRef} className="tw:space-y-3">
+          {messages.map((message) => (
+            <div
+              key={message.id}
+              id={`ask-message-${message.id}`}
+              className={cn('tw:flex tw:gap-2.5', message.role === 'user' && 'tw:flex-row-reverse')}
+            >
+              <span
+                className={cn(
+                  'tw:flex tw:h-8 tw:w-8 tw:flex-none tw:items-center tw:justify-center tw:rounded-full',
+                  message.role === 'assistant'
+                    ? 'tw:bg-brand-100 tw:text-brand-600 tw:dark:bg-brand-950 tw:dark:text-brand-300'
+                    : 'tw:bg-slate-100 tw:text-slate-500 tw:dark:bg-slate-800 tw:dark:text-slate-400',
+                )}
+              >
+                {message.role === 'assistant' ? <MessageSquare className="tw:h-4 tw:w-4" /> : <UserCircle className="tw:h-4 tw:w-4" />}
+              </span>
+              <div className="tw:min-w-0 tw:flex-1">
+                {message.role === 'user' ? (
+                  <p className="tw:ml-auto tw:w-fit tw:rounded-2xl tw:rounded-tr-sm tw:bg-brand-600 tw:px-3.5 tw:py-2 tw:text-sm tw:text-white">{message.text}</p>
+                ) : (
+                  <ResponseCard message={message} onSuggestionClick={submitQuery} />
+                )}
               </div>
-              {composerError && <div className="ask-error">{composerError}</div>}
-            </form>
-          </section>
-        </section>
+            </div>
+          ))}
+        </div>
+
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            submitQuery();
+          }}
+          className="tw:space-y-1.5"
+        >
+          <label htmlFor="ask-input" className="tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300">
+            Enter your course code
+          </label>
+          <div className="tw:space-y-2">
+            <textarea
+              id="ask-input"
+              placeholder="Example: GST 101"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' && !event.shiftKey) {
+                  event.preventDefault();
+                  submitQuery();
+                }
+              }}
+              rows={2}
+              className="tw:w-full tw:resize-none tw:rounded-xl tw:border tw:border-slate-200 tw:bg-white tw:p-3 tw:text-sm tw:outline-none tw:focus:border-brand-500 tw:dark:border-slate-800 tw:dark:bg-slate-900 tw:dark:text-slate-100"
+            />
+            <p className="tw:text-xs tw:text-slate-400">Examples: GST 101, ECO 202, MAC 211.</p>
+            <Button type="submit" disabled={loading} className="tw:w-full">
+              {loading ? <Loader2 className="tw:h-4 tw:w-4 tw:animate-spin" /> : <Send className="tw:h-4 tw:w-4" />}
+              {loading ? 'Searching...' : 'Search Past Questions'}
+            </Button>
+          </div>
+          {composerError && <p className="tw:text-xs tw:font-medium tw:text-red-600 tw:dark:text-red-400">{composerError}</p>}
+        </form>
       </div>
     </div>
   );

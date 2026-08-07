@@ -68,7 +68,7 @@ const ResetPassword = () => {
       // Redirect to the student explore page after 2 seconds — matches where
       // Login.js/Signup.js send students post-auth (there is no /student-dashboard route).
       setTimeout(() => {
-        navigate(userData.role === 'admin' ? '/admin/upload' : '/explore');
+        navigate(userData.role === 'admin' ? '/admin/upload' : '/home');
       }, 2000);
     } catch (error) {
       console.error('Error:', error);

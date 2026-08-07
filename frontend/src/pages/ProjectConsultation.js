@@ -1,10 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { FiCalendar, FiClock, FiMail, FiPhone, FiSend } from 'react-icons/fi';
+import { Calendar, Clock, Mail, Phone, Send } from 'lucide-react';
 import SEO from '../components/SEO';
 import api from '../utils/api';
 import { trackFeatureVisit } from '../utils/featureTracking';
-import './ProjectConsultation.css';
+import ShellHeader from '../shell/ShellHeader';
+import { Card, CardContent } from '../components/ui/card';
+import { Input } from '../components/ui/input';
+import { Button } from '../components/ui/button';
+import { cn } from '../lib/utils';
+
+const STEPS = [
+  { title: 'Review Consultation', description: 'Assessment, feedback, and guidance across all departments.' },
+  { title: 'Make Payment', description: 'Pay N2,000 to reserve a 2-hour session.' },
+  { title: 'Pick Date & Time', description: 'Choose 9am, 12pm, or 3pm and submit.' },
+];
 
 const ProjectConsultation = () => {
   const location = useLocation();
@@ -126,238 +136,214 @@ const ProjectConsultation = () => {
     }
   };
 
+  const inputClass = 'tw:h-11 tw:w-full tw:rounded-xl tw:border tw:border-slate-200 tw:bg-white tw:px-3.5 tw:text-sm tw:text-slate-900 tw:outline-none tw:transition-colors tw:focus:border-brand-500 tw:dark:border-slate-800 tw:dark:bg-slate-900 tw:dark:text-slate-100';
+
   return (
-    <div className="project-consult-page">
+    <div className="np-shell">
       <SEO
         title="Project Consultation - NounPaddi"
         description="Book a paid consultation to assess your project and identify potential issues."
         url="/projects/consultation"
       />
+      <ShellHeader title="Book a Consultation" />
 
-      <div className="container">
-        <div className="consultation-header">
-          <p className="hero-kicker">Projects Hub</p>
-          <h1>Book a Project Consultation</h1>
-          <p>Two-hour session to assess your project and guide improvements.</p>
+      <div className="tw:space-y-4 tw:p-4">
+        <div>
+          <p className="tw:text-xs tw:font-bold tw:tracking-wide tw:text-brand-600 tw:uppercase tw:dark:text-brand-400">Projects Hub</p>
+          <h1 className="tw:font-heading tw:mt-1 tw:text-xl tw:font-bold tw:tracking-tight">Book a Project Consultation</h1>
+          <p className="tw:mt-1 tw:text-sm tw:text-slate-600 tw:dark:text-slate-300">Two-hour session to assess your project and guide improvements.</p>
         </div>
 
-        <div className="consultation-section">
-          <div className="consultation-timeline">
-            <div className="timeline-step active">
-              <div className="step-dot">1</div>
+        <Card className="tw:space-y-3 tw:p-4">
+          {STEPS.map((step, index) => (
+            <div key={step.title} className="tw:flex tw:items-start tw:gap-3">
+              <span
+                className={cn(
+                  'tw:flex tw:h-7 tw:w-7 tw:flex-none tw:items-center tw:justify-center tw:rounded-full tw:text-xs tw:font-bold',
+                  index === 0
+                    ? 'tw:bg-brand-600 tw:text-white'
+                    : 'tw:bg-slate-100 tw:text-slate-500 tw:dark:bg-slate-800 tw:dark:text-slate-400',
+                )}
+              >
+                {index + 1}
+              </span>
               <div>
-                <h4>Review Consultation</h4>
-                <p>Assessment, feedback, and guidance across all departments.</p>
+                <h4 className="tw:text-sm tw:font-semibold">{step.title}</h4>
+                <p className="tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">{step.description}</p>
               </div>
             </div>
-            <div className="timeline-step">
-              <div className="step-dot">2</div>
-              <div>
-                <h4>Make Payment</h4>
-                <p>Pay N2,000 to reserve a 2-hour session.</p>
-              </div>
+          ))}
+        </Card>
+
+        <Card className="tw:space-y-3 tw:p-4">
+          <h2 className="tw:font-heading tw:text-sm tw:font-bold">What you get</h2>
+          <ul className="tw:list-disc tw:space-y-1 tw:pl-4 tw:text-sm tw:text-slate-600 tw:dark:text-slate-300">
+            <li>Project assessment and risk check.</li>
+            <li>Guidance on structure, originality, and improvement steps.</li>
+            <li>Coverage for all departments: business, agric, health tech, coding, and more.</li>
+          </ul>
+          <div className="tw:grid tw:grid-cols-3 tw:gap-2 tw:border-t tw:border-slate-100 tw:pt-3 tw:dark:border-slate-800">
+            <div>
+              <p className="tw:text-[10px] tw:text-slate-400">Fee</p>
+              <strong className="tw:text-sm">N2,000</strong>
             </div>
-            <div className="timeline-step">
-              <div className="step-dot">3</div>
-              <div>
-                <h4>Pick Date & Time</h4>
-                <p>Choose 9am, 12pm, or 3pm and submit.</p>
-              </div>
+            <div>
+              <p className="tw:text-[10px] tw:text-slate-400">Duration</p>
+              <strong className="tw:text-sm">Up to 2 hrs</strong>
+            </div>
+            <div>
+              <p className="tw:text-[10px] tw:text-slate-400">Time slots</p>
+              <strong className="tw:text-sm">9, 12, 3</strong>
             </div>
           </div>
+          <Link to="/consultation-terms" className="tw:text-xs tw:font-semibold tw:text-brand-600 tw:dark:text-brand-400">
+            View consultation terms
+          </Link>
+        </Card>
 
-          <div className="consultation-info">
-            <div className="consultation-details">
-              <div>
-                <h2>What you get</h2>
-                <ul>
-                  <li>Project assessment and risk check.</li>
-                  <li>Guidance on structure, originality, and improvement steps.</li>
-                  <li>Coverage for all departments: business, agric, health tech, coding, and more.</li>
-                </ul>
-              </div>
-              <div className="consultation-meta">
-                <div className="meta-item">
-                  <span>Fee</span>
-                  <strong>N2,000</strong>
-                </div>
-                <div className="meta-item">
-                  <span>Duration</span>
-                  <strong>Up to 2 hours</strong>
-                </div>
-                <div className="meta-item">
-                  <span>Time slots</span>
-                  <strong>9:00 AM, 12:00 PM, 3:00 PM</strong>
-                </div>
-                <Link to="/consultation-terms" className="terms-link">
-                  View consultation terms
-                </Link>
-              </div>
-              <div className="consultation-payment">
-                <h3>Payment + Form</h3>
-                <p>Complete the form. We will verify payment automatically.</p>
-              </div>
+        <Card>
+          <CardContent className="tw:space-y-4 tw:p-5">
+            <div>
+              <h2 className="tw:font-heading tw:text-base tw:font-bold">Consultation form</h2>
+              <p className="tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">Tell us about your project and pick a time slot.</p>
             </div>
-          </div>
-
-          <div className="consultation-form-card">
-            <h2>Consultation form</h2>
-            <p>Tell us about your project and pick a time slot.</p>
-            <form onSubmit={handlePayAndSubmit} className="consultation-form">
-              <div className="form-row">
-                <div className="form-group">
-                  <label className="form-label">Full name</label>
-                  <input
+            <form onSubmit={handlePayAndSubmit} className="tw:space-y-4">
+              <div className="tw:grid tw:grid-cols-1 tw:gap-3 tw:sm:grid-cols-2">
+                <label className="tw:block tw:space-y-1.5">
+                  <span className="tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300">Full name</span>
+                  <Input
                     type="text"
-                    className="form-control"
                     value={consultationForm.fullName}
                     onChange={(event) => handleConsultationChange('fullName', event.target.value)}
                     placeholder="Your name"
                     required
                   />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Email</label>
-                  <input
+                </label>
+                <label className="tw:block tw:space-y-1.5">
+                  <span className="tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300">Email</span>
+                  <Input
                     type="email"
-                    className="form-control"
                     value={consultationForm.email}
                     onChange={(event) => handleConsultationChange('email', event.target.value)}
                     placeholder="you@example.com"
                     required
                   />
-                </div>
+                </label>
               </div>
 
-              <div className="form-row">
-                <div className="form-group">
-                  <label className="form-label">
-                    <FiPhone /> Phone number
-                  </label>
-                  <input
+              <div className="tw:grid tw:grid-cols-1 tw:gap-3 tw:sm:grid-cols-2">
+                <label className="tw:block tw:space-y-1.5">
+                  <span className="tw:flex tw:items-center tw:gap-1 tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300"><Phone className="tw:h-3.5 tw:w-3.5" /> Phone number</span>
+                  <Input
                     type="tel"
-                    className="form-control"
                     value={consultationForm.phone}
                     onChange={(event) => handleConsultationChange('phone', event.target.value)}
                     placeholder="0800 000 0000"
                     required
                   />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">
-                    <FiMail /> Department
-                  </label>
-                  <input
+                </label>
+                <label className="tw:block tw:space-y-1.5">
+                  <span className="tw:flex tw:items-center tw:gap-1 tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300"><Mail className="tw:h-3.5 tw:w-3.5" /> Department</span>
+                  <Input
                     type="text"
-                    className="form-control"
                     value={consultationForm.department}
                     onChange={(event) => handleConsultationChange('department', event.target.value)}
                     placeholder="e.g. Business, Agric, Health Tech, Coding"
                     required
                   />
-                </div>
+                </label>
               </div>
 
-              <div className="form-group">
-                <label className="form-label">Project title</label>
-                <input
+              <label className="tw:block tw:space-y-1.5">
+                <span className="tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300">Project title</span>
+                <Input
                   type="text"
-                  className="form-control"
                   value={consultationForm.projectTitle}
                   onChange={(event) => handleConsultationChange('projectTitle', event.target.value)}
                   placeholder="Project title"
                   required
                 />
-              </div>
+              </label>
 
-              <div className="form-group">
-                <label className="form-label">Project issues or goals</label>
+              <label className="tw:block tw:space-y-1.5">
+                <span className="tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300">Project issues or goals</span>
                 <textarea
-                  className="form-control"
-                  rows="4"
+                  rows={4}
                   value={consultationForm.issueSummary}
                   onChange={(event) => handleConsultationChange('issueSummary', event.target.value)}
                   placeholder="Describe the help you need (structure, originality, research scope, etc.)"
                   required
+                  className="tw:w-full tw:resize-none tw:rounded-xl tw:border tw:border-slate-200 tw:bg-white tw:p-3 tw:text-sm tw:outline-none tw:focus:border-brand-500 tw:dark:border-slate-800 tw:dark:bg-slate-900 tw:dark:text-slate-100"
                 />
-              </div>
+              </label>
 
-              <div className="form-row">
-                <div className="form-group">
-                  <label className="form-label">
-                    <FiCalendar /> Preferred date
-                  </label>
-                  <input
+              <div className="tw:grid tw:grid-cols-1 tw:gap-3 tw:sm:grid-cols-2">
+                <label className="tw:block tw:space-y-1.5">
+                  <span className="tw:flex tw:items-center tw:gap-1 tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300"><Calendar className="tw:h-3.5 tw:w-3.5" /> Preferred date</span>
+                  <Input
                     type="date"
-                    className="form-control"
                     value={consultationForm.preferredDate}
                     onChange={(event) => handleConsultationChange('preferredDate', event.target.value)}
                     min={minConsultDate}
                     required
                   />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">
-                    <FiClock /> Time slot
-                  </label>
+                </label>
+                <label className="tw:block tw:space-y-1.5">
+                  <span className="tw:flex tw:items-center tw:gap-1 tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300"><Clock className="tw:h-3.5 tw:w-3.5" /> Time slot</span>
                   <select
-                    className="form-control"
                     value={consultationForm.preferredTime}
                     onChange={(event) => handleConsultationChange('preferredTime', event.target.value)}
                     required
+                    className={inputClass}
                   >
                     <option value="09:00">9:00 AM</option>
                     <option value="12:00">12:00 PM</option>
                     <option value="15:00">3:00 PM</option>
                   </select>
-                </div>
+                </label>
               </div>
 
-              <div className="form-group">
-                <label className="form-label">Payment reference (optional)</label>
-                <input
+              <label className="tw:block tw:space-y-1.5">
+                <span className="tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300">Payment reference (optional)</span>
+                <Input
                   type="text"
-                  className="form-control"
                   value={consultationForm.paymentReference}
                   onChange={(event) => handleConsultationChange('paymentReference', event.target.value)}
                   placeholder="Flutterwave reference"
                 />
-              </div>
+              </label>
 
-              <div className="form-check">
+              <label className="tw:flex tw:items-center tw:gap-2 tw:text-sm">
                 <input
                   type="checkbox"
                   id="consult-terms"
                   checked={consultationForm.acceptedTerms}
                   onChange={(event) => handleConsultationChange('acceptedTerms', event.target.checked)}
                   required
+                  className="tw:h-4 tw:w-4 tw:accent-brand-600"
                 />
-                <label htmlFor="consult-terms">I agree to the consultation terms.</label>
-              </div>
+                I agree to the consultation terms.
+              </label>
 
               {paymentStatus.error && (
-                <div className="alert alert-danger">{paymentStatus.error}</div>
+                <div className="tw:rounded-xl tw:bg-red-100 tw:px-3.5 tw:py-2.5 tw:text-sm tw:text-red-700 tw:dark:bg-red-500/15 tw:dark:text-red-300">{paymentStatus.error}</div>
               )}
               {paymentStatus.loading && (
-                <div className="alert alert-info">Verifying payment. Please wait...</div>
+                <div className="tw:rounded-xl tw:bg-blue-100 tw:px-3.5 tw:py-2.5 tw:text-sm tw:text-blue-700 tw:dark:bg-blue-500/15 tw:dark:text-blue-300">Verifying payment. Please wait...</div>
               )}
               {consultationStatus.error && (
-                <div className="alert alert-danger">{consultationStatus.error}</div>
+                <div className="tw:rounded-xl tw:bg-red-100 tw:px-3.5 tw:py-2.5 tw:text-sm tw:text-red-700 tw:dark:bg-red-500/15 tw:dark:text-red-300">{consultationStatus.error}</div>
               )}
               {consultationStatus.success && (
-                <div className="alert alert-success">{consultationStatus.success}</div>
+                <div className="tw:rounded-xl tw:bg-emerald-100 tw:px-3.5 tw:py-2.5 tw:text-sm tw:text-emerald-700 tw:dark:bg-emerald-950 tw:dark:text-emerald-300">{consultationStatus.success}</div>
               )}
 
-              <button type="submit" className="btn btn-primary" disabled={paymentStatus.loading}>
-                {paymentStatus.loading ? 'Redirecting to payment...' : (
-                  <>
-                    <FiSend /> Pay & Submit Consultation
-                  </>
-                )}
-              </button>
+              <Button type="submit" disabled={paymentStatus.loading} className="tw:w-full">
+                {paymentStatus.loading ? 'Redirecting to payment...' : <><Send className="tw:h-4 tw:w-4" /> Pay &amp; Submit Consultation</>}
+              </Button>
             </form>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

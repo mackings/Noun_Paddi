@@ -254,7 +254,7 @@ const Signup = () => {
         navigate(redirect);
         return;
       }
-      navigate(formData.role === 'admin' ? '/admin/upload' : '/explore');
+      navigate(formData.role === 'admin' ? '/admin/upload' : '/home');
     } catch (err) {
       const message = err.response?.data?.message || 'Failed to create account';
       const serverFieldErrors = {};

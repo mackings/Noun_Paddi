@@ -3,8 +3,12 @@ import { Link } from 'react-router-dom';
 import api from '../utils/api';
 import { trackFeatureVisit } from '../utils/featureTracking';
 import SEO from '../components/SEO';
-import { FiSearch, FiBook, FiArrowRight, FiAward, FiUpload } from 'react-icons/fi';
-import './Explore.css';
+import { Search, BookOpen, ArrowRight, Award, Upload, Loader2, X } from 'lucide-react';
+import ShellHeader from '../shell/ShellHeader';
+import { Card } from '../components/ui/card';
+import { Input } from '../components/ui/input';
+import { Button } from '../components/ui/button';
+import { cn } from '../lib/utils';
 
 const normalizeSearchValue = (value) => String(value || '').toLowerCase().trim();
 const compactSearchValue = (value) => normalizeSearchValue(value).replace(/[^a-z0-9]/g, '');
@@ -156,190 +160,165 @@ const Explore = () => {
   }, [trimmedSearch, allowAutoScroll, courses.length, loading]);
 
   const structuredData = {
-    "@context": "https://schema.org",
-    "@type": "EducationalOrganization",
-    "name": "NounPaddi",
-    "description": "Comprehensive course materials and study resources for National Open University of Nigeria (NOUN) students",
-    "url": "https://paddi.com.ng",
-    "numberOfCourses": courses.length,
-    "educationalLevel": "Higher Education",
-    "areaServed": {
-      "@type": "Country",
-      "name": "Nigeria"
-    }
+    '@context': 'https://schema.org',
+    '@type': 'EducationalOrganization',
+    name: 'NounPaddi',
+    description: 'Comprehensive course materials and study resources for National Open University of Nigeria (NOUN) students',
+    url: 'https://paddi.com.ng',
+    numberOfCourses: courses.length,
+    educationalLevel: 'Higher Education',
+    areaServed: { '@type': 'Country', name: 'Nigeria' },
   };
 
   return (
-    <div className="explore-container">
+    <div className="np-shell tw:space-y-5 tw:p-4">
       <SEO
         title="Explore NOUN Courses & Study Materials - NounPaddi"
         description="Browse comprehensive course materials, practice questions, and study resources for all NOUN faculties. Access personalized learning materials to excel in your studies."
-        url="/explore"
+        url="/courses"
         keywords="NOUN courses, study materials, course materials Nigeria, NOUN faculties, e-learning resources, distance learning materials, NOUN study guide"
         robots="noindex, nofollow"
         structuredData={structuredData}
       />
-      <div className="container">
-        <div className="explore-header">
-          <h1>Explore Courses</h1>
-          <p>Discover personalized study materials and master your subjects with confidence</p>
-        </div>
+      <ShellHeader title="Explore Courses" className="tw:-mx-4 tw:-mt-4" />
 
-        <div className="summary-cta">
-          <div className="summary-cta-card">
-            <div>
-              <p className="summary-cta-kicker">Get course summary</p>
-              <h2>Upload your material to generate summaries</h2>
-              <p>Head to the upload flow to get a clean summary and practice questions for any course.</p>
-            </div>
-            <Link to="/dashboard?upload=1" className="summary-cta-button">
-              <FiUpload size={18} />
-              Get Course Summary
-            </Link>
-          </div>
+      <Card className="tw:flex tw:flex-col tw:gap-3 tw:bg-brand-600 tw:p-5 tw:text-white tw:border-none">
+        <div>
+          <p className="tw:text-xs tw:font-bold tw:tracking-wide tw:text-brand-100 tw:uppercase">Get course summary</p>
+          <h2 className="tw:font-heading tw:mt-1 tw:text-base tw:font-bold">Upload your material to generate summaries</h2>
+          <p className="tw:mt-1 tw:text-sm tw:text-brand-100">Head to the upload flow to get a clean summary and practice questions for any course.</p>
         </div>
+        <Link
+          to="/dashboard?upload=1"
+          className="tw:inline-flex tw:w-fit tw:items-center tw:gap-2 tw:rounded-xl tw:bg-white tw:px-4 tw:py-2 tw:text-sm tw:font-semibold tw:text-brand-700 tw:transition-colors tw:hover:bg-brand-50"
+        >
+          <Upload className="tw:h-4 tw:w-4" /> Get Course Summary
+        </Link>
+      </Card>
 
-        {/* Search Bar */}
-        <div className="search-section">
-          <div className="search-shell">
-            <div className="search-shell-header">
-              <div>
-                <p className="search-kicker">Find a course fast</p>
-                <h2>Search by course code or title</h2>
-              </div>
-              {trimmedSearch && !searchError && (
-                <div className="search-results-pill">
-                  {courses.length} result{courses.length === 1 ? '' : 's'}
-                </div>
-              )}
-            </div>
-            <div className="search-bar">
-              <FiSearch className="search-icon" />
-              <input
-                ref={searchInputRef}
-                type="text"
-                placeholder="Try GST101, MTH202, or Computer Science..."
-                value={searchQuery}
-                onChange={handleSearchInput}
-                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                className="search-input"
-              />
-              {trimmedSearch && (
-                <button
-                  type="button"
-                  className="search-clear-btn"
-                  onClick={() => {
-                    setSearchError('');
-                    setSearchQuery('');
-                    applyFilters('', selectedFaculty);
-                    searchInputRef.current?.focus();
-                  }}
-                >
-                  Clear
-                </button>
-              )}
-              <button className="search-btn" onClick={() => handleSearch()}>
-                Search
-              </button>
-            </div>
-            {searchError && <p className="search-error">{searchError}</p>}
-            <p className="search-helper">
-              Search works across all courses. Faculty filters still apply when no search term is entered.
-            </p>
-          </div>
-        </div>
-
-        {/* Faculties Filter */}
-        <div className="faculties-section">
-          <h2>Filter by Faculty</h2>
-          <div className="faculty-chips">
-            <button
-              className={`faculty-chip ${!selectedFaculty ? 'active' : ''}`}
-              onClick={() => {
-                setSelectedFaculty(null);
-                setSearchQuery('');
-                applyFilters('', null);
-              }}
-            >
-              All
-            </button>
-            {faculties.map((faculty) => (
-              <button
-                key={faculty._id}
-                className={`faculty-chip ${selectedFaculty === faculty._id ? 'active' : ''}`}
-                onClick={() => handleFacultyClick(faculty._id)}
-              >
-                {faculty.name}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Courses Grid */}
-        <div className="courses-section" ref={resultsRef}>
-          <div className="courses-header">
-            <h2>{trimmedSearch ? 'Search Results' : 'Available Courses'}</h2>
-            <Link className="view-all-courses-btn" to="/courses">
-              View All Courses
-            </Link>
-          </div>
-          
-          {loading ? (
-            <div className="loading-container">
-              <div className="loading-header">
-                <div>
-                  <h3>Loading courses</h3>
-                  <p>Preparing the latest catalog for you.</p>
-                </div>
-                <div className="loading-pulse"></div>
-              </div>
-              <div className="loading-grid">
-                {Array.from({ length: 6 }).map((_, index) => (
-                  <div key={index} className="course-skeleton">
-                    <div className="skeleton-icon"></div>
-                    <div className="skeleton-line wide"></div>
-                    <div className="skeleton-line"></div>
-                    <div className="skeleton-chip"></div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : displayedCourses.length === 0 ? (
-            <div className="no-results">
-              <div className="no-results-icon">
-                <FiBook />
-              </div>
-              <p>No courses found. Try adjusting your search or filter.</p>
-            </div>
-          ) : (
-            <div className="grid grid-3">
-              {displayedCourses.map((course) => (
-                <Link
-                  key={course._id}
-                  to={`/course/${course._id}`}
-                  className="course-card"
-                >
-                  <div className="course-header">
-                    <div className="course-icon">
-                      <FiBook />
-                    </div>
-                    <div className="course-info">
-                      <div className="course-code">{course.courseCode}</div>
-                    </div>
-                  </div>
-                  <h3>{course.courseName}</h3>
-                  <div className="course-footer">
-                    <div className="course-credits">
-                      <FiAward size={16} />
-                      <span>{course.creditUnits || 3} Units</span>
-                    </div>
-                    <FiArrowRight className="course-arrow" />
-                  </div>
-                </Link>
-              ))}
-            </div>
+      <div className="tw:space-y-2">
+        <div className="tw:flex tw:items-center tw:justify-between">
+          <h2 className="tw:font-heading tw:text-sm tw:font-bold">Search by course code or title</h2>
+          {trimmedSearch && !searchError && (
+            <span className="tw:rounded-full tw:bg-brand-100 tw:px-2 tw:py-0.5 tw:text-[11px] tw:font-semibold tw:text-brand-700 tw:dark:bg-brand-950 tw:dark:text-brand-300">
+              {courses.length} result{courses.length === 1 ? '' : 's'}
+            </span>
           )}
         </div>
+        <div className="tw:relative tw:flex tw:items-center tw:gap-2">
+          <div className="tw:relative tw:flex-1">
+            <Search className="tw:pointer-events-none tw:absolute tw:top-1/2 tw:left-3.5 tw:h-4 tw:w-4 tw:-translate-y-1/2 tw:text-slate-400" />
+            <Input
+              ref={searchInputRef}
+              type="text"
+              placeholder="Try GST101, MTH202, or Computer Science..."
+              value={searchQuery}
+              onChange={handleSearchInput}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              className="tw:pr-9 tw:pl-10"
+            />
+            {trimmedSearch && (
+              <button
+                type="button"
+                aria-label="Clear search"
+                className="tw:absolute tw:top-1/2 tw:right-2.5 tw:-translate-y-1/2 tw:rounded-full tw:p-1 tw:text-slate-400 tw:hover:bg-slate-100 tw:dark:hover:bg-slate-800"
+                onClick={() => {
+                  setSearchError('');
+                  setSearchQuery('');
+                  applyFilters('', selectedFaculty);
+                  searchInputRef.current?.focus();
+                }}
+              >
+                <X className="tw:h-3.5 tw:w-3.5" />
+              </button>
+            )}
+          </div>
+          <Button size="default" onClick={() => handleSearch()}>Search</Button>
+        </div>
+        {searchError && <p className="tw:text-xs tw:font-medium tw:text-red-600 tw:dark:text-red-400">{searchError}</p>}
+        <p className="tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">
+          Search works across all courses. Faculty filters still apply when no search term is entered.
+        </p>
+      </div>
+
+      <div className="tw:space-y-2">
+        <h2 className="tw:font-heading tw:text-sm tw:font-bold">Filter by Faculty</h2>
+        <div className="tw:flex tw:flex-wrap tw:gap-2">
+          <button
+            type="button"
+            className={cn(
+              'tw:rounded-full tw:border tw:px-3 tw:py-1.5 tw:text-xs tw:font-semibold tw:transition-colors',
+              !selectedFaculty
+                ? 'tw:border-brand-600 tw:bg-brand-600 tw:text-white'
+                : 'tw:border-slate-200 tw:text-slate-600 tw:hover:bg-slate-50 tw:dark:border-slate-800 tw:dark:text-slate-300 tw:dark:hover:bg-slate-800',
+            )}
+            onClick={() => {
+              setSelectedFaculty(null);
+              setSearchQuery('');
+              applyFilters('', null);
+            }}
+          >
+            All
+          </button>
+          {faculties.map((faculty) => (
+            <button
+              key={faculty._id}
+              type="button"
+              className={cn(
+                'tw:rounded-full tw:border tw:px-3 tw:py-1.5 tw:text-xs tw:font-semibold tw:transition-colors',
+                selectedFaculty === faculty._id
+                  ? 'tw:border-brand-600 tw:bg-brand-600 tw:text-white'
+                  : 'tw:border-slate-200 tw:text-slate-600 tw:hover:bg-slate-50 tw:dark:border-slate-800 tw:dark:text-slate-300 tw:dark:hover:bg-slate-800',
+              )}
+              onClick={() => handleFacultyClick(faculty._id)}
+            >
+              {faculty.name}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div ref={resultsRef} className="tw:space-y-3">
+        <div className="tw:flex tw:items-center tw:justify-between">
+          <h2 className="tw:font-heading tw:text-sm tw:font-bold">{trimmedSearch ? 'Search Results' : 'Available Courses'}</h2>
+          <Link to="/courses/all" className="tw:text-xs tw:font-semibold tw:text-brand-600 tw:dark:text-brand-400">
+            View All Courses
+          </Link>
+        </div>
+
+        {loading ? (
+          <div className="tw:flex tw:flex-col tw:items-center tw:gap-2 tw:py-16 tw:text-slate-500 tw:dark:text-slate-400">
+            <Loader2 className="tw:h-6 tw:w-6 tw:animate-spin" />
+            <p className="tw:text-sm">Loading courses...</p>
+          </div>
+        ) : displayedCourses.length === 0 ? (
+          <Card className="tw:flex tw:flex-col tw:items-center tw:gap-2 tw:p-8 tw:text-center">
+            <BookOpen className="tw:h-6 tw:w-6 tw:text-slate-400" />
+            <p className="tw:text-sm tw:text-slate-500 tw:dark:text-slate-400">No courses found. Try adjusting your search or filter.</p>
+          </Card>
+        ) : (
+          <div className="tw:grid tw:grid-cols-2 tw:gap-3">
+            {displayedCourses.map((course) => (
+              <Link key={course._id} to={`/course/${course._id}`} className="tw:block">
+                <Card interactive className="tw:flex tw:h-full tw:flex-col tw:gap-2 tw:p-4">
+                  <span className="tw:flex tw:h-9 tw:w-9 tw:items-center tw:justify-center tw:rounded-lg tw:bg-brand-100 tw:text-brand-600 tw:dark:bg-brand-950 tw:dark:text-brand-300">
+                    <BookOpen className="tw:h-4 tw:w-4" />
+                  </span>
+                  <div>
+                    <p className="tw:text-xs tw:font-bold tw:text-slate-500 tw:dark:text-slate-400">{course.courseCode}</p>
+                    <h3 className="tw:font-heading tw:text-sm tw:font-bold tw:leading-snug">{course.courseName}</h3>
+                  </div>
+                  <div className="tw:mt-auto tw:flex tw:items-center tw:justify-between tw:pt-1">
+                    <span className="tw:flex tw:items-center tw:gap-1 tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">
+                      <Award className="tw:h-3.5 tw:w-3.5" /> {course.creditUnits || 3} Units
+                    </span>
+                    <ArrowRight className="tw:h-4 tw:w-4 tw:text-brand-500" />
+                  </div>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

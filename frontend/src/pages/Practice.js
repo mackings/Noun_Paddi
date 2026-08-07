@@ -1,11 +1,22 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import {
+  Award,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  Loader2,
+  ChevronRight,
+} from 'lucide-react';
 import api from '../utils/api';
 import SEO from '../components/SEO';
 import { convertHalfToTrueFalse } from '../utils/questionTransformer';
 import { trackFeatureVisit } from '../utils/featureTracking';
-import { FiCheckCircle, FiXCircle, FiAward } from 'react-icons/fi';
-import './Practice.css';
+import ShellHeader from '../shell/ShellHeader';
+import { Card, CardContent } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { Badge } from '../components/ui/badge';
+import { cn } from '../lib/utils';
 
 const Practice = () => {
   const expectedQuestionCount = 70;
@@ -454,14 +465,56 @@ const Practice = () => {
     setShowResult(false);
   };
 
+  const gradePopAnswers = async () => {
+    setPopGrading(true);
+    try {
+      const reviewItems = examQuestions.flatMap((question) =>
+        (question.parts || []).map((part) => {
+          const key = `${question.number}${part.label}`;
+          return {
+            key,
+            number: question.number,
+            label: part.label,
+            text: part.text,
+            maxScore: part.marks,
+            answer: popAnswers[key] || '',
+          };
+        })
+      );
+      const payload = reviewItems.map((item) => ({
+        question: `Question ${item.number} (${item.label}) ${item.text}`,
+        answer: item.answer,
+        maxScore: item.maxScore,
+      }));
+      const response = await api.post('/questions/pop-grade', {
+        answers: payload,
+      });
+      const graded = response.data.data;
+      const items = Array.isArray(graded?.items) ? graded.items : [];
+      const merged = reviewItems.map((item, idx) => ({
+        ...item,
+        score: items[idx]?.score ?? 0,
+        feedback: items[idx]?.feedback || '',
+        modelAnswer: items[idx]?.modelAnswer || '',
+      }));
+      setPopReviewItems(merged);
+      setPopGradeResult(graded);
+      return true;
+    } catch (error) {
+      console.error('POP grading error:', error);
+      return false;
+    } finally {
+      setPopGrading(false);
+    }
+  };
+
   const examQuestions = examMode === 'pop' ? popQuestions : questions;
 
   if (loading) {
     return (
-      <div className="practice-container">
-        <div className="container">
-          <div className="spinner"></div>
-        </div>
+      <div className="np-shell tw:flex tw:flex-col tw:items-center tw:gap-2 tw:py-16 tw:text-slate-500 tw:dark:text-slate-400">
+        <Loader2 className="tw:h-6 tw:w-6 tw:animate-spin" />
+        <p className="tw:text-sm">Loading questions...</p>
       </div>
     );
   }
@@ -474,237 +527,172 @@ const Practice = () => {
     const popMaxTotal = popGradeResult?.maxTotal || 0;
     const popPercentage = popMaxTotal > 0 ? (popTotalScore / popMaxTotal) * 100 : 0;
     const hasPopFeedback = popGradeResult && popReviewItems.length > 0;
+
     return (
-      <div className="practice-container">
-        <div className="container">
-          <div className={`exam-results ${examMode === 'pop' ? 'exam-results-pop' : ''}`}>
-            <FiAward size={64} className="result-icon" />
-            <h1>Exam Complete!</h1>
-            {examMode === 'e-exam' ? (
-              <>
-                <div className="score-display">
-                  <span className="score-number">{score}</span>
-                  <span className="score-total">/ {totalQuestions}</span>
-                </div>
-                <div className="percentage-display">
-                  {percentage.toFixed(0)}% Score
-                </div>
-                <div className="result-message">
-                  {percentage >= 70 ? (
-                    <p className="text-success">Great job! You passed!</p>
-                  ) : (
-                    <p className="text-warning">Keep practicing to improve!</p>
-                  )}
-                  {!isLoggedIn && (
-                    <p className="public-practice-note">
-                      Sign in if you want future exam scores saved to the leaderboard.
-                    </p>
-                  )}
-                </div>
-              </>
-            ) : (
-              <>
-                {popGradeResult ? (
-                  <>
-                    <div className="pop-score-sheet">
-                      <div className="pop-score-header">
-                        <div>
-                          <h2>POP Exam Score Sheet</h2>
-                          <p>System‑graded summary with feedback and model answers.</p>
-                        </div>
-                        <div className="pop-score-chip">
-                          {popPercentage.toFixed(0)}%
-                        </div>
-                      </div>
-                      <div className="pop-score-metrics">
-                        <div className="pop-metric">
-                          <span>Total Score</span>
-                          <strong>{popTotalScore.toFixed(1)} / {popMaxTotal}</strong>
-                        </div>
-                        <div className="pop-metric">
-                          <span>Answered</span>
-                          <strong>{popAnswerCount} parts</strong>
-                        </div>
-                        <div className="pop-metric">
-                          <span>Status</span>
-                          <strong>{popPercentage >= 70 ? 'Passed' : 'Needs Improvement'}</strong>
-                        </div>
-                      </div>
-                    </div>
+      <div className="np-shell">
+        <ShellHeader title="Exam Results" />
+        <div className="tw:space-y-4 tw:p-4">
 
-                    {hasPopFeedback && (
-                      <div className="pop-feedback">
-                        <h3>Feedback by Question</h3>
-                        <div className="pop-feedback-list">
-                          {popReviewItems.map((item, index) => {
-                            const isFullScore = item.score >= item.maxScore;
-                            return (
-                              <div key={`${item.key}-${index}`} className="pop-feedback-card">
-                                <div className="pop-feedback-header">
-                                  <div>
-                                    <span className="pop-question-label">
-                                      Question {item.number} ({item.label})
-                                    </span>
-                                    <p>{item.text}</p>
-                                  </div>
-                                  <span className={`pop-score-pill ${isFullScore ? 'success' : 'warning'}`}>
-                                    {item.score} / {item.maxScore}
-                                  </span>
-                                </div>
-                                <div className="pop-feedback-body">
-                                  <div>
-                                    <h4>Your Answer</h4>
-                                    <p>{item.answer || 'No answer provided.'}</p>
-                                  </div>
-                                  <div>
-                                    <h4>Feedback</h4>
-                                    <p>{item.feedback || 'No feedback provided.'}</p>
-                                  </div>
-                                  <div>
-                                    <h4>Model Answer</h4>
-                                    <p>{item.modelAnswer || 'No model answer provided.'}</p>
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    <div className="score-display">
-                      <span className="score-number">{popAnswerCount}</span>
-                      <span className="score-total">/ {examQuestions.length}</span>
-                    </div>
-                    <div className="percentage-display">
-                      Answers Drafted
-                    </div>
-                    <div className="result-message">
-                      <p className="text-secondary">Submit for system grading to see your score.</p>
-                    </div>
-                  </>
-                )}
-              </>
-            )}
+        <Card className="tw:flex tw:flex-col tw:items-center tw:gap-2 tw:p-6 tw:text-center">
+          <span className="tw:flex tw:h-14 tw:w-14 tw:items-center tw:justify-center tw:rounded-full tw:bg-brand-100 tw:text-brand-600 tw:dark:bg-brand-950 tw:dark:text-brand-300">
+            <Award className="tw:h-7 tw:w-7" />
+          </span>
+          <h1 className="tw:font-heading tw:text-lg tw:font-bold">Exam Complete!</h1>
 
-            {/* My Rank */}
-            {examMode === 'e-exam' && myRank && (
-              <div className="my-rank-card">
-                <h3>Your Ranking</h3>
-                <div className="rank-details">
-                  <div className="rank-item">
-                    <span className="rank-label">Rank</span>
-                    <span className="rank-value">#{myRank.rank}</span>
-                  </div>
-                  <div className="rank-item">
-                    <span className="rank-label">Score</span>
-                    <span className="rank-value">{myRank.percentage.toFixed(1)}%</span>
-                  </div>
-                  <div className="rank-item">
-                    <span className="rank-label">Time</span>
-                    <span className="rank-value">{Math.floor(myRank.timeTaken / 60)}m {myRank.timeTaken % 60}s</span>
-                  </div>
-                </div>
+          {examMode === 'e-exam' ? (
+            <>
+              <div className="tw:mt-1 tw:flex tw:items-end tw:gap-1">
+                <span className="tw:font-heading tw:text-4xl tw:font-bold tw:text-brand-600 tw:dark:text-brand-400">{score}</span>
+                <span className="tw:pb-1 tw:text-sm tw:text-slate-400">/ {totalQuestions}</span>
               </div>
-            )}
-
-            {/* Leaderboard */}
-            {examMode === 'e-exam' && leaderboard.length > 0 && (
-              <div className="leaderboard-section">
-                <h2>🏆 Top 10 Leaderboard</h2>
-                <div className="leaderboard-table">
-                  <div className="leaderboard-header">
-                    <div className="rank-col">Rank</div>
-                    <div className="name-col">Student</div>
-                    <div className="score-col">Score</div>
-                    <div className="time-col">Time</div>
-                  </div>
-                  {leaderboard.map((entry, index) => (
-                    <div
-                      key={entry._id}
-                      className={`leaderboard-row ${entry.rank <= 3 ? 'top-rank' : ''} ${myRank && entry.rank === myRank.rank ? 'my-rank-row' : ''}`}
-                    >
-                      <div className="rank-col">
-                        {entry.rank === 1 && '🥇'}
-                        {entry.rank === 2 && '🥈'}
-                        {entry.rank === 3 && '🥉'}
-                        {entry.rank > 3 && `#${entry.rank}`}
-                      </div>
-                      <div className="name-col">{entry.studentName}</div>
-                      <div className="score-col">
-                        {entry.score}/{entry.totalQuestions} ({entry.percentage.toFixed(1)}%)
-                      </div>
-                      <div className="time-col">
-                        {Math.floor(entry.timeTaken / 60)}m {entry.timeTaken % 60}s
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div className="exam-actions">
-              <button onClick={resetExam} className="btn btn-primary">
-                Take Another Exam
-              </button>
-              <button onClick={goToDashboardLeaderboard} className="btn btn-secondary">
-                View Leaderboard
-              </button>
-              <button onClick={goToSelectedCourse} className="btn btn-secondary">
-                Back to Course
-              </button>
-              {examMode === 'pop' && !popGradeResult && (
-                <button
-                  onClick={async () => {
-                    setPopGrading(true);
-                    try {
-                      const reviewItems = examQuestions.flatMap((question) =>
-                        (question.parts || []).map((part) => {
-                          const key = `${question.number}${part.label}`;
-                          return {
-                            key,
-                            number: question.number,
-                            label: part.label,
-                            text: part.text,
-                            maxScore: part.marks,
-                            answer: popAnswers[key] || '',
-                          };
-                        })
-                      );
-                      const payload = reviewItems.map((item) => ({
-                        question: `Question ${item.number} (${item.label}) ${item.text}`,
-                        answer: item.answer,
-                        maxScore: item.maxScore,
-                      }));
-                      const response = await api.post('/questions/pop-grade', {
-                        answers: payload,
-                      });
-                      const graded = response.data.data;
-                      const items = Array.isArray(graded?.items) ? graded.items : [];
-                      const merged = reviewItems.map((item, idx) => ({
-                        ...item,
-                        score: items[idx]?.score ?? 0,
-                        feedback: items[idx]?.feedback || '',
-                        modelAnswer: items[idx]?.modelAnswer || '',
-                      }));
-                      setPopReviewItems(merged);
-                      setPopGradeResult(graded);
-                    } catch (error) {
-                      console.error('POP grading error:', error);
-                    } finally {
-                      setPopGrading(false);
-                    }
-                  }}
-                  className="btn btn-secondary"
-                  disabled={popGrading}
-                >
-                  {popGrading ? 'Grading...' : 'Grade POP Answers'}
-                </button>
+              <Badge variant={percentage >= 70 ? 'success' : 'warning'}>{percentage.toFixed(0)}% Score</Badge>
+              <p className={cn('tw:mt-1 tw:text-sm tw:font-semibold', percentage >= 70 ? 'tw:text-emerald-600 tw:dark:text-emerald-400' : 'tw:text-amber-600 tw:dark:text-amber-400')}>
+                {percentage >= 70 ? 'Great job! You passed!' : 'Keep practicing to improve!'}
+              </p>
+              {!isLoggedIn && (
+                <p className="tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">
+                  Sign in if you want future exam scores saved to the leaderboard.
+                </p>
               )}
+            </>
+          ) : (
+            <>
+              {popGradeResult ? (
+                <div className="tw:mt-1 tw:flex tw:items-end tw:gap-1">
+                  <span className="tw:font-heading tw:text-4xl tw:font-bold tw:text-brand-600 tw:dark:text-brand-400">{popTotalScore.toFixed(1)}</span>
+                  <span className="tw:pb-1 tw:text-sm tw:text-slate-400">/ {popMaxTotal} ({popPercentage.toFixed(0)}%)</span>
+                </div>
+              ) : (
+                <div className="tw:mt-1 tw:flex tw:items-end tw:gap-1">
+                  <span className="tw:font-heading tw:text-4xl tw:font-bold tw:text-brand-600 tw:dark:text-brand-400">{popAnswerCount}</span>
+                  <span className="tw:pb-1 tw:text-sm tw:text-slate-400">/ {examQuestions.length} answered</span>
+                </div>
+              )}
+              {!popGradeResult && (
+                <p className="tw:text-sm tw:text-slate-500 tw:dark:text-slate-400">Submit for system grading to see your score.</p>
+              )}
+            </>
+          )}
+        </Card>
+
+        {examMode === 'pop' && popGradeResult && (
+          <Card className="tw:space-y-3 tw:p-5">
+            <div className="tw:flex tw:items-center tw:justify-between">
+              <h2 className="tw:font-heading tw:text-base tw:font-bold">Score Sheet</h2>
+              <Badge variant={popPercentage >= 70 ? 'success' : 'warning'}>
+                {popPercentage >= 70 ? 'Passed' : 'Needs Improvement'}
+              </Badge>
             </div>
-          </div>
+            <div className="tw:grid tw:grid-cols-2 tw:gap-2 tw:text-center">
+              <div className="tw:rounded-xl tw:bg-slate-50 tw:p-3 tw:dark:bg-slate-800/60">
+                <p className="tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">Total Score</p>
+                <strong className="tw:font-heading tw:text-base">{popTotalScore.toFixed(1)} / {popMaxTotal}</strong>
+              </div>
+              <div className="tw:rounded-xl tw:bg-slate-50 tw:p-3 tw:dark:bg-slate-800/60">
+                <p className="tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">Answered</p>
+                <strong className="tw:font-heading tw:text-base">{popAnswerCount} parts</strong>
+              </div>
+            </div>
+
+            {hasPopFeedback && (
+              <div className="tw:space-y-3">
+                <h3 className="tw:text-sm tw:font-bold">Feedback by Question</h3>
+                {popReviewItems.map((item, index) => {
+                  const isFullScore = item.score >= item.maxScore;
+                  return (
+                    <div key={`${item.key}-${index}`} className="tw:space-y-2 tw:rounded-xl tw:border tw:border-slate-200 tw:p-3.5 tw:dark:border-slate-800">
+                      <div className="tw:flex tw:items-start tw:justify-between tw:gap-2">
+                        <div>
+                          <span className="tw:text-xs tw:font-bold tw:text-brand-600 tw:dark:text-brand-400">Question {item.number} ({item.label})</span>
+                          <p className="tw:mt-0.5 tw:text-sm">{item.text}</p>
+                        </div>
+                        <Badge variant={isFullScore ? 'success' : 'warning'} className="tw:flex-none">{item.score} / {item.maxScore}</Badge>
+                      </div>
+                      <div className="tw:space-y-1.5 tw:text-xs">
+                        <div>
+                          <p className="tw:font-semibold tw:text-slate-500 tw:dark:text-slate-400">Your Answer</p>
+                          <p>{item.answer || 'No answer provided.'}</p>
+                        </div>
+                        <div>
+                          <p className="tw:font-semibold tw:text-slate-500 tw:dark:text-slate-400">Feedback</p>
+                          <p>{item.feedback || 'No feedback provided.'}</p>
+                        </div>
+                        <div>
+                          <p className="tw:font-semibold tw:text-slate-500 tw:dark:text-slate-400">Model Answer</p>
+                          <p>{item.modelAnswer || 'No model answer provided.'}</p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </Card>
+        )}
+
+        {examMode === 'e-exam' && myRank && (
+          <Card className="tw:space-y-3 tw:p-5">
+            <h3 className="tw:font-heading tw:text-base tw:font-bold">Your Ranking</h3>
+            <div className="tw:grid tw:grid-cols-3 tw:gap-2 tw:text-center">
+              <div className="tw:rounded-xl tw:bg-slate-50 tw:p-3 tw:dark:bg-slate-800/60">
+                <p className="tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">Rank</p>
+                <strong className="tw:font-heading tw:text-base">#{myRank.rank}</strong>
+              </div>
+              <div className="tw:rounded-xl tw:bg-slate-50 tw:p-3 tw:dark:bg-slate-800/60">
+                <p className="tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">Score</p>
+                <strong className="tw:font-heading tw:text-base">{myRank.percentage.toFixed(1)}%</strong>
+              </div>
+              <div className="tw:rounded-xl tw:bg-slate-50 tw:p-3 tw:dark:bg-slate-800/60">
+                <p className="tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">Time</p>
+                <strong className="tw:font-heading tw:text-base">{Math.floor(myRank.timeTaken / 60)}m {myRank.timeTaken % 60}s</strong>
+              </div>
+            </div>
+          </Card>
+        )}
+
+        {examMode === 'e-exam' && leaderboard.length > 0 && (
+          <Card className="tw:space-y-3 tw:p-5">
+            <h2 className="tw:font-heading tw:text-base tw:font-bold">🏆 Top 10 Leaderboard</h2>
+            <div className="tw:space-y-2">
+              {leaderboard.map((entry) => (
+                <div
+                  key={entry._id}
+                  className={cn(
+                    'tw:flex tw:items-center tw:gap-3 tw:rounded-xl tw:p-3',
+                    myRank && entry.rank === myRank.rank ? 'tw:bg-brand-50 tw:dark:bg-brand-950/40' : 'tw:bg-slate-50 tw:dark:bg-slate-800/60',
+                  )}
+                >
+                  <span className="tw:flex tw:h-7 tw:w-7 tw:flex-none tw:items-center tw:justify-center tw:rounded-full tw:bg-brand-100 tw:text-xs tw:font-bold tw:text-brand-700 tw:dark:bg-brand-950 tw:dark:text-brand-300">
+                    {entry.rank === 1 && '🥇'}
+                    {entry.rank === 2 && '🥈'}
+                    {entry.rank === 3 && '🥉'}
+                    {entry.rank > 3 && `#${entry.rank}`}
+                  </span>
+                  <div className="tw:flex-1">
+                    <strong className="tw:block tw:text-sm tw:font-semibold">{entry.studentName}</strong>
+                    <small className="tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">
+                      {entry.score}/{entry.totalQuestions} ({entry.percentage.toFixed(1)}%)
+                    </small>
+                  </div>
+                  <span className="tw:text-xs tw:font-semibold tw:text-slate-500 tw:dark:text-slate-400">
+                    {Math.floor(entry.timeTaken / 60)}m {entry.timeTaken % 60}s
+                  </span>
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
+
+        <div className="tw:space-y-2">
+          <Button onClick={resetExam} className="tw:w-full">Take Another Exam</Button>
+          <Button onClick={goToDashboardLeaderboard} variant="outline" className="tw:w-full">View Leaderboard</Button>
+          <Button onClick={goToSelectedCourse} variant="outline" className="tw:w-full">Back to Course</Button>
+          {examMode === 'pop' && !popGradeResult && (
+            <Button onClick={gradePopAnswers} variant="secondary" disabled={popGrading} className="tw:w-full">
+              {popGrading ? 'Grading...' : 'Grade POP Answers'}
+            </Button>
+          )}
+        </div>
         </div>
       </div>
     );
@@ -721,7 +709,7 @@ const Practice = () => {
     };
 
     return (
-      <div className="practice-container">
+      <div className="np-shell">
         <SEO
           title="Practice Exams & Questions for NOUN Courses - NounPaddi"
           description="Test your knowledge with practice exams for all NOUN courses. Get instant feedback, track your progress, and prepare for your exams with confidence."
@@ -730,26 +718,21 @@ const Practice = () => {
           robots="index, follow"
           structuredData={structuredData}
         />
-        <div className="container">
-          <div className="practice-header">
-            <h1>Practice Exam</h1>
-            <p>Select a course to start practicing</p>
-          </div>
+        <ShellHeader title="Practice Exam" />
+        <div className="tw:space-y-4 tw:p-4">
+        <p className="tw:-mt-2 tw:text-sm tw:text-slate-500 tw:dark:text-slate-400">Select a course to start practicing</p>
 
-          <div className="grid grid-3">
-            {courses.map((course) => (
-              <div key={course._id} className="practice-course-card">
-                <h3>{course.courseCode}</h3>
-                <p>{course.courseName}</p>
-                <button
-                  onClick={() => selectCourseForExam(course._id)}
-                  className="btn btn-primary"
-                >
-                  Start Practice
-                </button>
+        <div className="tw:space-y-2.5">
+          {courses.map((course) => (
+            <Card key={course._id} interactive className="tw:flex tw:items-center tw:justify-between tw:gap-3 tw:p-4" onClick={() => selectCourseForExam(course._id)}>
+              <div>
+                <p className="tw:text-xs tw:font-bold tw:text-brand-600 tw:dark:text-brand-400">{course.courseCode}</p>
+                <h3 className="tw:font-heading tw:text-sm tw:font-bold">{course.courseName}</h3>
               </div>
-            ))}
-          </div>
+              <ChevronRight className="tw:h-4 tw:w-4 tw:flex-none tw:text-slate-300 tw:dark:text-slate-600" />
+            </Card>
+          ))}
+        </div>
         </div>
       </div>
     );
@@ -757,51 +740,46 @@ const Practice = () => {
 
   if (showModeSetup && questions.length > 0) {
     return (
-      <div className="practice-container">
+      <div className="np-shell">
         <SEO
           title="Select Exam Mode - NounPaddi"
           description="Choose between auto‑graded practice exams or POP handwritten style answers."
           url="/practice"
           robots="index, follow"
         />
-        <div className="container">
-          <div className="timer-setup-card">
-            <div className="timer-setup-header">
-              <h1>Choose Exam Mode</h1>
-              <p>Select how you want to take this practice exam.</p>
+        <ShellHeader title="Choose Exam Mode" />
+        <div className="tw:space-y-4 tw:p-4">
+        <p className="tw:-mt-2 tw:text-sm tw:text-slate-500 tw:dark:text-slate-400">Select how you want to take this practice exam.</p>
+
+        <div className="tw:space-y-3">
+          <Card interactive className="tw:space-y-1 tw:p-4" onClick={() => selectExamMode('e-exam')}>
+            <div className="tw:flex tw:items-center tw:justify-between">
+              <h3 className="tw:font-heading tw:text-base tw:font-bold">E Exam</h3>
+              <Badge variant="brand">Auto-graded</Badge>
             </div>
-            <div className="exam-mode-grid">
-              <button
-                className="exam-mode-card"
-                onClick={() => selectExamMode('e-exam')}
-              >
-                <div className="exam-mode-title">E Exam</div>
-                <div className="exam-mode-tag">Auto‑graded</div>
-                <p>Multiple choice, instant feedback, leaderboard scoring.</p>
-              </button>
-              {isLoggedIn ? (
-                <button
-                  className="exam-mode-card"
-                  onClick={() => selectExamMode('pop')}
-                >
-                  <div className="exam-mode-title">POP Exam</div>
-                  <div className="exam-mode-tag">Write answers</div>
-                  <p>Type your responses offhand. System grading after submit.</p>
-                </button>
-              ) : (
-                <div className="exam-mode-card disabled">
-                  <div className="exam-mode-title">POP Exam</div>
-                  <div className="exam-mode-tag">Sign in required</div>
-                  <p>Sign in to unlock handwritten POP practice, grading, and saved results.</p>
-                </div>
-              )}
-            </div>
-            <div className="timer-setup-actions">
-              <button onClick={resetExam} className="btn btn-secondary">
-                Back to Courses
-              </button>
-            </div>
-          </div>
+            <p className="tw:text-sm tw:text-slate-500 tw:dark:text-slate-400">Multiple choice, instant feedback, leaderboard scoring.</p>
+          </Card>
+
+          {isLoggedIn ? (
+            <Card interactive className="tw:space-y-1 tw:p-4" onClick={() => selectExamMode('pop')}>
+              <div className="tw:flex tw:items-center tw:justify-between">
+                <h3 className="tw:font-heading tw:text-base tw:font-bold">POP Exam</h3>
+                <Badge variant="info">Write answers</Badge>
+              </div>
+              <p className="tw:text-sm tw:text-slate-500 tw:dark:text-slate-400">Type your responses offhand. System grading after submit.</p>
+            </Card>
+          ) : (
+            <Card className="tw:space-y-1 tw:p-4 tw:opacity-60">
+              <div className="tw:flex tw:items-center tw:justify-between">
+                <h3 className="tw:font-heading tw:text-base tw:font-bold">POP Exam</h3>
+                <Badge variant="neutral">Sign in required</Badge>
+              </div>
+              <p className="tw:text-sm tw:text-slate-500 tw:dark:text-slate-400">Sign in to unlock handwritten POP practice, grading, and saved results.</p>
+            </Card>
+          )}
+        </div>
+
+        <Button onClick={resetExam} variant="outline" className="tw:w-full">Back to Courses</Button>
         </div>
       </div>
     );
@@ -818,58 +796,58 @@ const Practice = () => {
     ];
 
     return (
-      <div className="practice-container">
+      <div className="np-shell">
         <SEO
           title="Set Exam Timer - NounPaddi"
           description="Configure your practice exam timer and start your test."
           url="/practice"
           robots="index, follow"
         />
-        <div className="container">
-          <div className="timer-setup-card">
-            <div className="timer-setup-header">
-              <h1>⏱️ Set Your Exam Timer</h1>
-              <p>Choose how long you want to practice. The timer will count down and auto-submit when time runs out.</p>
-            </div>
+        <ShellHeader title="Set Your Timer" />
+        <div className="tw:space-y-4 tw:p-4">
+        <p className="tw:-mt-2 tw:text-sm tw:text-slate-500 tw:dark:text-slate-400">
+          Choose how long you want to practice. The timer counts down and auto-submits when time runs out.
+        </p>
 
-            <div className="timer-options-grid">
-              {timerOptions.map((option) => (
-                <div
-                  key={option.value}
-                  className={`timer-option-card ${selectedDuration === option.value ? 'selected' : ''}`}
-                  onClick={() => handleSelectDuration(option.value)}
-                >
-                  <div className="timer-option-value">{option.label}</div>
-                  <div className="timer-option-desc">{option.description}</div>
-                  {selectedDuration === option.value && (
-                    <div className="timer-option-check">✓</div>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            <div className="timer-setup-info">
-              <p><strong>Several questions</strong> available for this exam</p>
-              <p>Time per question: ~{Math.max(1, Math.floor((selectedDuration * 60) / Math.max(questions.length, 1)))} seconds</p>
-              {!isLoggedIn && (
-                <p className="timer-setup-note">
-                  You can practice publicly. Sign in if you want your score saved to the leaderboard.
-                </p>
+        <div className="tw:grid tw:grid-cols-2 tw:gap-2.5">
+          {timerOptions.map((option) => (
+            <Card
+              key={option.value}
+              interactive
+              className={cn(
+                'tw:p-3.5',
+                selectedDuration === option.value && 'tw:border-brand-500 tw:ring-1 tw:ring-brand-500',
               )}
-              {examStartError && (
-                <p className="timer-setup-error">{examStartError}</p>
-              )}
-            </div>
+              onClick={() => handleSelectDuration(option.value)}
+            >
+              <div className="tw:flex tw:items-center tw:justify-between">
+                <strong className="tw:font-heading tw:text-sm tw:font-bold">{option.label}</strong>
+                {selectedDuration === option.value && <CheckCircle2 className="tw:h-4 tw:w-4 tw:text-brand-600 tw:dark:text-brand-400" />}
+              </div>
+              <p className="tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">{option.description}</p>
+            </Card>
+          ))}
+        </div>
 
-            <div className="timer-setup-actions" ref={startExamButtonRef}>
-              <button onClick={() => { setShowTimerSetup(false); setSelectedCourse(null); setQuestions([]); }} className="btn btn-secondary">
-                Cancel
-              </button>
-              <button onClick={startExamWithTimer} className="btn btn-primary btn-lg">
-                Start Exam ({selectedDuration} min)
-              </button>
-            </div>
-          </div>
+        <Card className="tw:space-y-1 tw:p-4 tw:text-sm tw:text-slate-600 tw:dark:tw:text-slate-300">
+          <p><strong>Several questions</strong> available for this exam</p>
+          <p>Time per question: ~{Math.max(1, Math.floor((selectedDuration * 60) / Math.max(questions.length, 1)))} seconds</p>
+          {!isLoggedIn && (
+            <p className="tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">
+              You can practice publicly. Sign in if you want your score saved to the leaderboard.
+            </p>
+          )}
+          {examStartError && (
+            <p className="tw:text-xs tw:font-semibold tw:text-red-600 tw:dark:text-red-400">{examStartError}</p>
+          )}
+        </Card>
+
+        <div ref={startExamButtonRef} className="tw:space-y-2">
+          <Button onClick={startExamWithTimer} className="tw:w-full">Start Exam ({selectedDuration} min)</Button>
+          <Button onClick={() => { setShowTimerSetup(false); setSelectedCourse(null); setQuestions([]); }} variant="outline" className="tw:w-full">
+            Cancel
+          </Button>
+        </div>
         </div>
       </div>
     );
@@ -877,14 +855,13 @@ const Practice = () => {
 
   if (questions.length === 0) {
     return (
-      <div className="practice-container">
-        <div className="container">
-          <div className="no-questions">
-            <p>No practice questions available for this course yet.</p>
-            <button onClick={resetExam} className="btn btn-secondary">
-              Back to Courses
-            </button>
-          </div>
+      <div className="np-shell">
+        <ShellHeader title="Practice Exam" />
+        <div className="tw:p-4">
+        <Card className="tw:flex tw:flex-col tw:items-center tw:gap-2 tw:p-10 tw:text-center">
+          <p className="tw:text-sm tw:text-slate-500 tw:dark:text-slate-400">No practice questions available for this course yet.</p>
+          <Button onClick={resetExam} variant="outline">Back to Courses</Button>
+        </Card>
         </div>
       </div>
     );
@@ -892,25 +869,22 @@ const Practice = () => {
 
   if (examMode === 'pop' && popLoading) {
     return (
-      <div className="practice-container">
-        <div className="container">
-          <div className="spinner"></div>
-          <p className="loading-text">Preparing POP paper...</p>
-        </div>
+      <div className="np-shell tw:flex tw:flex-col tw:items-center tw:gap-2 tw:py-16 tw:text-slate-500 tw:dark:text-slate-400">
+        <Loader2 className="tw:h-6 tw:w-6 tw:animate-spin" />
+        <p className="tw:text-sm">Preparing POP paper...</p>
       </div>
     );
   }
 
   if (examMode === 'pop' && popQuestions.length === 0) {
     return (
-      <div className="practice-container">
-        <div className="container">
-          <div className="no-questions">
-            <p>No POP questions available for this course yet.</p>
-            <button onClick={resetExam} className="btn btn-secondary">
-              Back to Courses
-            </button>
-          </div>
+      <div className="np-shell">
+        <ShellHeader title="POP Exam" />
+        <div className="tw:p-4">
+        <Card className="tw:flex tw:flex-col tw:items-center tw:gap-2 tw:p-10 tw:text-center">
+          <p className="tw:text-sm tw:text-slate-500 tw:dark:text-slate-400">No POP questions available for this course yet.</p>
+          <Button onClick={resetExam} variant="outline">Back to Courses</Button>
+        </Card>
         </div>
       </div>
     );
@@ -967,288 +941,246 @@ const Practice = () => {
   };
 
   return (
-    <div className="practice-container">
-      <div className="container">
-        <div className="exam-header">
-          <div className="exam-progress">
-            <span>Question {currentQuestionIndex + 1} of {totalExamQuestions}</span>
-            {isPopMode ? (
-              <span>POP Mode</span>
-            ) : (
-              <span>Score: {score}/{currentQuestionIndex}</span>
-            )}
-          </div>
-          {!isPopMode && questionSyncing && (
-            <div className="question-sync-status">
-              Generating remaining questions...
-            </div>
-          )}
-          {timerActive && timeRemaining !== null && (
-            <div className={`exam-timer ${timeWarning ? 'warning' : ''} ${timeCritical ? 'critical' : ''}`}>
-              <span className="timer-label">⏱️ Time Remaining:</span>
-              <span className="timer-value">{formatTime(timeRemaining)}</span>
-            </div>
-          )}
-          <div className="progress-bar">
-            <div
-              className="progress-fill"
-              style={{ width: `${((currentQuestionIndex + 1) / totalExamQuestions) * 100}%` }}
-            ></div>
-          </div>
-        </div>
+    <div className="np-shell">
+      <ShellHeader title={isPopMode ? 'POP Exam' : 'E Exam'} />
+      <div className="tw:space-y-3 tw:p-4">
 
-        <div className="exam-layout">
-          <div className="question-nav">
-            <div className="question-nav-title">Questions</div>
-            <div className="question-nav-list">
-              {Array.from({ length: totalExamQuestions }).map((_, index) => {
-                const isActive = index === currentQuestionIndex;
-                const isAnswered = isPopMode
-                  ? popHasAnswerForQuestion(examQuestions[index])
-                  : !!answers[index];
-                const isPlaceholder = !isPopMode && index >= questions.length;
+      <Card className="tw:space-y-2.5 tw:p-4">
+        <div className="tw:flex tw:items-center tw:justify-between tw:text-xs tw:font-semibold tw:text-slate-600 tw:dark:text-slate-300">
+          <span>Question {currentQuestionIndex + 1} of {totalExamQuestions}</span>
+          {isPopMode ? (
+            <Badge variant="info">POP Mode</Badge>
+          ) : (
+            <span>Score: {score}/{currentQuestionIndex}</span>
+          )}
+        </div>
+        {!isPopMode && questionSyncing && (
+          <p className="tw:flex tw:items-center tw:gap-1.5 tw:text-xs tw:text-amber-600 tw:dark:text-amber-400">
+            <Loader2 className="tw:h-3.5 tw:w-3.5 tw:animate-spin" /> Generating remaining questions...
+          </p>
+        )}
+        {timerActive && timeRemaining !== null && (
+          <div className={cn(
+            'tw:flex tw:items-center tw:justify-center tw:gap-1.5 tw:rounded-xl tw:py-2 tw:text-sm tw:font-bold',
+            timeCritical
+              ? 'tw:bg-red-100 tw:text-red-700 tw:dark:bg-red-500/15 tw:dark:text-red-300'
+              : timeWarning
+              ? 'tw:bg-amber-100 tw:text-amber-700 tw:dark:bg-amber-500/15 tw:dark:text-amber-300'
+              : 'tw:bg-slate-50 tw:text-slate-700 tw:dark:bg-slate-800/60 tw:dark:text-slate-300',
+          )}
+          >
+            <Clock className="tw:h-4 tw:w-4" /> {formatTime(timeRemaining)}
+          </div>
+        )}
+        <div className="tw:h-1.5 tw:overflow-hidden tw:rounded-full tw:bg-slate-100 tw:dark:bg-slate-800">
+          <div
+            className="tw:h-full tw:rounded-full tw:bg-brand-500 tw:transition-all"
+            style={{ width: `${((currentQuestionIndex + 1) / totalExamQuestions) * 100}%` }}
+          />
+        </div>
+      </Card>
+
+      <div className="tw:flex tw:gap-1.5 tw:overflow-x-auto tw:pb-1">
+        {Array.from({ length: totalExamQuestions }).map((_, index) => {
+          const isActive = index === currentQuestionIndex;
+          const isAnswered = isPopMode
+            ? popHasAnswerForQuestion(examQuestions[index])
+            : !!answers[index];
+          const isPlaceholder = !isPopMode && index >= questions.length;
+          return (
+            <button
+              key={index}
+              type="button"
+              onClick={() => goToQuestion(index)}
+              disabled={isPlaceholder}
+              className={cn(
+                'tw:flex tw:h-8 tw:w-8 tw:flex-none tw:items-center tw:justify-center tw:rounded-lg tw:text-xs tw:font-bold tw:transition-colors',
+                isActive
+                  ? 'tw:bg-brand-600 tw:text-white'
+                  : isAnswered
+                  ? 'tw:bg-emerald-100 tw:text-emerald-700 tw:dark:bg-emerald-950 tw:dark:text-emerald-300'
+                  : isPlaceholder
+                  ? 'tw:bg-slate-50 tw:text-slate-300 tw:dark:bg-slate-800/40 tw:dark:text-slate-600'
+                  : 'tw:bg-slate-100 tw:text-slate-600 tw:dark:bg-slate-800 tw:dark:text-slate-300',
+              )}
+            >
+              {index + 1}
+            </button>
+          );
+        })}
+      </div>
+
+      <Card>
+        <CardContent className="tw:space-y-4 tw:p-4">
+          {isPopMode && popInstructions && (
+            <p className="tw:rounded-xl tw:bg-brand-50 tw:p-3 tw:text-xs tw:text-brand-700 tw:dark:bg-brand-950/40 tw:dark:text-brand-300">
+              <strong>Instruction:</strong> {popInstructions}
+            </p>
+          )}
+
+          {isPopMode ? (
+            <div className="tw:text-xs tw:font-bold tw:text-brand-600 tw:dark:text-brand-400">QUESTION {currentQuestion.number}</div>
+          ) : !hasCurrentQuestion ? (
+            <div className="tw:flex tw:flex-col tw:items-center tw:gap-2 tw:py-6 tw:text-center">
+              <Loader2 className="tw:h-5 tw:w-5 tw:animate-spin tw:text-slate-400" />
+              <h3 className="tw:font-heading tw:text-sm tw:font-bold">Generating question {currentQuestionIndex + 1}...</h3>
+              <p className="tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">We are preparing the remaining questions. This slot will unlock soon.</p>
+            </div>
+          ) : (
+            <h2 className="tw:font-heading tw:text-base tw:font-bold">{currentQuestion.questionText}</h2>
+          )}
+
+          {questionType === 'multi-select' && !isPopMode && (
+            <p className="tw:flex tw:items-center tw:gap-1.5 tw:text-xs tw:font-semibold tw:text-brand-600 tw:dark:text-brand-400">
+              <CheckCircle2 className="tw:h-3.5 tw:w-3.5" /> Select all correct answers (you can choose more than one)
+            </p>
+          )}
+          {isPopMode && (
+            <p className="tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">
+              Type your response for each part. You can move between questions anytime.
+            </p>
+          )}
+
+          {isPopMode ? (
+            <div className="tw:space-y-3">
+              {popParts.map((part) => {
+                const key = `${currentQuestion.number}${part.label}`;
                 return (
-                  <button
-                    key={index}
-                    className={`question-nav-item ${isActive ? 'active' : ''} ${isAnswered ? 'answered' : ''} ${isPlaceholder ? 'placeholder' : ''}`}
-                    onClick={() => goToQuestion(index)}
-                    disabled={isPlaceholder}
-                  >
-                    {index + 1}
-                  </button>
+                  <div key={key} className="tw:space-y-1.5">
+                    <div className="tw:flex tw:items-start tw:justify-between tw:gap-2 tw:text-sm">
+                      <span><strong>({part.label})</strong> {part.text}</span>
+                      <Badge variant="neutral" className="tw:flex-none">{part.marks} marks</Badge>
+                    </div>
+                    <textarea
+                      value={popAnswers[key] || ''}
+                      onChange={(event) => {
+                        const value = event.target.value;
+                        setPopAnswers((prev) => ({
+                          ...prev,
+                          [key]: value,
+                        }));
+                      }}
+                      placeholder={`Answer for (${part.label})`}
+                      rows={4}
+                      className="tw:w-full tw:resize-none tw:rounded-xl tw:border tw:border-slate-200 tw:bg-white tw:p-3 tw:text-sm tw:outline-none tw:focus:border-brand-500 tw:dark:border-slate-800 tw:dark:bg-slate-900 tw:dark:text-slate-100"
+                    />
+                  </div>
                 );
               })}
             </div>
-          </div>
-          <div className="question-card">
-            <div className="question-toolbar">
-              <div className="current-question-indicator">
-                <span className="current-question-label">Current Question</span>
-                <strong className="current-question-value">
-                  {isPopMode && currentQuestion?.number ? `Question ${currentQuestion.number}` : `Question ${currentQuestionIndex + 1}`}
-                </strong>
-              </div>
-              <label className="jump-question-control">
-                <span>Jump to question</span>
-                <select
-                  value={currentQuestionIndex}
-                  onChange={(event) => goToQuestion(Number(event.target.value))}
-                >
-                  {Array.from({ length: totalExamQuestions }).map((_, index) => {
-                    const isPlaceholder = !isPopMode && index >= questions.length;
-                    const isAnswered = isPopMode
-                      ? popHasAnswerForQuestion(examQuestions[index])
-                      : !!answers[index];
-                    const status = isPlaceholder ? 'Generating' : isAnswered ? 'Answered' : 'Pending';
-                    return (
-                      <option key={index} value={index} disabled={isPlaceholder}>
-                        {`Question ${index + 1} - ${status}`}
-                      </option>
-                    );
-                  })}
-                </select>
-              </label>
-            </div>
-            <div className="question-header">
-              {isPopMode && popInstructions && (
-                <div className="pop-instructions">
-                  <span className="pop-instructions-label">Instruction:</span>
-                  <span className="pop-instructions-text">{popInstructions}</span>
-                </div>
-              )}
-              {isPopMode ? (
-                <div className="pop-question-title">QUESTION {currentQuestion.number}</div>
-              ) : !hasCurrentQuestion ? (
-                <div className="question-placeholder">
-                  <div className="question-placeholder-title">Generating question {currentQuestionIndex + 1}...</div>
-                  <p>We are preparing the remaining questions. This slot will unlock soon.</p>
-                </div>
-              ) : (
-                <h2 className="question-text">{currentQuestion.questionText}</h2>
-              )}
-              {questionType === 'multi-select' && !isPopMode && (
-                <div className="multi-select-hint">
-                  <FiCheckCircle size={16} />
-                  <span>Select all correct answers (you can choose more than one)</span>
-                </div>
-              )}
-              {isPopMode && (
-                <div className="pop-hint">
-                  Type your response for each part. You can move between questions anytime.
-                </div>
-              )}
-            </div>
-
-            {isPopMode ? (
-              <div className="pop-paper">
-                {popParts.map((part) => {
-                  const key = `${currentQuestion.number}${part.label}`;
-                  return (
-                    <div key={key} className="pop-part">
-                      <div className="pop-part-row">
-                        <div className="pop-part-label">({part.label})</div>
-                        <div className="pop-part-text">{part.text}</div>
-                        <div className="pop-part-marks">{part.marks} marks</div>
-                      </div>
-                      <textarea
-                        value={popAnswers[key] || ''}
-                        onChange={(event) => {
-                          const value = event.target.value;
-                          setPopAnswers((prev) => ({
-                            ...prev,
-                            [key]: value,
-                          }));
-                        }}
-                        placeholder={`Answer for (${part.label})`}
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-            ) : hasCurrentQuestion ? (
-              <>
-                <div className="options-list">
-                  {currentQuestion.options.map((option, index) => (
-                    <button
-                      key={index}
-                      className={`option-button ${isOptionSelected(index) ? 'selected' : ''} ${
-                        showResult
-                          ? isOptionCorrect(index)
-                            ? 'correct'
-                            : isOptionIncorrect(index)
-                            ? 'incorrect'
-                            : ''
-                          : ''
-                      }`}
-                      onClick={() => !showResult && handleAnswerSelect(index)}
-                      disabled={showResult}
-                    >
-                      {questionType === 'multi-select' ? (
-                        <span style={{
-                          width: '24px',
-                          height: '24px',
-                          border: '2px solid var(--border-color)',
-                          borderRadius: '4px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          backgroundColor: isOptionSelected(index) ? 'var(--primary-color)' : 'transparent',
-                          flexShrink: 0
-                        }}>
-                          {isOptionSelected(index) && <FiCheckCircle color="white" size={16} />}
-                        </span>
-                      ) : (
-                        <span className="option-letter">{String.fromCharCode(65 + index)}</span>
-                      )}
-                      <span className="option-text">{option}</span>
-                      {showResult && isOptionCorrect(index) && (
-                        <FiCheckCircle className="option-icon correct-icon" />
-                      )}
-                      {showResult && isOptionIncorrect(index) && (
-                        <FiXCircle className="option-icon incorrect-icon" />
-                      )}
-                    </button>
-                  ))}
-                </div>
-
-                {showResult && (
-                  <div className={`result-feedback ${answers[currentQuestionIndex]?.isCorrect ? 'correct' : 'incorrect'}`}>
-                    {answers[currentQuestionIndex]?.isCorrect ? (
-                      <p><FiCheckCircle /> Correct! Well done!</p>
-                    ) : (
-                      <p><FiXCircle /> {answers[currentQuestionIndex]?.explanation}</p>
+          ) : hasCurrentQuestion ? (
+            <>
+              <div className="tw:space-y-2">
+                {currentQuestion.options.map((option, index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => !showResult && handleAnswerSelect(index)}
+                    disabled={showResult}
+                    className={cn(
+                      'tw:flex tw:w-full tw:items-center tw:gap-3 tw:rounded-xl tw:border tw:p-3 tw:text-left tw:text-sm tw:transition-colors',
+                      showResult && isOptionCorrect(index)
+                        ? 'tw:border-emerald-500 tw:bg-emerald-50 tw:dark:bg-emerald-950/40'
+                        : showResult && isOptionIncorrect(index)
+                        ? 'tw:border-red-500 tw:bg-red-50 tw:dark:bg-red-500/10'
+                        : isOptionSelected(index)
+                        ? 'tw:border-brand-500 tw:bg-brand-50 tw:dark:bg-brand-950/40'
+                        : 'tw:border-slate-200 tw:dark:border-slate-800',
                     )}
-                  </div>
+                  >
+                    {questionType === 'multi-select' ? (
+                      <span className={cn(
+                        'tw:flex tw:h-6 tw:w-6 tw:flex-none tw:items-center tw:justify-center tw:rounded-md tw:border-2',
+                        isOptionSelected(index) ? 'tw:border-brand-600 tw:bg-brand-600' : 'tw:border-slate-300 tw:dark:border-slate-600',
+                      )}
+                      >
+                        {isOptionSelected(index) && <CheckCircle2 className="tw:h-4 tw:w-4 tw:text-white" />}
+                      </span>
+                    ) : (
+                      <span className={cn(
+                        'tw:flex tw:h-6 tw:w-6 tw:flex-none tw:items-center tw:justify-center tw:rounded-full tw:text-xs tw:font-bold',
+                        isOptionSelected(index) ? 'tw:bg-brand-600 tw:text-white' : 'tw:bg-slate-100 tw:text-slate-600 tw:dark:bg-slate-800 tw:dark:text-slate-300',
+                      )}
+                      >
+                        {String.fromCharCode(65 + index)}
+                      </span>
+                    )}
+                    <span className="tw:flex-1">{option}</span>
+                    {showResult && isOptionCorrect(index) && <CheckCircle2 className="tw:h-4 tw:w-4 tw:flex-none tw:text-emerald-600 tw:dark:text-emerald-400" />}
+                    {showResult && isOptionIncorrect(index) && <XCircle className="tw:h-4 tw:w-4 tw:flex-none tw:text-red-600 tw:dark:text-red-400" />}
+                  </button>
+                ))}
+              </div>
+
+              {showResult && (
+                <div
+                  className={cn(
+                    'tw:flex tw:items-start tw:gap-2 tw:rounded-xl tw:p-3 tw:text-sm',
+                    answers[currentQuestionIndex]?.isCorrect
+                      ? 'tw:bg-emerald-100 tw:text-emerald-700 tw:dark:bg-emerald-950 tw:dark:text-emerald-300'
+                      : 'tw:bg-red-100 tw:text-red-700 tw:dark:bg-red-500/15 tw:dark:text-red-300',
+                  )}
+                >
+                  {answers[currentQuestionIndex]?.isCorrect ? (
+                    <><CheckCircle2 className="tw:h-4 tw:w-4 tw:flex-none" /> Correct! Well done!</>
+                  ) : (
+                    <><XCircle className="tw:h-4 tw:w-4 tw:flex-none" /> {answers[currentQuestionIndex]?.explanation}</>
+                  )}
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="tw:flex tw:flex-col tw:items-center tw:gap-2 tw:py-6 tw:text-center">
+              <Loader2 className="tw:h-5 tw:w-5 tw:animate-spin tw:text-slate-400" />
+              <p className="tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">Hang tight while we generate this question.</p>
+            </div>
+          )}
+
+          <div className="tw:space-y-2">
+            {isPopMode ? (
+              <>
+                <Button onClick={handleNextQuestion} className="tw:w-full">
+                  {currentQuestionIndex < examQuestions.length - 1 ? 'Save & Next' : 'Finish Exam'}
+                </Button>
+                {currentQuestionIndex === examQuestions.length - 1 && (
+                  <Button
+                    onClick={async () => {
+                      const ok = await gradePopAnswers();
+                      if (ok) setExamComplete(true);
+                    }}
+                    variant="secondary"
+                    disabled={popGrading}
+                    className="tw:w-full"
+                  >
+                    {popGrading ? 'Grading...' : 'Finish & Grade'}
+                  </Button>
                 )}
               </>
             ) : (
-              <div className="question-placeholder-body">
-                <div className="spinner small"></div>
-                <p>Hang tight while we generate this question.</p>
-              </div>
+              <>
+                {!showResult ? (
+                  <Button
+                    onClick={handleSubmitAnswer}
+                    className="tw:w-full"
+                    disabled={
+                      !hasCurrentQuestion ||
+                      selectedAnswer === null ||
+                      selectedAnswer === undefined ||
+                      (questionType === 'multi-select' && (!Array.isArray(selectedAnswer) || selectedAnswer.length === 0))
+                    }
+                  >
+                    Submit Answer
+                  </Button>
+                ) : (
+                  <Button onClick={handleNextQuestion} className="tw:w-full">
+                    {currentQuestionIndex < totalExamQuestions - 1 ? 'Next Question' : 'Finish Exam'}
+                  </Button>
+                )}
+              </>
             )}
-
-            <div className="question-actions">
-              {isPopMode ? (
-                <>
-                  <button onClick={handleNextQuestion} className="btn btn-primary">
-                    {currentQuestionIndex < examQuestions.length - 1 ? 'Save & Next' : 'Finish Exam'}
-                  </button>
-                  {currentQuestionIndex === examQuestions.length - 1 && (
-                    <button
-                      onClick={async () => {
-                        setPopGrading(true);
-                        try {
-                          const reviewItems = examQuestions.flatMap((question) =>
-                            (question.parts || []).map((part) => {
-                              const key = `${question.number}${part.label}`;
-                              return {
-                                key,
-                                number: question.number,
-                                label: part.label,
-                                text: part.text,
-                                maxScore: part.marks,
-                                answer: popAnswers[key] || '',
-                              };
-                            })
-                          );
-                          const payload = reviewItems.map((item) => ({
-                            question: `Question ${item.number} (${item.label}) ${item.text}`,
-                            answer: item.answer,
-                            maxScore: item.maxScore,
-                          }));
-                          const response = await api.post('/questions/pop-grade', {
-                            answers: payload,
-                          });
-                          const graded = response.data.data;
-                          const items = Array.isArray(graded?.items) ? graded.items : [];
-                          const merged = reviewItems.map((item, idx) => ({
-                            ...item,
-                            score: items[idx]?.score ?? 0,
-                            feedback: items[idx]?.feedback || '',
-                            modelAnswer: items[idx]?.modelAnswer || '',
-                          }));
-                          setPopReviewItems(merged);
-                          setPopGradeResult(graded);
-                          setExamComplete(true);
-                        } catch (error) {
-                          console.error('POP grading error:', error);
-                        } finally {
-                          setPopGrading(false);
-                        }
-                      }}
-                      className="btn btn-secondary"
-                      disabled={popGrading}
-                    >
-                      {popGrading ? 'Grading...' : 'Finish & Grade'}
-                    </button>
-                  )}
-                </>
-              ) : (
-                <>
-                  {!showResult ? (
-                    <button
-                      onClick={handleSubmitAnswer}
-                      className="btn btn-primary"
-                      disabled={
-                        !hasCurrentQuestion ||
-                        selectedAnswer === null ||
-                        selectedAnswer === undefined ||
-                        (questionType === 'multi-select' && (!Array.isArray(selectedAnswer) || selectedAnswer.length === 0))
-                      }
-                    >
-                      Submit Answer
-                    </button>
-                  ) : (
-                    <button onClick={handleNextQuestion} className="btn btn-primary">
-                      {currentQuestionIndex < totalExamQuestions - 1 ? 'Next Question' : 'Finish Exam'}
-                    </button>
-                  )}
-                </>
-              )}
-            </div>
           </div>
-        </div>
+        </CardContent>
+      </Card>
       </div>
     </div>
   );

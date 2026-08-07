@@ -1,11 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { FiBookOpen, FiLayers, FiMessageSquare, FiSearch, FiShield } from 'react-icons/fi';
+import { BookOpen, Layers, MessageSquare, Search, Shield, Loader2 } from 'lucide-react';
 import api from '../utils/api';
 import SEO from '../components/SEO';
 import CoursePlayer from '../components/CoursePlayer';
 import { trackFeatureVisit } from '../utils/featureTracking';
 import emostelVideos from '../data/emostelVideos';
-import './Videos.css';
+import ShellHeader from '../shell/ShellHeader';
+import { Card } from '../components/ui/card';
+import { Input } from '../components/ui/input';
+import { Button } from '../components/ui/button';
 
 const getInitials = (name) => String(name || 'S')
   .split(/\s+/)
@@ -82,50 +85,56 @@ function VideoComments({ selectedVideo }) {
   };
 
   return (
-    <section className="video-comments-panel">
-      <div className="video-comments-head">
+    <Card className="tw:space-y-3 tw:p-4">
+      <div className="tw:flex tw:items-center tw:justify-between">
         <div>
-          <p className="videos-kicker">Discussion</p>
-          <h3>Lesson comments</h3>
+          <p className="tw:text-xs tw:font-bold tw:tracking-wide tw:text-brand-600 tw:uppercase tw:dark:text-brand-400">Discussion</p>
+          <h3 className="tw:font-heading tw:text-sm tw:font-bold">Lesson comments</h3>
         </div>
-        <FiMessageSquare />
+        <MessageSquare className="tw:h-4 tw:w-4 tw:text-slate-400" />
       </div>
 
-      <form className="video-comment-form" onSubmit={handleSubmitComment}>
+      <form className="tw:space-y-2" onSubmit={handleSubmitComment}>
         <textarea
           value={commentDraft}
           onChange={(event) => setCommentDraft(event.target.value)}
           placeholder="Add a helpful comment or question..."
           maxLength={1000}
+          rows={3}
+          className="tw:w-full tw:resize-none tw:rounded-xl tw:border tw:border-slate-200 tw:bg-white tw:p-3 tw:text-sm tw:outline-none tw:focus:border-brand-500 tw:dark:border-slate-800 tw:dark:bg-slate-900 tw:dark:text-slate-100"
         />
-        <div className="video-comment-form-row">
-          <span>{commentDraft.length}/1000</span>
-          <button type="submit" disabled={savingComment}>
-            {savingComment ? 'Posting...' : 'Post comment'}
-          </button>
+        <div className="tw:flex tw:items-center tw:justify-between">
+          <span className="tw:text-xs tw:text-slate-400">{commentDraft.length}/1000</span>
+          <Button type="submit" size="sm" disabled={savingComment}>
+            {savingComment ? <><Loader2 className="tw:h-3.5 tw:w-3.5 tw:animate-spin" /> Posting...</> : 'Post comment'}
+          </Button>
         </div>
       </form>
 
-      {commentError && <div className="video-comment-error">{commentError}</div>}
-      {commentsLoading && <div className="video-comment-empty">Loading comments...</div>}
-      {!commentsLoading && comments.length === 0 && (
-        <div className="video-comment-empty">No comments yet. Start the discussion.</div>
+      {commentError && (
+        <p className="tw:rounded-xl tw:bg-red-100 tw:px-3 tw:py-2 tw:text-xs tw:text-red-700 tw:dark:bg-red-500/15 tw:dark:text-red-300">{commentError}</p>
       )}
-      <div className="video-comments-list">
+      {commentsLoading && <p className="tw:text-sm tw:text-slate-500 tw:dark:text-slate-400">Loading comments...</p>}
+      {!commentsLoading && comments.length === 0 && (
+        <p className="tw:text-sm tw:text-slate-500 tw:dark:text-slate-400">No comments yet. Start the discussion.</p>
+      )}
+      <div className="tw:space-y-3">
         {comments.map((comment) => (
-          <article className="video-comment" key={comment._id}>
-            <div className="video-comment-avatar">{getInitials(comment.user?.name)}</div>
+          <article key={comment._id} className="tw:flex tw:gap-2.5">
+            <span className="tw:flex tw:h-8 tw:w-8 tw:flex-none tw:items-center tw:justify-center tw:rounded-full tw:bg-brand-100 tw:text-xs tw:font-bold tw:text-brand-700 tw:dark:bg-brand-950 tw:dark:text-brand-300">
+              {getInitials(comment.user?.name)}
+            </span>
             <div>
-              <div className="video-comment-meta">
-                <strong>{comment.user?.name || 'Student'}</strong>
-                <span>{new Date(comment.createdAt).toLocaleDateString()}</span>
+              <div className="tw:flex tw:items-center tw:gap-2">
+                <strong className="tw:text-sm tw:font-semibold">{comment.user?.name || 'Student'}</strong>
+                <span className="tw:text-xs tw:text-slate-400">{new Date(comment.createdAt).toLocaleDateString()}</span>
               </div>
-              <p>{comment.comment}</p>
+              <p className="tw:text-sm tw:text-slate-600 tw:dark:text-slate-300">{comment.comment}</p>
             </div>
           </article>
         ))}
       </div>
-    </section>
+    </Card>
   );
 }
 
@@ -170,88 +179,83 @@ const Videos = () => {
   };
 
   return (
-    <div className="videos-page">
+    <div className="np-shell tw:space-y-4 tw:p-4">
       <SEO
         title="Emostel Academy Videos - NounPaddi"
         description="Watch Emostel Academy video lessons inside NounPaddi with grouped courses and student comments."
         url="/videos"
         robots="noindex, nofollow"
       />
-      <div className="container">
-        <header className="videos-header">
-          <div>
-            <p className="videos-kicker">Emostel Academy</p>
-            <h1>Video Lessons</h1>
-            <p>
-              Select a course or category first, then open the lessons and stream them inside Paddi.
-            </p>
-          </div>
-          <div className="videos-protection-pill">
-            <FiShield />
-            <span>{isPlaying ? 'Streaming in Paddi' : 'Protected in-app playback'}</span>
-          </div>
-        </header>
+      <ShellHeader title="Video Lessons" className="tw:-mx-4 tw:-mt-4" />
 
-        {!selectedCourse && (
-          <section className="videos-course-picker">
-            <div className="videos-picker-head">
-              <div>
-                <p className="videos-kicker">Choose category</p>
-                <h2>Select a course to begin</h2>
-              </div>
-              <div className="videos-search">
-                <FiSearch />
-                <input
-                  type="search"
-                  value={searchQuery}
-                  onChange={(event) => setSearchQuery(event.target.value)}
-                  placeholder="Search courses or topics"
-                />
-              </div>
-            </div>
+      <div className="tw:flex tw:items-center tw:justify-between tw:gap-3">
+        <p className="tw:text-sm tw:text-slate-500 tw:dark:text-slate-400">
+          Select a course, then open the lessons and stream them inside Paddi.
+        </p>
+        <span className="tw:flex tw:flex-none tw:items-center tw:gap-1.5 tw:rounded-full tw:bg-emerald-100 tw:px-2.5 tw:py-1 tw:text-[11px] tw:font-semibold tw:text-emerald-700 tw:dark:bg-emerald-950 tw:dark:text-emerald-300">
+          <Shield className="tw:h-3 tw:w-3" />
+          {isPlaying ? 'Streaming' : 'Protected'}
+        </span>
+      </div>
 
-            <div className="videos-course-grid">
-              {filteredCourses.map((course) => (
-                <button
-                  type="button"
-                  className="videos-course-card"
-                  key={course.name}
-                  onClick={() => handleSelectCourse(course.name)}
-                >
-                  <span className="videos-course-icon">
-                    <FiBookOpen />
+      {!selectedCourse && (
+        <div className="tw:space-y-3">
+          <div className="tw:relative">
+            <Search className="tw:pointer-events-none tw:absolute tw:top-1/2 tw:left-3.5 tw:h-4 tw:w-4 tw:-translate-y-1/2 tw:text-slate-400" />
+            <Input
+              type="search"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="Search courses or topics"
+              className="tw:pl-10"
+            />
+          </div>
+
+          <div className="tw:grid tw:grid-cols-2 tw:gap-3">
+            {filteredCourses.map((course) => (
+              <button
+                type="button"
+                key={course.name}
+                onClick={() => handleSelectCourse(course.name)}
+                className="tw:block tw:text-left"
+              >
+                <Card interactive className="tw:flex tw:h-full tw:flex-col tw:gap-2 tw:p-4">
+                  <span className="tw:flex tw:h-9 tw:w-9 tw:items-center tw:justify-center tw:rounded-lg tw:bg-brand-100 tw:text-brand-600 tw:dark:bg-brand-950 tw:dark:text-brand-300">
+                    <BookOpen className="tw:h-4 tw:w-4" />
                   </span>
-                  <span className="videos-course-name">{course.name}</span>
-                  <span className="videos-course-meta">
+                  <span className="tw:font-heading tw:text-sm tw:font-bold">{course.name}</span>
+                  <span className="tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">
                     {course.videos.length} lesson{course.videos.length === 1 ? '' : 's'} / {course.modules.size} topic{course.modules.size === 1 ? '' : 's'}
                   </span>
-                  <span className="videos-course-topics">
-                    <FiLayers />
+                  <span className="tw:mt-auto tw:flex tw:items-center tw:gap-1.5 tw:text-xs tw:text-slate-400">
+                    <Layers className="tw:h-3.5 tw:w-3.5" />
                     {Array.from(course.modules).slice(0, 3).join(', ')}
                   </span>
-                </button>
-              ))}
-            </div>
-            {filteredCourses.length === 0 && (
-              <div className="videos-empty">No course or category matches your search.</div>
-            )}
-          </section>
-        )}
+                </Card>
+              </button>
+            ))}
+          </div>
+          {filteredCourses.length === 0 && (
+            <Card className="tw:p-6 tw:text-center tw:text-sm tw:text-slate-500 tw:dark:text-slate-400">
+              No course or category matches your search.
+            </Card>
+          )}
+        </div>
+      )}
 
-        {selectedCourse && (
-          <>
-            <CoursePlayer
-              courseName={selectedCourse}
-              lessons={selectedLessons}
-              activeVideoId={activeLesson?.id}
-              onSelectLesson={setSelectedVideo}
-              onBack={handleBackToCourses}
-              onPlayingChange={setIsPlaying}
-            />
-            {activeLesson && <VideoComments selectedVideo={activeLesson} />}
-          </>
-        )}
-      </div>
+      {selectedCourse && (
+        <>
+          <CoursePlayer
+            courseName={selectedCourse}
+            lessons={selectedLessons}
+            activeVideoId={activeLesson?.id}
+            onSelectLesson={setSelectedVideo}
+            onBack={handleBackToCourses}
+            onPlayingChange={setIsPlaying}
+          />
+          {activeLesson && <VideoComments selectedVideo={activeLesson} />}
+        </>
+      )}
     </div>
   );
 };

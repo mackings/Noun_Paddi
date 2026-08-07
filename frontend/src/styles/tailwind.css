@@ -1,0 +1,123 @@
+/* Imported only from StudentShell.jsx, not index.js — this stylesheet's *ownership* is
+   scoped to the student-app redesign even though, once loaded, its layered rules apply
+   document-wide for the rest of the tab session (see the collision notes below).
+
+   Prefixed with `tw:` deliberately: App.css already defines ~40 hand-rolled utility
+   classes sharing names with real Tailwind utilities but different pixel values
+   (.gap-2 is 16px there, 8px here; same story for .rounded-xl, .text-sm, .font-bold,
+   .mt-*, .p-*, .shadow-*, .flex, .w-full, .transition, ...). App.css is unloaded CSS
+   (no @layer), and unlayered rules always beat layered ones regardless of specificity —
+   so an unprefixed Tailwind utility sharing one of those names would silently render
+   with the WRONG value, no build error. Prefixing removes the entire collision class
+   outright. src/lib/utils.js's cn() is configured with the matching prefix. */
+/* `important` — verified directly (a Card's p-4 computed to 0px without it): App.css's
+   unlayered `* { margin: 0; padding: 0; box-sizing: border-box; }` universal reset beats
+   ANY layered Tailwind utility for those three properties regardless of specificity,
+   since cascade layer priority is resolved before specificity, and unlayered rules form
+   an implicit highest-priority layer. This is Tailwind's own documented answer for
+   "adding Tailwind to a project with existing complex/high-specificity CSS" — marking
+   every utility !important outranks unlayered rules outright, the same way the `tw:`
+   prefix outright avoids name collisions rather than fighting them case by case. */
+@import "tailwindcss" prefix(tw) important;
+@import "tw-animate-css";
+
+/* Explicit content path: this CSS entry file lives in src/styles/, and v4's automatic
+   content detection didn't reliably pick up sibling source files (verified — a probe
+   utility class wasn't generated until this was added). Scan the whole src/ tree
+   explicitly rather than rely on heuristics. */
+@source "..";
+
+/* Bridges Tailwind's dark: variant to this app's EXISTING theme mechanism —
+   ThemeContext.js sets document.documentElement.setAttribute('data-theme', theme) (an
+   attribute, not a class) and is left completely unchanged by this redesign. */
+@custom-variant dark (&:is([data-theme="dark"] *));
+
+/* Plain @theme, NOT @theme inline — verified directly (getComputedStyle on :root came
+   back empty for every token below when `inline` was used): `inline` tells Tailwind to
+   bake these values straight into its own generated utility classes rather than also
+   emitting them as real :root custom properties, which meant the escape-hatch rules
+   below (plain hand-written CSS, outside Tailwind's utility generation) referencing
+   var(--font-heading) etc. were resolving to nothing — an inherited property with an
+   unresolvable var() computes as `inherit`, which is why headings silently kept
+   inheriting the app's existing Poppins body font instead. Plain @theme emits both. */
+@theme {
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-heading: "Space Grotesk", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, "SF Mono", Consolas, monospace;
+
+  /* Single radius source, matching the style guide's --radius: 0.625rem base */
+  --radius: 0.625rem;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+
+  /* Brand ramp anchored on App.css's EXISTING --primary-color (#4f46e5, already indigo-600)
+     and --primary-hover (#4338ca, already indigo-700) — no new brand color decision needed,
+     this redesign's "indigo" and the current app's existing brand color are the same hue. */
+  --color-brand-50: #eef2ff;
+  --color-brand-100: #e0e7ff;
+  --color-brand-200: #c7d2fe;
+  --color-brand-300: #a5b4fc;
+  --color-brand-400: #818cf8;
+  --color-brand-500: #6366f1;
+  --color-brand-600: #4f46e5;
+  --color-brand-700: #4338ca;
+  --color-brand-800: #3730a3;
+  --color-brand-900: #312e81;
+  --color-brand-950: #1e1b4b;
+}
+
+/* Self-hosted variable fonts — no external font requests. Each file covers its whole
+   declared weight range (confirmed via the downloaded files' own metadata), so one
+   @font-face per family is enough rather than one per weight. */
+@font-face {
+  font-family: "Plus Jakarta Sans";
+  src: url("../assets/fonts/plus-jakarta-sans-variable.woff2") format("woff2");
+  font-weight: 400 800;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Space Grotesk";
+  src: url("../assets/fonts/space-grotesk-variable.woff2") format("woff2");
+  font-weight: 500 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Geist Mono";
+  src: url("../assets/fonts/geist-mono-variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Escape hatch for App.css's global bare-tag rules (h1..h6 font-family/margin, p
+   margin-bottom) — scoped ONLY to .np-shell, so nothing outside the new student shell
+   (admin, marketing, login, etc.) is affected. Unlayered + a class selector beats
+   App.css's unlayered but lower-specificity bare-tag selectors by normal cascade rules.
+
+   Font stacks are hardcoded here rather than referencing var(--font-sans) /
+   var(--font-heading) — verified directly that those names don't exist: `prefix(tw)`
+   makes Tailwind emit its @theme font tokens as --tw-font-sans / --tw-font-heading, so an
+   unprefixed var() reference resolves to nothing, which makes the whole declaration
+   invalid at computed-value time and silently falls through to App.css's body Poppins
+   rule. This affected body text app-wide (not just headings, which mostly carry an
+   explicit tw:font-heading class already) — most visible on prose-heavy pages like the
+   course summary view. Hardcoding sidesteps relying on Tailwind's internal prefixed
+   variable naming as an implementation detail. */
+.np-shell {
+  font-family: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+}
+.np-shell :is(h1, h2, h3, h4, h5, h6) {
+  margin: 0;
+  font-family: "Space Grotesk", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-weight: inherit;
+  letter-spacing: normal;
+}
+.np-shell p {
+  margin: 0;
+  color: inherit;
+}

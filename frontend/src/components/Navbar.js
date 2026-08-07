@@ -32,6 +32,10 @@ const Navbar = () => {
     setProjectsMenuOpen(true);
   };
 
+  // Students get their own chrome now (StudentShell — bottom tab bar, home grid); this
+  // navbar stays exactly as-is for admins and logged-out marketing/auth pages.
+  if (user?.role === 'student') return null;
+
   return (
     <nav className="navbar">
       <div className="container">

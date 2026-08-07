@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, Link } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
-import { FiBriefcase, FiCheckCircle, FiGrid, FiShield, FiUserPlus, FiBell, FiMessageCircle, FiX } from 'react-icons/fi';
+import { FiBriefcase, FiCheckCircle, FiGrid, FiShield, FiUserPlus, FiBell, FiX } from 'react-icons/fi';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import Navbar from './components/Navbar';
@@ -50,6 +50,9 @@ import NewsArticle from './pages/NewsArticle';
 import Footer from './components/Footer';
 import AdminLayout from './components/AdminLayout';
 import SEO from './components/SEO';
+import StudentShell from './shell/StudentShell';
+import StudentHome from './pages/StudentHome';
+import { isStudentShellRoute } from './shell/studentShellRoutes';
 import './App.css';
 
 const FIRST_VISIT_KEY = 'np_first_visit_seen_v1';
@@ -203,14 +206,15 @@ const ProtectedRoute = ({ children, adminOnly = false }) => {
   }
 
   if (adminOnly && user.role !== 'admin') {
-    return <Navigate to="/explore" />;
+    return <Navigate to="/home" />;
   }
 
   return children;
 };
 
-// Home Route - Redirects based on auth status
-const Home = () => {
+// Root Route - Redirects based on auth status. Renamed from `Home` to avoid colliding
+// with the new StudentHome grid page, which now owns /home.
+const RootRedirect = () => {
   const { user, loading } = useAuth();
 
   if (loading) {
@@ -222,7 +226,7 @@ const Home = () => {
   }
 
   if (user) {
-    return <Navigate to={user.role === 'admin' ? '/admin/overview' : '/explore'} />;
+    return <Navigate to={user.role === 'admin' ? '/admin/overview' : '/home'} />;
   }
 
   let hasSeenFirstVisit = false;
@@ -272,22 +276,6 @@ const ITPlacementRoute = () => {
   }
 
   return user ? <ITPlacement /> : <PublicSiwesLanding />;
-};
-
-const GlobalAskBubble = () => {
-  const { user, loading } = useAuth();
-  const location = useLocation();
-  const allowedRoutes = ['/explore', '/dashboard'];
-
-  if (loading || !user || user.role === 'admin') return null;
-  if (!allowedRoutes.includes(location.pathname)) return null;
-
-  return (
-    <Link to="/ask" className="global-ask-bubble" aria-label="Open Past Questions">
-      <FiMessageCircle />
-      <span>Past Questions</span>
-    </Link>
-  );
 };
 
 const PAST_QUESTION_SHEET_KEY = 'np_past_questions_sheet_hidden';
@@ -372,7 +360,8 @@ const AppLayout = () => {
   const hideFooterRoutes = ['/login', '/signup', '/forgot-password', '/reset-password'];
   const shouldHideFooter = hideFooterRoutes.includes(location.pathname)
     || location.pathname.startsWith('/share')
-    || location.pathname.startsWith('/admin');
+    || location.pathname.startsWith('/admin')
+    || isStudentShellRoute(location.pathname);
 
   return (
     <ThemeProvider>
@@ -381,9 +370,8 @@ const AppLayout = () => {
           <Navbar />
           <NotificationPermissionBar />
           <PastQuestionBottomSheet />
-          <GlobalAskBubble />
           <Routes>
-                <Route path="/" element={<Home />} />
+                <Route path="/" element={<RootRedirect />} />
                 <Route path="/signup" element={<Signup />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -396,29 +384,6 @@ const AppLayout = () => {
                 <Route path="/noun-course/:courseSlug" element={<PublicCoursePreview />} />
                 <Route path="/news" element={<NewsHub />} />
                 <Route path="/news/:slug" element={<NewsArticle />} />
-                <Route path="/quiz" element={<LiveQuiz />} />
-
-                {/* Student Routes */}
-                <Route
-                  path="/dashboard"
-                  element={
-                    <ProtectedRoute>
-                      <StudentDashboard />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/explore"
-                  element={
-                    <ProtectedRoute>
-                      <Explore />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/ask"
-                  element={<Ask />}
-                />
                 {/* Theresa (AI Tutor) now lives at asktheresa.com — send any bookmark or
                     direct link to /tutor straight there instead of loading the old page. */}
                 <Route
@@ -426,94 +391,134 @@ const AppLayout = () => {
                   element={<ExternalRedirect to={THERESA_URL} />}
                 />
                 <Route
-                  path="/courses"
-                  element={<AllCourses />}
-                />
-                <Route
-                  path="/course/:courseId"
-                  element={<CourseDetail />}
-                />
-                <Route
-                  path="/practice"
-                  element={<Practice />}
-                />
-                <Route
-                  path="/profile"
-                  element={
-                    <ProtectedRoute>
-                      <Profile />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
                   path="/it-placement"
                   element={<ITPlacementRoute />}
                 />
                 <Route path="/summaries" element={<PublicSummariesLanding />} />
-                <Route
-                  path="/reminders"
-                  element={
-                    <ProtectedRoute>
-                      <Reminders />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/exam-timetable"
-                  element={
-                    <ProtectedRoute>
-                      <ExamTimetable />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/videos"
-                  element={
-                    <ProtectedRoute>
-                      <Videos />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/plagiarism"
-                  element={
-                    <ProtectedRoute>
-                      <PlagiarismChecker />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/projects"
-                  element={
-                    <ProtectedRoute>
-                      <Projects />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/projects/consultation"
-                  element={
-                    <ProtectedRoute>
-                      <ProjectConsultation />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/projects/my-fees"
-                  element={
-                    <ProtectedRoute>
-                      <MyFees />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/consultation-terms"
-                  element={
-                    <ProtectedRoute>
-                      <ConsultationTerms />
-                    </ProtectedRoute>
-                  }
-                />
+
+                {/* Student Routes — wrapped in StudentShell (bottom tab bar, home grid),
+                    which only renders that chrome once a student is actually logged in.
+                    /ask, /courses, /course/:courseId, /practice, /quiz stay reachable
+                    logged-out exactly as before, just without shell chrome in that case. */}
+                <Route element={<StudentShell />}>
+                  <Route
+                    path="/home"
+                    element={
+                      <ProtectedRoute>
+                        <StudentHome />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route path="/quiz" element={<LiveQuiz />} />
+                  <Route
+                    path="/dashboard"
+                    element={
+                      <ProtectedRoute>
+                        <StudentDashboard />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/explore"
+                    element={
+                      <ProtectedRoute>
+                        <Explore />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/ask"
+                    element={<Ask />}
+                  />
+                  <Route
+                    path="/courses"
+                    element={<Explore />}
+                  />
+                  <Route
+                    path="/courses/all"
+                    element={<AllCourses />}
+                  />
+                  <Route
+                    path="/course/:courseId"
+                    element={<CourseDetail />}
+                  />
+                  <Route
+                    path="/practice"
+                    element={<Practice />}
+                  />
+                  <Route
+                    path="/profile"
+                    element={
+                      <ProtectedRoute>
+                        <Profile />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/reminders"
+                    element={
+                      <ProtectedRoute>
+                        <Reminders />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/exam-timetable"
+                    element={
+                      <ProtectedRoute>
+                        <ExamTimetable />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/videos"
+                    element={
+                      <ProtectedRoute>
+                        <Videos />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/plagiarism"
+                    element={
+                      <ProtectedRoute>
+                        <PlagiarismChecker />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/projects"
+                    element={
+                      <ProtectedRoute>
+                        <Projects />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/projects/consultation"
+                    element={
+                      <ProtectedRoute>
+                        <ProjectConsultation />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/projects/my-fees"
+                    element={
+                      <ProtectedRoute>
+                        <MyFees />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/consultation-terms"
+                    element={
+                      <ProtectedRoute>
+                        <ConsultationTerms />
+                      </ProtectedRoute>
+                    }
+                  />
+                </Route>
 
                 {/* Admin Routes */}
                 <Route

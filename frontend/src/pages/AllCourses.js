@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FiArrowLeft, FiArrowRight, FiAward, FiBook, FiSearch } from 'react-icons/fi';
+import { ArrowLeft, ArrowRight, Award, BookOpen, Loader2, Search } from 'lucide-react';
 import api from '../utils/api';
 import SEO from '../components/SEO';
-import './Explore.css';
-import './AllCourses.css';
+import { Card } from '../components/ui/card';
+import { Input } from '../components/ui/input';
+import { Button } from '../components/ui/button';
 
 const COURSES_PER_PAGE = 24;
 const normalizeSearchValue = (value) => String(value || '').toLowerCase().trim();
@@ -95,162 +96,133 @@ const AllCourses = () => {
     })),
   };
 
+  const selectClass = 'tw:h-11 tw:w-full tw:rounded-xl tw:border tw:border-slate-200 tw:bg-white tw:px-3.5 tw:text-sm tw:text-slate-900 tw:outline-none tw:transition-colors tw:focus:border-brand-500 tw:dark:border-slate-800 tw:dark:bg-slate-900 tw:dark:text-slate-100';
+
   return (
-    <div className="explore-container all-courses-page">
+    <div className="np-shell tw:space-y-4 tw:p-4">
       <SEO
         title="All NOUN Courses - NounPaddi"
         description="Browse all available courses with search, faculty filter, department filter, and pagination."
-        url="/courses"
+        url="/courses/all"
         keywords="all courses, noun courses, faculty filter, department filter, paginated courses"
         robots="index, follow"
         structuredData={structuredData}
       />
-      <div className="container">
-        <div className="all-courses-header-row">
-          <Link to="/explore" className="breadcrumb">
-            <FiArrowLeft /> Back to Explore
-          </Link>
-          <h1>All Courses</h1>
-          <p>Search and filter by faculty or department.</p>
-        </div>
 
-        <div className="search-section">
-          <div className="search-bar">
-            <FiSearch className="search-icon" />
-            <input
-              type="text"
-              placeholder="Search by course code or name..."
-              value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
-              className="search-input"
-            />
-          </div>
-        </div>
-
-        <div className="all-courses-filters">
-          <div className="all-courses-filter-group">
-            <label htmlFor="faculty-filter">Faculty</label>
-            <select
-              id="faculty-filter"
-              value={selectedFaculty}
-              onChange={(event) => {
-                setSelectedFaculty(event.target.value);
-                setSelectedDepartment('');
-              }}
-            >
-              <option value="">All Faculties</option>
-              {faculties.map((faculty) => (
-                <option key={faculty._id} value={faculty._id}>
-                  {faculty.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="all-courses-filter-group">
-            <label htmlFor="department-filter">Department</label>
-            <select
-              id="department-filter"
-              value={selectedDepartment}
-              onChange={(event) => setSelectedDepartment(event.target.value)}
-            >
-              <option value="">All Departments</option>
-              {filteredDepartments.map((department) => (
-                <option key={department._id} value={department._id}>
-                  {department.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div className="courses-section">
-          <div className="courses-header">
-            <h2>Available Courses</h2>
-            <span className="all-courses-count">{filteredCourses.length} found</span>
-          </div>
-
-          {loading ? (
-            <div className="loading-container">
-              <div className="loading-header">
-                <div>
-                  <h3>Loading courses</h3>
-                  <p>Preparing the latest catalog for you.</p>
-                </div>
-                <div className="loading-pulse"></div>
-              </div>
-              <div className="loading-grid">
-                {Array.from({ length: 6 }).map((_, index) => (
-                  <div key={index} className="course-skeleton">
-                    <div className="skeleton-icon"></div>
-                    <div className="skeleton-line wide"></div>
-                    <div className="skeleton-line"></div>
-                    <div className="skeleton-chip"></div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : paginatedCourses.length === 0 ? (
-            <div className="no-results">
-              <div className="no-results-icon">
-                <FiBook />
-              </div>
-              <p>No courses found. Try adjusting your search or filters.</p>
-            </div>
-          ) : (
-            <>
-              <div className="grid grid-3">
-                {paginatedCourses.map((course) => (
-                  <Link
-                    key={course._id}
-                    to={`/course/${course._id}`}
-                    className="course-card"
-                  >
-                    <div className="course-header">
-                      <div className="course-icon">
-                        <FiBook />
-                      </div>
-                      <div className="course-info">
-                        <div className="course-code">{course.courseCode}</div>
-                      </div>
-                    </div>
-                    <h3>{course.courseName}</h3>
-                    <div className="course-footer">
-                      <div className="course-credits">
-                        <FiAward size={16} />
-                        <span>{course.creditUnits || 3} Units</span>
-                      </div>
-                      <FiArrowRight className="course-arrow" />
-                    </div>
-                  </Link>
-                ))}
-              </div>
-
-              <div className="pagination-row">
-                <button
-                  type="button"
-                  className="pagination-btn"
-                  disabled={currentPageSafe <= 1}
-                  onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                >
-                  Previous
-                </button>
-                <span className="pagination-text">
-                  Page {currentPageSafe} of {totalPages}
-                </span>
-                <button
-                  type="button"
-                  className="pagination-btn"
-                  disabled={currentPageSafe >= totalPages}
-                  onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-                >
-                  Next
-                </button>
-              </div>
-            </>
-          )}
-        </div>
+      <div>
+        <Link to="/courses" className="tw:inline-flex tw:items-center tw:gap-1.5 tw:text-xs tw:font-semibold tw:text-brand-600 tw:dark:text-brand-400">
+          <ArrowLeft className="tw:h-3.5 tw:w-3.5" /> Back to Courses
+        </Link>
+        <h1 className="tw:font-heading tw:mt-2 tw:text-2xl tw:font-bold tw:tracking-tight">All Courses</h1>
+        <p className="tw:mt-1 tw:text-sm tw:text-slate-500 tw:dark:text-slate-400">Search and filter by faculty or department.</p>
       </div>
+
+      <div className="tw:relative">
+        <Search className="tw:pointer-events-none tw:absolute tw:top-1/2 tw:left-3.5 tw:h-4 tw:w-4 tw:-translate-y-1/2 tw:text-slate-400" />
+        <Input
+          type="text"
+          placeholder="Search by course code or name..."
+          value={searchQuery}
+          onChange={(event) => setSearchQuery(event.target.value)}
+          className="tw:pl-10"
+        />
+      </div>
+
+      <div className="tw:grid tw:grid-cols-2 tw:gap-3">
+        <label className="tw:block tw:space-y-1.5">
+          <span className="tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300">Faculty</span>
+          <select
+            className={selectClass}
+            value={selectedFaculty}
+            onChange={(event) => {
+              setSelectedFaculty(event.target.value);
+              setSelectedDepartment('');
+            }}
+          >
+            <option value="">All Faculties</option>
+            {faculties.map((faculty) => (
+              <option key={faculty._id} value={faculty._id}>{faculty.name}</option>
+            ))}
+          </select>
+        </label>
+
+        <label className="tw:block tw:space-y-1.5">
+          <span className="tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300">Department</span>
+          <select
+            className={selectClass}
+            value={selectedDepartment}
+            onChange={(event) => setSelectedDepartment(event.target.value)}
+          >
+            <option value="">All Departments</option>
+            {filteredDepartments.map((department) => (
+              <option key={department._id} value={department._id}>{department.name}</option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      <div className="tw:flex tw:items-center tw:justify-between">
+        <h2 className="tw:font-heading tw:text-sm tw:font-bold">Available Courses</h2>
+        <span className="tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">{filteredCourses.length} found</span>
+      </div>
+
+      {loading ? (
+        <div className="tw:flex tw:flex-col tw:items-center tw:gap-2 tw:py-16 tw:text-slate-500 tw:dark:text-slate-400">
+          <Loader2 className="tw:h-6 tw:w-6 tw:animate-spin" />
+          <p className="tw:text-sm">Loading courses...</p>
+        </div>
+      ) : paginatedCourses.length === 0 ? (
+        <Card className="tw:flex tw:flex-col tw:items-center tw:gap-2 tw:p-8 tw:text-center">
+          <BookOpen className="tw:h-6 tw:w-6 tw:text-slate-400" />
+          <p className="tw:text-sm tw:text-slate-500 tw:dark:text-slate-400">No courses found. Try adjusting your search or filters.</p>
+        </Card>
+      ) : (
+        <>
+          <div className="tw:grid tw:grid-cols-2 tw:gap-3">
+            {paginatedCourses.map((course) => (
+              <Link key={course._id} to={`/course/${course._id}`} className="tw:block">
+                <Card interactive className="tw:flex tw:h-full tw:flex-col tw:gap-2 tw:p-4">
+                  <span className="tw:flex tw:h-9 tw:w-9 tw:items-center tw:justify-center tw:rounded-lg tw:bg-brand-100 tw:text-brand-600 tw:dark:bg-brand-950 tw:dark:text-brand-300">
+                    <BookOpen className="tw:h-4 tw:w-4" />
+                  </span>
+                  <div>
+                    <p className="tw:text-xs tw:font-bold tw:text-slate-500 tw:dark:text-slate-400">{course.courseCode}</p>
+                    <h3 className="tw:font-heading tw:text-sm tw:font-bold tw:leading-snug">{course.courseName}</h3>
+                  </div>
+                  <div className="tw:mt-auto tw:flex tw:items-center tw:justify-between tw:pt-1">
+                    <span className="tw:flex tw:items-center tw:gap-1 tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">
+                      <Award className="tw:h-3.5 tw:w-3.5" /> {course.creditUnits || 3} Units
+                    </span>
+                    <ArrowRight className="tw:h-4 tw:w-4 tw:text-brand-500" />
+                  </div>
+                </Card>
+              </Link>
+            ))}
+          </div>
+
+          <div className="tw:flex tw:items-center tw:justify-between tw:pt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={currentPageSafe <= 1}
+              onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+            >
+              Previous
+            </Button>
+            <span className="tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">
+              Page {currentPageSafe} of {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={currentPageSafe >= totalPages}
+              onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+            >
+              Next
+            </Button>
+          </div>
+        </>
+      )}
     </div>
   );
 };

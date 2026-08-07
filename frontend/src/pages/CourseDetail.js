@@ -6,15 +6,22 @@ import { splitSummaryIntoSections, formatLine } from '../utils/formatSummary';
 import { trackFeatureVisit } from '../utils/featureTracking';
 import SEO from '../components/SEO';
 import {
-  FiBook,
-  FiFileText,
-  FiGrid,
-  FiShare2,
-  FiArrowLeft,
-  FiClock,
-  FiUser,
-  FiAward
-} from 'react-icons/fi';
+  BookOpen,
+  FileText,
+  LayoutGrid,
+  Share2,
+  Clock,
+  User,
+  Award,
+  Loader2,
+} from 'lucide-react';
+import ShellHeader from '../shell/ShellHeader';
+import { Card } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { cn } from '../lib/utils';
+// The dense summary prose (module/unit titles, key terms, bullets, numbered lists) keeps
+// its existing typographic styling here — a distinct, purely-text-formatting concern
+// from the page chrome restyled below with the new design system.
 import './CourseDetail.css';
 
 const READING_ACTIVITY_TIMEOUT_MS = 15000;
@@ -376,47 +383,18 @@ const CourseDetail = () => {
 
   if (loading) {
     return (
-      <div className="course-detail-container">
-        <div className="container">
-          <div className="course-loading">
-            <div className="skeleton-card header">
-              <div className="skeleton-icon"></div>
-              <div className="skeleton-lines">
-                <div className="skeleton-line wide"></div>
-                <div className="skeleton-line medium"></div>
-                <div className="skeleton-line short"></div>
-              </div>
-            </div>
-            <div className="skeleton-tabs">
-              <div className="skeleton-pill"></div>
-              <div className="skeleton-pill"></div>
-              <div className="skeleton-pill"></div>
-            </div>
-            <div className="skeleton-content">
-              <div className="skeleton-panel">
-                {Array.from({ length: 5 }).map((_, index) => (
-                  <div key={index} className="skeleton-list-item">
-                    <div className="skeleton-line wide"></div>
-                    <div className="skeleton-line short"></div>
-                  </div>
-                ))}
-              </div>
-              <div className="skeleton-panel">
-                <div className="skeleton-line wide"></div>
-                <div className="skeleton-line medium"></div>
-                <div className="skeleton-line"></div>
-                <div className="skeleton-line"></div>
-                <div className="skeleton-line short"></div>
-              </div>
-            </div>
-          </div>
+      <div className="np-shell">
+        <ShellHeader title="Course" />
+        <div className="tw:flex tw:flex-col tw:items-center tw:gap-2 tw:py-16 tw:text-slate-500 tw:dark:text-slate-400">
+          <Loader2 className="tw:h-6 tw:w-6 tw:animate-spin" />
+          <p className="tw:text-sm">Loading course...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="course-detail-container">
+    <div className="np-shell">
       {courseSeo && (
         <SEO
           title={courseSeo.title}
@@ -427,129 +405,131 @@ const CourseDetail = () => {
           structuredData={courseSeo.structuredData}
         />
       )}
-      <div className="container">
-        {/* Breadcrumb */}
-        <Link to="/explore" className="breadcrumb">
-          <FiArrowLeft /> Back to Courses
-        </Link>
+      <ShellHeader title={course?.courseCode || 'Course'} />
 
-        {/* Course Header */}
+      <div className="tw:space-y-4 tw:p-4">
         {course && (
-          <div className="course-detail-header">
-            <div className="course-detail-icon">
-              <FiBook size={40} />
-            </div>
+          <Card className="tw:flex tw:items-start tw:gap-3 tw:p-5">
+            <span className="tw:flex tw:h-12 tw:w-12 tw:flex-none tw:items-center tw:justify-center tw:rounded-xl tw:bg-brand-100 tw:text-brand-600 tw:dark:bg-brand-950 tw:dark:text-brand-300">
+              <BookOpen className="tw:h-6 tw:w-6" />
+            </span>
             <div>
-              <div className="course-code-badge">{course.courseCode}</div>
-              <h1>{course.courseName}</h1>
-              <div className="course-meta">
-                <span>
-                  <FiAward size={16} />
-                  {course.creditUnits || 3} Credit Units
-                </span>
-                <span>
-                  <FiFileText size={16} />
-                  {materials.length} {materials.length === 1 ? 'Material' : 'Materials'}
-                </span>
+              <p className="tw:text-xs tw:font-bold tw:text-brand-600 tw:dark:text-brand-400">{course.courseCode}</p>
+              <h1 className="tw:font-heading tw:text-lg tw:font-bold tw:tracking-tight">{course.courseName}</h1>
+              <div className="tw:mt-2 tw:flex tw:flex-wrap tw:gap-3 tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">
+                <span className="tw:flex tw:items-center tw:gap-1"><Award className="tw:h-3.5 tw:w-3.5" /> {course.creditUnits || 3} Credit Units</span>
+                <span className="tw:flex tw:items-center tw:gap-1"><FileText className="tw:h-3.5 tw:w-3.5" /> {materials.length} {materials.length === 1 ? 'Material' : 'Materials'}</span>
               </div>
             </div>
-          </div>
+          </Card>
         )}
 
-        {/* Tabs */}
-        <div className="detail-tabs" ref={summaryTabsRef}>
+        <div ref={summaryTabsRef} className="tw:flex tw:gap-2">
           <button
-            className={`detail-tab ${activeTab === 'summaries' ? 'active' : ''}`}
+            type="button"
             onClick={() => setActiveTab('summaries')}
+            className={cn(
+              'tw:flex tw:flex-1 tw:items-center tw:justify-center tw:gap-1.5 tw:rounded-xl tw:border tw:px-3 tw:py-2.5 tw:text-sm tw:font-semibold tw:transition-colors',
+              activeTab === 'summaries'
+                ? 'tw:border-brand-600 tw:bg-brand-600 tw:text-white'
+                : 'tw:border-slate-200 tw:text-slate-600 tw:dark:border-slate-800 tw:dark:text-slate-300',
+            )}
           >
-            <FiFileText />
-            Study Summaries
+            <FileText className="tw:h-4 tw:w-4" /> Study Summaries
           </button>
-          <Link to={`/practice?courseId=${courseId}`} className="detail-tab detail-tab-practice">
-            <FiGrid />
-            Practice Exam
+          <Link
+            to={`/practice?courseId=${courseId}`}
+            className="tw:flex tw:flex-1 tw:items-center tw:justify-center tw:gap-1.5 tw:rounded-xl tw:border tw:border-slate-200 tw:px-3 tw:py-2.5 tw:text-sm tw:font-semibold tw:text-slate-600 tw:dark:border-slate-800 tw:dark:text-slate-300"
+          >
+            <LayoutGrid className="tw:h-4 tw:w-4" /> Practice Exam
           </Link>
         </div>
 
-        {/* Content */}
         {activeTab === 'summaries' && (
-          <div className="summaries-content">
+          <>
             {materials.length === 0 ? (
-              <div className="empty-state">
-                <FiFileText size={64} />
-                <h3>No Materials Available</h3>
-                <p>There are no study materials uploaded for this course yet.</p>
-              </div>
+              <Card className="tw:flex tw:flex-col tw:items-center tw:gap-2 tw:p-10 tw:text-center">
+                <FileText className="tw:h-10 tw:w-10 tw:text-slate-300 tw:dark:text-slate-600" />
+                <h3 className="tw:font-heading tw:text-sm tw:font-bold">No Materials Available</h3>
+                <p className="tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">There are no study materials uploaded for this course yet.</p>
+              </Card>
             ) : (
-              <div className="summaries-grid">
-                {/* Materials List */}
-                <div className="materials-sidebar">
-                  <h3>Course Materials</h3>
-                  <div className="materials-list">
+              <div className="tw:space-y-4">
+                <div className="tw:space-y-2">
+                  <h3 className="tw:font-heading tw:text-sm tw:font-bold">Course Materials</h3>
+                  <div className="tw:space-y-2">
                     {materials.map((material) => (
                       <button
                         key={material._id}
-                        className={`material-item ${selectedMaterial?._id === material._id ? 'active' : ''} ${!material.hasSummary ? 'no-summary' : ''}`}
+                        type="button"
                         onClick={() => setSelectedMaterial(material)}
+                        className={cn(
+                          'tw:block tw:w-full tw:rounded-xl tw:border tw:p-3 tw:text-left tw:transition-colors',
+                          selectedMaterial?._id === material._id
+                            ? 'tw:border-brand-500 tw:bg-brand-50 tw:dark:bg-brand-950/40'
+                            : 'tw:border-slate-200 tw:dark:border-slate-800',
+                        )}
                       >
-                        <div className="material-item-header">
-                          <FiFileText />
-                          <span className="material-title">{material.title}</span>
+                        <div className="tw:flex tw:items-center tw:gap-2">
+                          <FileText className="tw:h-4 tw:w-4 tw:flex-none tw:text-brand-600 tw:dark:text-brand-400" />
+                          <span className="tw:truncate tw:text-sm tw:font-semibold">{material.title}</span>
                         </div>
-                        <div className="material-item-meta">
-                          <span className="material-date">
-                            <FiClock size={12} />
-                            {formatDate(material.createdAt)}
+                        <div className="tw:mt-1.5 tw:flex tw:items-center tw:justify-between">
+                          <span className="tw:flex tw:items-center tw:gap-1 tw:text-xs tw:text-slate-400">
+                            <Clock className="tw:h-3 tw:w-3" /> {formatDate(material.createdAt)}
                           </span>
-                          {material.hasSummary ? (
-                            <span className="summary-badge">Has Summary</span>
-                          ) : (
-                            <span className="no-summary-badge">No Summary</span>
-                          )}
+                          <span
+                            className={cn(
+                              'tw:rounded-full tw:px-2 tw:py-0.5 tw:text-[10px] tw:font-semibold',
+                              material.hasSummary
+                                ? 'tw:bg-emerald-100 tw:text-emerald-700 tw:dark:bg-emerald-950 tw:dark:text-emerald-300'
+                                : 'tw:bg-slate-100 tw:text-slate-500 tw:dark:bg-slate-800 tw:dark:text-slate-400',
+                            )}
+                          >
+                            {material.hasSummary ? 'Has Summary' : 'No Summary'}
+                          </span>
                         </div>
                       </button>
                     ))}
                   </div>
                 </div>
 
-                {/* Summary Display */}
-                <div className="summary-display">
+                <Card className="tw:p-4">
                   {selectedMaterial ? (
                     <>
-                      <div className="summary-header">
-                        <h2>{selectedMaterial.title}</h2>
-                        <div className="summary-actions">
-                          <button
-                            type="button"
-                            className="btn btn-outline-primary"
-                            onClick={handleSharePdf}
-                            disabled={shareState.loading}
-                          >
-                            <FiShare2 />
-                            {shareState.loading ? 'Creating Link...' : 'Share PDF'}
-                          </button>
-                        </div>
+                      <div className="tw:flex tw:items-start tw:justify-between tw:gap-3">
+                        <h2 className="tw:font-heading tw:text-base tw:font-bold">{selectedMaterial.title}</h2>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleSharePdf}
+                          disabled={shareState.loading}
+                          className="tw:flex-none"
+                        >
+                          <Share2 className="tw:h-3.5 tw:w-3.5" /> {shareState.loading ? 'Creating...' : 'Share PDF'}
+                        </Button>
                       </div>
                       {shareState.message && (
-                        <div className={`alert ${shareState.type === 'success' ? 'alert-success' : 'alert-danger'}`}>
+                        <div
+                          className={cn(
+                            'tw:mt-3 tw:rounded-xl tw:px-3.5 tw:py-2.5 tw:text-sm',
+                            shareState.type === 'success'
+                              ? 'tw:bg-emerald-100 tw:text-emerald-700 tw:dark:bg-emerald-950 tw:dark:text-emerald-300'
+                              : 'tw:bg-red-100 tw:text-red-700 tw:dark:bg-red-500/15 tw:dark:text-red-300',
+                          )}
+                        >
                           {shareState.message}
                         </div>
                       )}
                       {readingStatus && (
-                        <div className="alert alert-success">
+                        <div className="tw:mt-3 tw:rounded-xl tw:bg-emerald-100 tw:px-3.5 tw:py-2.5 tw:text-sm tw:text-emerald-700 tw:dark:bg-emerald-950 tw:dark:text-emerald-300">
                           {readingStatus}
                         </div>
                       )}
 
-                      <div className="summary-meta">
-                        <span>
-                          <FiUser size={14} />
-                          Uploaded by {selectedMaterial.uploadedBy?.name || 'Admin'}
-                        </span>
-                        <span>
-                          <FiClock size={14} />
-                          {formatDate(selectedMaterial.createdAt)}
-                        </span>
+                      <div className="tw:mt-3 tw:flex tw:flex-wrap tw:gap-3 tw:border-b tw:border-slate-100 tw:pb-3 tw:text-xs tw:text-slate-500 tw:dark:border-slate-800 tw:dark:text-slate-400">
+                        <span className="tw:flex tw:items-center tw:gap-1"><User className="tw:h-3.5 tw:w-3.5" /> Uploaded by {selectedMaterial.uploadedBy?.name || 'Admin'}</span>
+                        <span className="tw:flex tw:items-center tw:gap-1"><Clock className="tw:h-3.5 tw:w-3.5" /> {formatDate(selectedMaterial.createdAt)}</span>
                       </div>
 
                       {selectedMaterial.hasSummary ? (
@@ -657,25 +637,25 @@ const CourseDetail = () => {
                           ))}
                         </div>
                       ) : (
-                        <div className="no-summary-placeholder">
-                          <FiFileText size={48} />
-                          <h3>No Summary Available</h3>
-                          <p>A study summary has not been created for this material yet.</p>
-                          <p>You can still download and read the original PDF file.</p>
+                        <div className="tw:flex tw:flex-col tw:items-center tw:gap-2 tw:py-10 tw:text-center">
+                          <FileText className="tw:h-8 tw:w-8 tw:text-slate-300 tw:dark:text-slate-600" />
+                          <h3 className="tw:font-heading tw:text-sm tw:font-bold">No Summary Available</h3>
+                          <p className="tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">A study summary has not been created for this material yet.</p>
+                          <p className="tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">You can still download and read the original PDF file.</p>
                         </div>
                       )}
                     </>
                   ) : (
-                    <div className="select-material-placeholder">
-                      <FiFileText size={64} />
-                      <h3>Select a Material</h3>
-                      <p>Choose a material from the list to view its system-generated summary.</p>
+                    <div className="tw:flex tw:flex-col tw:items-center tw:gap-2 tw:py-10 tw:text-center">
+                      <FileText className="tw:h-10 tw:w-10 tw:text-slate-300 tw:dark:text-slate-600" />
+                      <h3 className="tw:font-heading tw:text-sm tw:font-bold">Select a Material</h3>
+                      <p className="tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">Choose a material from the list to view its system-generated summary.</p>
                     </div>
                   )}
-                </div>
+                </Card>
               </div>
             )}
-          </div>
+          </>
         )}
       </div>
     </div>

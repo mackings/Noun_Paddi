@@ -1,9 +1,14 @@
 import React, { useRef, useState } from 'react';
 import YouTube from 'react-youtube';
-import { FiPause, FiPlay, FiRotateCcw, FiRotateCw } from 'react-icons/fi';
+import { Pause, Play, RotateCcw, RotateCw } from 'lucide-react';
 import VideoOverlay from './VideoOverlay';
 import { LOCKED_OPTS, extractVideoId } from '../utils/youtube';
 import { usePreventLeakage } from '../utils/usePreventLeakage';
+// video-frame-wrap/video-frame/video-overlay-* classes below are pixel-positioned
+// anti-leak protection (blocking YouTube's own clickable logo/title overlay) — kept
+// exactly as-is rather than restyled, since getting that positioning wrong is a real
+// content-protection regression, not just a visual one.
+import '../pages/Videos.css';
 
 export default function YoutubePlayer({ videoId, title, onEnd, onStateChange }) {
   const wrapperRef = useRef(null);
@@ -14,7 +19,7 @@ export default function YoutubePlayer({ videoId, title, onEnd, onStateChange }) 
   usePreventLeakage(wrapperRef);
 
   if (!id) {
-    return <div className="video-player-error">Invalid video reference.</div>;
+    return <div className="tw:flex tw:items-center tw:justify-center tw:rounded-2xl tw:bg-slate-100 tw:p-8 tw:text-sm tw:text-slate-500 tw:dark:bg-slate-800 tw:dark:text-slate-400">Invalid video reference.</div>;
   }
 
   const setPlaying = (isPlaying) => {
@@ -52,7 +57,7 @@ export default function YoutubePlayer({ videoId, title, onEnd, onStateChange }) 
   };
 
   return (
-    <div ref={wrapperRef} className="video-player-shell">
+    <div ref={wrapperRef} className="tw:overflow-hidden tw:rounded-2xl tw:border tw:border-slate-200/70 tw:bg-white tw:dark:border-slate-800 tw:dark:bg-slate-900">
       <div className="video-frame-wrap" aria-label={title}>
         <YouTube
           videoId={id}
@@ -67,22 +72,46 @@ export default function YoutubePlayer({ videoId, title, onEnd, onStateChange }) 
         />
         <VideoOverlay />
       </div>
-      <div className="video-player-controls">
-        <button type="button" className="video-control-btn" onClick={() => seekBy(-10)} disabled={!ready} aria-label="Go back 10 seconds">
-          <FiRotateCcw />
-          <span>10s</span>
+      <div className="tw:grid tw:grid-cols-4 tw:gap-2 tw:p-3">
+        <button
+          type="button"
+          onClick={() => seekBy(-10)}
+          disabled={!ready}
+          aria-label="Go back 10 seconds"
+          className="tw:flex tw:flex-col tw:items-center tw:gap-1 tw:rounded-xl tw:bg-slate-100 tw:py-2.5 tw:text-xs tw:font-semibold tw:text-slate-600 tw:transition-colors tw:disabled:opacity-50 tw:dark:bg-slate-800 tw:dark:text-slate-300"
+        >
+          <RotateCcw className="tw:h-4 tw:w-4" />
+          10s
         </button>
-        <button type="button" className="video-control-btn" onClick={play} disabled={!ready} aria-label="Play video">
-          <FiPlay />
-          <span>Play</span>
+        <button
+          type="button"
+          onClick={play}
+          disabled={!ready}
+          aria-label="Play video"
+          className="tw:flex tw:flex-col tw:items-center tw:gap-1 tw:rounded-xl tw:bg-brand-600 tw:py-2.5 tw:text-xs tw:font-semibold tw:text-white tw:transition-colors tw:disabled:opacity-50 tw:hover:bg-brand-500"
+        >
+          <Play className="tw:h-4 tw:w-4" />
+          Play
         </button>
-        <button type="button" className="video-control-btn" onClick={pause} disabled={!ready} aria-label="Pause video">
-          <FiPause />
-          <span>Pause</span>
+        <button
+          type="button"
+          onClick={pause}
+          disabled={!ready}
+          aria-label="Pause video"
+          className="tw:flex tw:flex-col tw:items-center tw:gap-1 tw:rounded-xl tw:bg-slate-100 tw:py-2.5 tw:text-xs tw:font-semibold tw:text-slate-600 tw:transition-colors tw:disabled:opacity-50 tw:dark:bg-slate-800 tw:dark:text-slate-300"
+        >
+          <Pause className="tw:h-4 tw:w-4" />
+          Pause
         </button>
-        <button type="button" className="video-control-btn" onClick={() => seekBy(10)} disabled={!ready} aria-label="Go forward 10 seconds">
-          <FiRotateCw />
-          <span>10s</span>
+        <button
+          type="button"
+          onClick={() => seekBy(10)}
+          disabled={!ready}
+          aria-label="Go forward 10 seconds"
+          className="tw:flex tw:flex-col tw:items-center tw:gap-1 tw:rounded-xl tw:bg-slate-100 tw:py-2.5 tw:text-xs tw:font-semibold tw:text-slate-600 tw:transition-colors tw:disabled:opacity-50 tw:dark:bg-slate-800 tw:dark:text-slate-300"
+        >
+          <RotateCw className="tw:h-4 tw:w-4" />
+          10s
         </button>
       </div>
     </div>

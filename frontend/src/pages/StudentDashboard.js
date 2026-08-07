@@ -6,20 +6,26 @@ import { trackFeatureVisit } from '../utils/featureTracking';
 import SEO from '../components/SEO';
 import { useAuth } from '../contexts/AuthContext';
 import {
-  FiBook,
-  FiFileText,
-  FiGrid,
-  FiAward,
-  FiTrendingUp,
-  FiClock,
-  FiUpload,
-  FiX,
-  FiCheckCircle,
-  FiArrowLeft,
-  FiUser,
-  FiLoader,
-} from 'react-icons/fi';
-import './StudentDashboard.css';
+  BookOpen,
+  FileText,
+  LayoutGrid,
+  Award,
+  TrendingUp,
+  Clock,
+  Upload,
+  X,
+  CheckCircle2,
+  ChevronRight,
+  User,
+  Loader2,
+} from 'lucide-react';
+import ShellHeader from '../shell/ShellHeader';
+import { Card } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Dialog, DialogPopup, DialogHeader, DialogTitle } from '../components/ui/dialog';
+import { Sheet, SheetPopup, SheetHeader, SheetTitle, SheetDescription } from '../components/ui/sheet';
+import { cn } from '../lib/utils';
 
 // Upload flow:
 // 1) If PDF <= 10MB: upload directly to Cloudinary (raw upload).
@@ -978,19 +984,15 @@ const StudentDashboard = () => {
 
   if (loading) {
     return (
-      <div className="student-dashboard-container">
-        <div className="container">
-          <div className="loading-container">
-            <div className="spinner"></div>
-            <p>Loading dashboard...</p>
-          </div>
-        </div>
+      <div className="np-shell tw:flex tw:flex-col tw:items-center tw:gap-2 tw:py-16 tw:text-slate-500 tw:dark:text-slate-400">
+        <Loader2 className="tw:h-6 tw:w-6 tw:animate-spin" />
+        <p className="tw:text-sm">Loading dashboard...</p>
       </div>
     );
   }
 
   return (
-    <div className="student-dashboard-container">
+    <div className="np-shell tw:space-y-4 tw:p-4">
       <SEO
         title="Student Dashboard - NounPaddi"
         description="Student dashboard for NounPaddi activity, uploads, summaries, and leaderboard progress."
@@ -998,760 +1000,622 @@ const StudentDashboard = () => {
         keywords="student dashboard, nounpaddi dashboard, uploads, leaderboard"
         robots="noindex, nofollow"
       />
-      <div className="container">
-        <div className="dashboard-header">
+
+      <ShellHeader title="My Learning Dashboard" className="tw:-mx-4 tw:-mt-4" />
+
+      <div className="tw:flex tw:items-center tw:justify-between tw:gap-2">
+        <p className="tw:text-sm tw:text-slate-500 tw:dark:text-slate-400">Track your progress and explore study materials</p>
+        <Link
+          to="/profile"
+          className="tw:flex tw:flex-none tw:items-center tw:gap-1.5 tw:rounded-xl tw:border tw:border-slate-200 tw:px-3 tw:py-2 tw:text-xs tw:font-semibold tw:text-slate-600 tw:dark:border-slate-800 tw:dark:text-slate-300"
+        >
+          <User className="tw:h-3.5 tw:w-3.5" /> Profile
+        </Link>
+      </div>
+
+      <Card className="tw:space-y-3 tw:border-brand-200 tw:bg-brand-50 tw:p-4 tw:dark:border-brand-900 tw:dark:bg-brand-950/40">
+        <div>
+          <p className="tw:text-xs tw:font-bold tw:tracking-wide tw:text-brand-600 tw:uppercase tw:dark:text-brand-400">Need a course summary?</p>
+          <h2 className="tw:font-heading tw:mt-1 tw:text-base tw:font-bold">Get Course Summary &amp; Questions</h2>
+          <p className="tw:mt-1 tw:text-sm tw:text-slate-600 tw:dark:text-slate-300">
+            Upload your course material once and we will generate a clean summary plus exam questions.
+          </p>
+        </div>
+        <Button onClick={openUploadModal} className="tw:w-full">
+          <Upload className="tw:h-4 tw:w-4" /> Get Course Summary
+        </Button>
+      </Card>
+
+      <div className="tw:grid tw:grid-cols-2 tw:gap-2.5">
+        <Card className="tw:flex tw:items-center tw:gap-3 tw:p-3.5">
+          <span className="tw:flex tw:h-9 tw:w-9 tw:flex-none tw:items-center tw:justify-center tw:rounded-lg tw:bg-blue-100 tw:text-blue-600 tw:dark:bg-blue-500/15 tw:dark:text-blue-300"><BookOpen className="tw:h-4 tw:w-4" /></span>
           <div>
-            <h1>My Learning Dashboard</h1>
-            <p>Track your progress and explore study materials</p>
+            <h3 className="tw:font-heading tw:text-lg tw:font-bold tw:leading-none">{stats?.overview?.totalCourses || 0}</h3>
+            <p className="tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">Available Courses</p>
           </div>
-          <Link to="/profile" className="profile-link-button">
-            <FiUser size={18} />
-            My Profile
+        </Card>
+        <Card className="tw:flex tw:items-center tw:gap-3 tw:p-3.5">
+          <span className="tw:flex tw:h-9 tw:w-9 tw:flex-none tw:items-center tw:justify-center tw:rounded-lg tw:bg-brand-100 tw:text-brand-600 tw:dark:bg-brand-950 tw:dark:text-brand-300"><FileText className="tw:h-4 tw:w-4" /></span>
+          <div>
+            <h3 className="tw:font-heading tw:text-lg tw:font-bold tw:leading-none">{stats?.overview?.totalMaterials || 0}</h3>
+            <p className="tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">Study Materials</p>
+          </div>
+        </Card>
+        <Card className="tw:flex tw:items-center tw:gap-3 tw:p-3.5">
+          <span className="tw:flex tw:h-9 tw:w-9 tw:flex-none tw:items-center tw:justify-center tw:rounded-lg tw:bg-emerald-100 tw:text-emerald-600 tw:dark:bg-emerald-950 tw:dark:text-emerald-300"><FileText className="tw:h-4 tw:w-4" /></span>
+          <div>
+            <h3 className="tw:font-heading tw:text-lg tw:font-bold tw:leading-none">{stats?.overview?.totalSummaries || 0}</h3>
+            <p className="tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">Summaries</p>
+            <p className="tw:text-[11px] tw:text-slate-400">{stats?.overview?.materialWithSummaries || 0}% of materials</p>
+          </div>
+        </Card>
+        <Card className="tw:flex tw:items-center tw:gap-3 tw:p-3.5">
+          <span className="tw:flex tw:h-9 tw:w-9 tw:flex-none tw:items-center tw:justify-center tw:rounded-lg tw:bg-amber-100 tw:text-amber-600 tw:dark:bg-amber-500/15 tw:dark:text-amber-300"><LayoutGrid className="tw:h-4 tw:w-4" /></span>
+          <div>
+            <h3 className="tw:font-heading tw:text-lg tw:font-bold tw:leading-none">{stats?.overview?.totalQuestions || 0}</h3>
+            <p className="tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">Practice Questions</p>
+            <p className="tw:text-[11px] tw:text-slate-400">{stats?.overview?.avgQuestionsPerCourse || 0} per course</p>
+          </div>
+        </Card>
+      </div>
+
+      {gamificationData && (
+        <div className="tw:space-y-3">
+          <div className="tw:flex tw:items-center tw:gap-2">
+            <Award className="tw:h-5 tw:w-5 tw:text-brand-600 tw:dark:text-brand-400" />
+            <div>
+              <h2 className="tw:font-heading tw:text-base tw:font-bold">Gamification</h2>
+              <p className="tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">Your points, activity, and leaderboard position</p>
+            </div>
+          </div>
+
+          <div className="tw:grid tw:grid-cols-2 tw:gap-2.5">
+            <Card className="tw:p-3.5 tw:text-center">
+              <h3 className="tw:font-heading tw:text-lg tw:font-bold">{gamificationData?.totals?.totalPoints || 0}</h3>
+              <p className="tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">Total Points</p>
+            </Card>
+            <Card className="tw:p-3.5 tw:text-center">
+              <h3 className="tw:font-heading tw:text-lg tw:font-bold">{gamificationData?.totals?.practicePoints || 0}</h3>
+              <p className="tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">Practice Points</p>
+            </Card>
+            <Card className="tw:p-3.5 tw:text-center">
+              <h3 className="tw:font-heading tw:text-lg tw:font-bold">{gamificationData?.totals?.readingPoints || 0}</h3>
+              <p className="tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">Reading Points</p>
+            </Card>
+            <Card className="tw:p-3.5 tw:text-center">
+              <h3 className="tw:font-heading tw:text-lg tw:font-bold">{gamificationData?.totals?.summariesCompleted || 0}</h3>
+              <p className="tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">Summaries Completed</p>
+            </Card>
+          </div>
+
+          <Card className="tw:space-y-2 tw:p-4">
+            <div>
+              <h3 className="tw:font-heading tw:text-sm tw:font-bold">Overall Toppers</h3>
+              <p className="tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">Top students by total gamification points</p>
+            </div>
+            <div className="tw:space-y-1.5">
+              {(gamificationData?.leaderboards?.overall || []).slice(0, 10).map((entry) => (
+                <div
+                  key={`${entry.studentId}-overall`}
+                  className={cn(
+                    'tw:flex tw:items-center tw:gap-3 tw:rounded-xl tw:p-2.5 tw:text-sm',
+                    entry.isMe ? 'tw:bg-brand-50 tw:dark:bg-brand-950/40' : 'tw:bg-slate-50 tw:dark:bg-slate-800/60',
+                  )}
+                >
+                  <span className="tw:w-6 tw:flex-none tw:text-center tw:text-xs tw:font-bold">{rankLabel(entry.rank)}</span>
+                  <span className="tw:flex-1 tw:truncate">{entry.studentName}</span>
+                  <strong className="tw:text-xs tw:font-bold tw:text-brand-600 tw:dark:text-brand-400">{entry.totalPoints} pts</strong>
+                  <span className="tw:text-[11px] tw:text-slate-400">{entry.attempts || 0} activities</span>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          <div className="tw:grid tw:grid-cols-1 tw:gap-2.5 tw:sm:grid-cols-2">
+            <Card className="tw:space-y-2 tw:p-4">
+              <h3 className="tw:font-heading tw:text-sm tw:font-bold">Practice Leaders</h3>
+              <div className="tw:space-y-1.5">
+                {(gamificationData?.leaderboards?.practice || []).slice(0, 5).map((entry) => (
+                  <div key={`${entry.studentId}-practice`} className={cn('tw:flex tw:items-center tw:justify-between tw:rounded-lg tw:px-2.5 tw:py-1.5 tw:text-xs', entry.isMe && 'tw:bg-brand-50 tw:dark:bg-brand-950/40')}>
+                    <span>{rankLabel(entry.rank)} {entry.studentName}</span>
+                    <strong>{entry.totalPoints} pts</strong>
+                  </div>
+                ))}
+              </div>
+            </Card>
+            <Card className="tw:space-y-2 tw:p-4">
+              <h3 className="tw:font-heading tw:text-sm tw:font-bold">Top Readers</h3>
+              <div className="tw:space-y-1.5">
+                {(gamificationData?.leaderboards?.readers || []).slice(0, 5).map((entry) => (
+                  <div key={`${entry.studentId}-readers`} className={cn('tw:flex tw:items-center tw:justify-between tw:rounded-lg tw:px-2.5 tw:py-1.5 tw:text-xs', entry.isMe && 'tw:bg-brand-50 tw:dark:bg-brand-950/40')}>
+                    <span>{rankLabel(entry.rank)} {entry.studentName}</span>
+                    <strong>{entry.totalPoints} pts</strong>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </div>
+
+          <Card className="tw:space-y-2 tw:p-4">
+            <h3 className="tw:font-heading tw:text-sm tw:font-bold">Recent Activity</h3>
+            {gamificationData?.recentActivities?.length > 0 ? (
+              <div className="tw:space-y-1.5">
+                {gamificationData.recentActivities.slice(0, 8).map((activity) => (
+                  <div key={activity._id} className="tw:flex tw:items-center tw:justify-between tw:gap-2 tw:rounded-lg tw:bg-slate-50 tw:p-2.5 tw:dark:bg-slate-800/60">
+                    <div>
+                      <strong className="tw:block tw:text-xs tw:font-semibold">{describeActivity(activity)}</strong>
+                      <p className="tw:text-[11px] tw:text-slate-500 tw:dark:text-slate-400">
+                        {activity.course
+                          ? `${activity.course.courseCode} - ${activity.course.courseName}`
+                          : 'General activity'}
+                      </p>
+                    </div>
+                    <span className="tw:flex-none tw:text-xs tw:font-bold tw:text-emerald-600 tw:dark:text-emerald-400">+{activity.points || 0}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">No activity yet. Start practicing or complete a summary.</p>
+            )}
+          </Card>
+        </div>
+      )}
+
+      <div className="tw:space-y-2.5">
+        <div className="tw:flex tw:items-center tw:justify-between">
+          <div className="tw:flex tw:items-center tw:gap-2">
+            <Clock className="tw:h-5 tw:w-5 tw:text-brand-600 tw:dark:text-brand-400" />
+            <div>
+              <h2 className="tw:font-heading tw:text-base tw:font-bold">Recently Added Materials</h2>
+              <p className="tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">Latest study materials uploaded to the platform</p>
+            </div>
+          </div>
+          <Link to="/explore" className="tw:flex tw:flex-none tw:items-center tw:gap-0.5 tw:text-xs tw:font-semibold tw:text-brand-600 tw:dark:text-brand-400">
+            View All <ChevronRight className="tw:h-3.5 tw:w-3.5" />
           </Link>
         </div>
 
-        <div className="summary-cta">
-          <div className="summary-cta-card">
-            <div>
-              <p className="summary-cta-kicker">Need a course summary?</p>
-              <h2>Get Course Summary & Questions</h2>
-              <p>Upload your course material once and we will generate a clean summary plus exam questions.</p>
-            </div>
-            <button
-              className="summary-cta-button"
-              onClick={openUploadModal}
-            >
-              <FiUpload size={18} />
-              Get Course Summary
-            </button>
-          </div>
-        </div>
-
-        {/* Stats Cards */}
-        <div className="stats-grid">
-          <div className="stat-card stat-card-blue">
-            <div className="stat-icon">
-              <FiBook />
-            </div>
-            <div className="stat-details">
-              <h3>{stats?.overview?.totalCourses || 0}</h3>
-              <p>Available Courses</p>
-            </div>
-          </div>
-
-          <div className="stat-card stat-card-purple">
-            <div className="stat-icon">
-              <FiFileText />
-            </div>
-            <div className="stat-details">
-              <h3>{stats?.overview?.totalMaterials || 0}</h3>
-              <p>Study Materials</p>
-            </div>
-          </div>
-
-          <div className="stat-card stat-card-green">
-            <div className="stat-icon">
-              <FiFileText />
-            </div>
-            <div className="stat-details">
-              <h3>{stats?.overview?.totalSummaries || 0}</h3>
-              <p>Summaries Available</p>
-              <span className="stat-badge">{stats?.overview?.materialWithSummaries || 0}% of materials</span>
-            </div>
-          </div>
-
-          <div className="stat-card stat-card-orange">
-            <div className="stat-icon">
-              <FiGrid />
-            </div>
-            <div className="stat-details">
-              <h3>{stats?.overview?.totalQuestions || 0}</h3>
-              <p>Practice Questions</p>
-              <span className="stat-badge">{stats?.overview?.avgQuestionsPerCourse || 0} per course</span>
-            </div>
-          </div>
-        </div>
-
-        {gamificationData && (
-          <div className="modern-section gamification-section">
-            <div className="section-header">
-              <div className="section-title-group">
-                <FiAward size={24} className="section-icon" />
-                <div>
-                  <h2>Gamification</h2>
-                  <p>Your points, activity, and leaderboard position</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="gamification-totals-grid">
-              <div className="gamification-total-card">
-                <h3>{gamificationData?.totals?.totalPoints || 0}</h3>
-                <p>Total Points</p>
-              </div>
-              <div className="gamification-total-card">
-                <h3>{gamificationData?.totals?.practicePoints || 0}</h3>
-                <p>Practice Points</p>
-              </div>
-              <div className="gamification-total-card">
-                <h3>{gamificationData?.totals?.readingPoints || 0}</h3>
-                <p>Reading Points</p>
-              </div>
-              <div className="gamification-total-card">
-                <h3>{gamificationData?.totals?.summariesCompleted || 0}</h3>
-                <p>Summaries Completed</p>
-              </div>
-            </div>
-
-            <div className="gamification-content-grid">
-              <div className="gamification-card overall-toppers-card">
-                <div className="overall-toppers-header">
-                  <h3>Overall Toppers</h3>
-                  <p>Top students by total gamification points</p>
-                </div>
-                <div className="overall-toppers-table">
-                  <div className="overall-toppers-row overall-toppers-head">
-                    <span>Rank</span>
-                    <span>Student</span>
-                    <span>Points</span>
-                    <span>Activities</span>
-                  </div>
-                  {(gamificationData?.leaderboards?.overall || []).slice(0, 10).map((entry) => (
-                    <div key={`${entry.studentId}-overall`} className={`overall-toppers-row ${entry.isMe ? 'is-me' : ''}`}>
-                      <span>{rankLabel(entry.rank)}</span>
-                      <span>{entry.studentName}</span>
-                      <strong>{entry.totalPoints}</strong>
-                      <span>{entry.attempts || 0}</span>
+        {stats?.recentMaterials && stats.recentMaterials.length > 0 ? (
+          <div className="tw:space-y-2.5">
+            {stats.recentMaterials.slice(0, 6).map((material) => (
+              <Link key={material._id} to={`/course/${material.courseId?._id}`}>
+                <Card interactive className="tw:flex tw:items-start tw:gap-3 tw:p-3.5">
+                  <span className="tw:flex tw:h-10 tw:w-10 tw:flex-none tw:items-center tw:justify-center tw:rounded-xl tw:bg-brand-100 tw:text-brand-600 tw:dark:bg-brand-950 tw:dark:text-brand-300">
+                    <FileText className="tw:h-4.5 tw:w-4.5" />
+                  </span>
+                  <div className="tw:min-w-0 tw:flex-1">
+                    <div className="tw:flex tw:items-start tw:justify-between tw:gap-2">
+                      <h3 className="tw:truncate tw:text-sm tw:font-bold">{material.title}</h3>
+                      <span className="tw:flex-none tw:rounded-full tw:bg-emerald-100 tw:px-2 tw:py-0.5 tw:text-[10px] tw:font-bold tw:text-emerald-700 tw:dark:bg-emerald-950 tw:dark:text-emerald-300">New</span>
                     </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="gamification-side-stack">
-                <div className="gamification-card">
-                  <h3>Practice Leaders</h3>
-                  <div className="gamification-leaderboard-list">
-                    {(gamificationData?.leaderboards?.practice || []).slice(0, 5).map((entry) => (
-                      <div key={`${entry.studentId}-practice`} className={`leaderboard-mini-row ${entry.isMe ? 'is-me' : ''}`}>
-                        <span>{rankLabel(entry.rank)} {entry.studentName}</span>
-                        <strong>{entry.totalPoints} pts</strong>
-                      </div>
-                    ))}
-                  </div>
-
-                  <h3>Top Readers</h3>
-                  <div className="gamification-leaderboard-list">
-                    {(gamificationData?.leaderboards?.readers || []).slice(0, 5).map((entry) => (
-                      <div key={`${entry.studentId}-readers`} className={`leaderboard-mini-row ${entry.isMe ? 'is-me' : ''}`}>
-                        <span>{rankLabel(entry.rank)} {entry.studentName}</span>
-                        <strong>{entry.totalPoints} pts</strong>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="gamification-card">
-              <h3>Recent Activity</h3>
-              {gamificationData?.recentActivities?.length > 0 ? (
-                <div className="gamification-activity-list">
-                  {gamificationData.recentActivities.slice(0, 8).map((activity) => (
-                    <div key={activity._id} className="gamification-activity-item">
-                      <div>
-                        <strong>{describeActivity(activity)}</strong>
-                        <p>
-                          {activity.course
-                            ? `${activity.course.courseCode} - ${activity.course.courseName}`
-                            : 'General activity'}
-                        </p>
-                      </div>
-                      <div className="gamification-points-chip">
-                        +{activity.points || 0}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="gamification-empty-text">No activity yet. Start practicing or complete a summary.</p>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Recent Materials */}
-        <div className="modern-section recent-materials-section">
-          <div className="section-header">
-            <div className="section-title-group">
-              <FiClock size={24} className="section-icon" />
-              <div>
-                <h2>Recently Added Materials</h2>
-                <p>Latest study materials uploaded to the platform</p>
-              </div>
-            </div>
-            <Link to="/explore" className="view-all-button">
-              View All
-              <FiArrowLeft style={{ transform: 'rotate(180deg)' }} />
-            </Link>
-          </div>
-
-          <div className="modern-materials-grid">
-            {stats?.recentMaterials && stats.recentMaterials.length > 0 ? (
-              stats.recentMaterials.slice(0, 6).map((material) => (
-                <Link
-                  key={material._id}
-                  to={`/course/${material.courseId?._id}`}
-                  className="modern-material-card"
-                >
-                  <div className="material-card-header">
-                    <div className="material-icon-wrapper">
-                      <FiFileText size={24} />
-                    </div>
-                    <span className="material-badge">New</span>
-                  </div>
-                  <div className="material-card-content">
-                    <h3>{material.title}</h3>
-                    <p className="material-course">
+                    <p className="tw:truncate tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">
                       {material.courseId?.courseCode} - {material.courseId?.courseName}
                     </p>
-                    <div className="material-card-footer">
-                      <span className="material-date">
-                        <FiClock size={14} />
-                        {formatDate(material.createdAt)}
-                      </span>
-                      {material.hasSummary && (
-                        <span className="material-tag summary-tag">
-                          <FiBook size={12} />
-                          Summary
-                        </span>
-                      )}
-                      {material.hasQuestions && (
-                        <span className="material-tag questions-tag">
-                          <FiGrid size={12} />
-                          Questions
-                        </span>
-                      )}
+                    <div className="tw:mt-1.5 tw:flex tw:flex-wrap tw:items-center tw:gap-2 tw:text-[11px] tw:text-slate-400">
+                      <span className="tw:flex tw:items-center tw:gap-1"><Clock className="tw:h-3 tw:w-3" /> {formatDate(material.createdAt)}</span>
+                      {material.hasSummary && <span className="tw:flex tw:items-center tw:gap-1 tw:text-brand-600 tw:dark:text-brand-400"><BookOpen className="tw:h-3 tw:w-3" /> Summary</span>}
+                      {material.hasQuestions && <span className="tw:flex tw:items-center tw:gap-1 tw:text-amber-600 tw:dark:text-amber-400"><LayoutGrid className="tw:h-3 tw:w-3" /> Questions</span>}
                     </div>
                   </div>
-                </Link>
-              ))
-            ) : (
-              <div className="empty-state">
-                <FiFileText size={48} />
-                <h3>No materials available yet</h3>
-                <p>Be the first to upload study materials!</p>
-                <button onClick={openUploadModal} className="empty-state-button">
-                  <FiUpload size={18} />
-                  Upload Material
-                </button>
-              </div>
-            )}
+                </Card>
+              </Link>
+            ))}
           </div>
-        </div>
-
-        {/* Upload Stats */}
-        {uploadStats && uploadStats.totalUploads > 0 && (
-          <div className="contributions-section">
-            <div className="contributions-header">
-              <div className="contributions-title">
-                <FiAward size={28} className="contributions-icon" />
-                <div>
-                  <h2>My Contributions</h2>
-                  <p>Thank you for contributing to the community!</p>
-                </div>
-              </div>
-              <div className="contribution-badge">
-                <FiTrendingUp size={16} />
-                <span>Active Contributor</span>
-              </div>
-            </div>
-
-            <div className="contributions-grid">
-              <div className="contribution-card card-materials">
-                <div className="contribution-icon-wrapper">
-                  <FiFileText size={24} />
-                </div>
-                <div className="contribution-content">
-                  <h3>{uploadStats.totalUploads}</h3>
-                  <p>Materials Uploaded</p>
-                  <div className="contribution-progress">
-                    <div className="progress-bar">
-                      <div
-                        className="progress-fill"
-                        style={{ width: `${Math.min((uploadStats.totalUploads / 10) * 100, 100)}%` }}
-                      ></div>
-                    </div>
-                    <span className="progress-label">
-                      {uploadStats.totalUploads >= 10 ? 'Goal reached!' : `${10 - uploadStats.totalUploads} more to unlock Bronze Badge`}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="contribution-card card-points">
-                <div className="contribution-icon-wrapper">
-                  <FiAward size={24} />
-                </div>
-                <div className="contribution-content">
-                  <h3>{uploadStats.totalPoints}</h3>
-                  <p>Points Earned</p>
-                  <div className="points-breakdown">
-                    <span className="points-rate">+10 pts per upload</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="contribution-card card-processed">
-                <div className="contribution-icon-wrapper">
-                  <FiCheckCircle size={24} />
-                </div>
-                <div className="contribution-content">
-                  <h3>{uploadStats.completed}</h3>
-                  <p>Processed Successfully</p>
-                  <div className="success-rate">
-                    <span className="rate-badge">
-                      {uploadStats.totalUploads > 0
-                        ? `${Math.round((uploadStats.completed / uploadStats.totalUploads) * 100)}% success rate`
-                        : '0% success rate'
-                      }
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="contribution-card card-pending">
-                <div className="contribution-icon-wrapper">
-                  <FiClock size={24} />
-                </div>
-                <div className="contribution-content">
-                  <h3>{uploadStats.pending || 0}</h3>
-                  <p>Processing</p>
-                  <div className="pending-info">
-                    <span className="pending-label">Auto-generating content...</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {uploadStats.totalUploads >= 10 && (
-              <div className="achievement-notification">
-                <FiAward size={20} />
-                <span>Congratulations! You've unlocked the Bronze Contributor badge!</span>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Upload Modal - Multi-Step */}
-        {showUploadModal && (
-          <div className="modal-overlay" onClick={closeUploadModal}>
-            <div className="modal-content upload-wizard" onClick={(e) => e.stopPropagation()}>
-              <div className="modal-header">
-                <h2>{uploadStep === 5 ? 'Processing Material' : 'Upload Material'}</h2>
-                <button
-                  type="button"
-                  onClick={closeUploadModal}
-                  className="modal-close"
-                  aria-label="Close upload dialog"
-                >
-                  <FiX />
-                </button>
-              </div>
-
-              <div className="upload-form">
-                {uploadStep === 4 && (
-                  <form onSubmit={handleUploadSubmit} className="step-content">
-                    <h3>Course Details and Material</h3>
-
-                    <div className="profile-context-card">
-                      <div>
-                        <span className="profile-context-label">Faculty</span>
-                        <strong>{uploadContext.facultyName || 'Not available'}</strong>
-                      </div>
-                      <div>
-                        <span className="profile-context-label">Department</span>
-                        <strong>{uploadContext.departmentName || 'Not available'}</strong>
-                      </div>
-                    </div>
-
-                    {!uploadForm.departmentId && (
-                      <div className="profile-fallback-callout">
-                        <p>We could not detect your upload department from your profile.</p>
-                        <button
-                          type="button"
-                          className="btn btn-secondary profile-fallback-trigger"
-                          onClick={() => openProfileFallbackSheet()}
-                          disabled={profileFallbackSaving}
-                        >
-                          Select faculty and department
-                        </button>
-                      </div>
-                    )}
-
-                    <div className="form-group">
-                      <label>Course Code</label>
-                      <input
-                        type="text"
-                        value={newCourse.courseCode}
-                        onChange={(e) => setNewCourse({ ...newCourse, courseCode: e.target.value.toUpperCase() })}
-                        placeholder="e.g., GST 105"
-                        className="form-input"
-                        required
-                      />
-                    </div>
-
-                    <div className="form-group">
-                      <label>Course Name</label>
-                      <input
-                        type="text"
-                        value={newCourse.courseName}
-                        onChange={(e) => setNewCourse({ ...newCourse, courseName: e.target.value })}
-                        placeholder="e.g., Use of English and Communication Skills"
-                        className="form-input"
-                        required
-                      />
-                    </div>
-
-                    <div className="form-group">
-                      <label>Course Unit</label>
-                      <input
-                        type="number"
-                        value={newCourse.creditUnits}
-                        onChange={(e) => {
-                          const nextValue = e.target.value;
-                          if (nextValue === '') {
-                            setNewCourse({ ...newCourse, creditUnits: '' });
-                            return;
-                          }
-                          setNewCourse({ ...newCourse, creditUnits: nextValue });
-                        }}
-                        placeholder="e.g., 2"
-                        className="form-input"
-                        min="1"
-                        max="6"
-                        step="1"
-                        required
-                      />
-                    </div>
-
-                    <div className="form-group">
-                      <label>Attach Material</label>
-                      <input
-                        type="file"
-                        accept=".pdf"
-                        onChange={(e) => {
-                          const file = e.target.files && e.target.files[0];
-                          if (!file) {
-                            setUploadForm((current) => ({ ...current, file: null }));
-                            return;
-                          }
-                          if (file.type !== 'application/pdf') {
-                            setUploadError('Only PDF files are allowed');
-                            setUploadForm((current) => ({ ...current, file: null }));
-                            e.target.value = '';
-                            return;
-                          }
-                          if (file.size > MAX_CLOUDINARY_RAW_UPLOAD_BYTES) {
-                            setUploadError(
-                              <span>
-                                File is too large ({formatBytes(file.size)}). Maximum allowed is {formatBytes(MAX_CLOUDINARY_RAW_UPLOAD_BYTES)}. Compress it and re-upload using:{' '}
-                                {PDF_COMPRESS_SITES.map((s, idx) => (
-                                  <span key={s.url}>
-                                    <a href={s.url} target="_blank" rel="noreferrer">{s.label}</a>
-                                    {idx === PDF_COMPRESS_SITES.length - 1 ? '' : ' or '}
-                                  </span>
-                                ))}
-                                .
-                              </span>
-                            );
-                            setUploadForm((current) => ({ ...current, file: null }));
-                            e.target.value = '';
-                            return;
-                          }
-                          // Cloudinary raw upload limit is 10MB on the current plan.
-                          setUploadError(null);
-                          setUploadForm((current) => ({ ...current, file }));
-                        }}
-                        required
-                      />
-                      {uploadForm.file && (
-                        <p className="file-selected">{uploadForm.file.name}</p>
-                      )}
-                    </div>
-
-                    {uploadError && (
-                      <div className="upload-error">
-                        <FiX /> {uploadError}
-                      </div>
-                    )}
-
-                    <div className="modal-actions">
-                      <button
-                        type="button"
-                        onClick={closeUploadModal}
-                        className="btn btn-secondary"
-                        disabled={uploading}
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="submit"
-                        className="btn btn-primary"
-                        disabled={
-                          uploading ||
-                          !uploadForm.departmentId ||
-                          !uploadForm.file ||
-                          !newCourse.courseCode.trim() ||
-                          !newCourse.courseName.trim()
-                        }
-                      >
-                        {uploading ? 'Uploading...' : 'Upload Material'}
-                      </button>
-                    </div>
-
-                    <div className="upload-info">
-                      <p>
-                        <strong>Tip:</strong> Keep your PDF under {formatBytes(MAX_CLOUDINARY_RAW_UPLOAD_BYTES)}. If it is larger, compress it and re-upload using:{' '}
-                        {PDF_COMPRESS_SITES.map((s, idx) => (
-                          <span key={s.url}>
-                            <a href={s.url} target="_blank" rel="noreferrer">{s.label}</a>
-                            {idx === PDF_COMPRESS_SITES.length - 1 ? '' : ', '}
-                          </span>
-                        ))}
-                        .
-                      </p>
-                    </div>
-                  </form>
-                )}
-
-                {/* Step 5: Processing Status */}
-                {uploadStep === 5 && (
-                  <div className="step-content processing-step">
-                    <div className="processing-container">
-                      {processingStatus.stage === 'completed' ? (
-                        <div className="processing-icon success">
-                          <FiCheckCircle size={64} />
-                        </div>
-                      ) : processingStatus.stage === 'failed' ? (
-                        <div className="processing-icon error">
-                          <FiX size={64} />
-                        </div>
-                      ) : (
-                        <div className="processing-icon loading">
-                          <FiLoader size={64} className="spin" />
-                        </div>
-                      )}
-
-                      <h3>{processingStatus.stage === 'completed' ? 'Upload Complete!' : processingStatus.stage === 'failed' ? 'Processing Failed' : 'Processing Your Material'}</h3>
-                      <p className="processing-message">{processingStatus.message}</p>
-
-                      {processingStatus.stage !== 'failed' && (
-                        <div className="processing-progress-container">
-                          <div className="processing-progress-bar">
-                            <div
-                              className="processing-progress-fill"
-                              style={{ width: `${processingStatus.progress}%` }}
-                            ></div>
-                          </div>
-                          <span className="processing-percentage">{processingStatus.progress}%</span>
-                        </div>
-                      )}
-
-                      <div className="processing-stages">
-                        <div className={`processing-stage ${processingStatus.progress >= 10 ? 'completed' : ''}`}>
-                          <FiUpload size={18} />
-                          <span>Uploading file</span>
-                        </div>
-                        <div className={`processing-stage ${processingStatus.progress >= 35 ? 'completed' : ''} ${processingStatus.stage === 'generating-summary' ? 'active' : ''}`}>
-                          <FiFileText size={18} />
-                          <span>Generating summary</span>
-                        </div>
-                        <div className={`processing-stage ${processingStatus.progress >= 65 ? 'completed' : ''} ${processingStatus.stage === 'generating-questions' ? 'active' : ''}`}>
-                          <FiGrid size={18} />
-                          <span>Creating questions</span>
-                        </div>
-                        <div className={`processing-stage ${processingStatus.progress >= 100 ? 'completed' : ''}`}>
-                          <FiCheckCircle size={18} />
-                          <span>Complete</span>
-                        </div>
-                      </div>
-
-                      {processingStatus.stage === 'failed' && (
-                        <button
-                          onClick={() => {
-                            closeStatusStream();
-                            setProcessingStatus({ stage: '', progress: 0, message: '' });
-                            setUploadStep(4);
-                          }}
-                          className="btn btn-primary"
-                          style={{ marginTop: '24px' }}
-                        >
-                          Try Again
-                        </button>
-                      )}
-
-                      {processingStatus.stage === 'completed' && (
-                        <button onClick={handleCompletionClose} className="btn btn-primary" style={{ marginTop: '24px' }}>
-                          View Material
-                        </button>
-                      )}
-
-                      {processingStatus.stage !== 'completed' && processingStatus.stage !== 'failed' && (
-                        <p className="processing-note">Please wait while our system processes your material. This may take a few minutes.</p>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {showProfileFallbackSheet && (
-                <div
-                  className="upload-profile-sheet-overlay"
-                  role="presentation"
-                  onClick={profileFallbackSaving ? undefined : closeProfileFallbackSheet}
-                >
-                  <div
-                    className="upload-profile-sheet"
-                    role="dialog"
-                    aria-modal="true"
-                    aria-labelledby="upload-profile-sheet-title"
-                    onClick={(event) => event.stopPropagation()}
-                  >
-                    <button
-                      type="button"
-                      className="upload-profile-sheet-close"
-                      onClick={closeProfileFallbackSheet}
-                      aria-label="Close profile selector"
-                      disabled={profileFallbackSaving}
-                    >
-                      <FiX />
-                    </button>
-                    <p className="upload-profile-sheet-kicker">Profile Check</p>
-                    <h3 id="upload-profile-sheet-title">Select your faculty and department</h3>
-                    <p className="upload-profile-sheet-copy">
-                      We will save this to your profile and refresh the upload form in the background so you can continue.
-                    </p>
-
-                    <form onSubmit={handleProfileFallbackSubmit} className="upload-profile-sheet-form">
-                      <div className="form-group">
-                        <label htmlFor="upload-profile-faculty">Faculty</label>
-                        <select
-                          id="upload-profile-faculty"
-                          value={profileFallbackForm.facultyId}
-                          onChange={handleProfileFallbackFacultyChange}
-                          disabled={profileFallbackSaving}
-                          required
-                        >
-                          <option value="">Select faculty</option>
-                          {faculties.map((faculty) => (
-                            <option key={faculty._id} value={faculty._id}>
-                              {faculty.name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div className="form-group">
-                        <label htmlFor="upload-profile-department">Department</label>
-                        <select
-                          id="upload-profile-department"
-                          value={profileFallbackForm.departmentId}
-                          onChange={(event) => {
-                            setProfileFallbackForm((current) => ({
-                              ...current,
-                              departmentId: event.target.value,
-                            }));
-                            setProfileFallbackError('');
-                          }}
-                          disabled={!profileFallbackForm.facultyId || profileFallbackLoading || profileFallbackSaving}
-                          required
-                        >
-                          <option value="">
-                            {profileFallbackForm.facultyId
-                              ? profileFallbackLoading
-                                ? 'Loading departments...'
-                                : 'Select department'
-                              : 'Select faculty first'}
-                          </option>
-                          {profileFallbackDepartments.map((department) => (
-                            <option key={department._id} value={department._id}>
-                              {department.name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      {profileFallbackError && <div className="upload-error">{profileFallbackError}</div>}
-
-                      <div className="upload-profile-sheet-actions">
-                        <button
-                          type="button"
-                          className="btn btn-secondary"
-                          onClick={closeProfileFallbackSheet}
-                          disabled={profileFallbackSaving}
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          type="submit"
-                          className="btn btn-primary"
-                          disabled={
-                            profileFallbackSaving ||
-                            profileFallbackLoading ||
-                            !profileFallbackForm.facultyId ||
-                            !profileFallbackForm.departmentId
-                          }
-                        >
-                          {profileFallbackSaving ? 'Saving...' : 'Save and continue'}
-                        </button>
-                      </div>
-                    </form>
-                  </div>
-                </div>
-              )}
-
-              {duplicateInfo && (
-                <div className="duplicate-dialog-overlay" onClick={() => setDuplicateInfo(null)}>
-                  <div className="duplicate-dialog" onClick={(e) => e.stopPropagation()}>
-                    <h3>
-                      {duplicateInfo.kind === 'course'
-                        ? 'Course Already Exists'
-                        : 'Material Already Uploaded'}
-                    </h3>
-                    <p>
-                      {duplicateInfo.kind === 'course'
-                        ? `"${duplicateInfo.title || 'This course'}"${duplicateInfo.name ? ` (${duplicateInfo.name})` : ''} already exists.`
-                        : `"${duplicateInfo.title || 'This material'}" has already been uploaded for this course.`}
-                    </p>
-                    <div className="dialog-actions">
-                      <button
-                        type="button"
-                        className="btn btn-secondary"
-                        onClick={() => setDuplicateInfo(null)}
-                      >
-                        Close
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-primary"
-                        onClick={() => {
-                          const courseId = duplicateInfo.courseId;
-                          setDuplicateInfo(null);
-                          if (courseId && courseId !== 'new') {
-                            navigate(`/course/${courseId}`);
-                          }
-                        }}
-                      >
-                        Go to Course
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
+        ) : (
+          <Card className="tw:flex tw:flex-col tw:items-center tw:gap-2 tw:p-10 tw:text-center">
+            <FileText className="tw:h-8 tw:w-8 tw:text-slate-300 tw:dark:text-slate-600" />
+            <h3 className="tw:font-heading tw:text-sm tw:font-bold">No materials available yet</h3>
+            <p className="tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">Be the first to upload study materials!</p>
+            <Button onClick={openUploadModal} size="sm"><Upload className="tw:h-3.5 tw:w-3.5" /> Upload Material</Button>
+          </Card>
         )}
       </div>
+
+      {uploadStats && uploadStats.totalUploads > 0 && (
+        <div className="tw:space-y-2.5">
+          <div className="tw:flex tw:items-center tw:justify-between tw:gap-2">
+            <div className="tw:flex tw:items-center tw:gap-2">
+              <Award className="tw:h-5 tw:w-5 tw:text-brand-600 tw:dark:text-brand-400" />
+              <div>
+                <h2 className="tw:font-heading tw:text-base tw:font-bold">My Contributions</h2>
+                <p className="tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">Thank you for contributing to the community!</p>
+              </div>
+            </div>
+            <span className="tw:flex tw:flex-none tw:items-center tw:gap-1 tw:rounded-full tw:bg-emerald-100 tw:px-2.5 tw:py-1 tw:text-[11px] tw:font-bold tw:text-emerald-700 tw:dark:bg-emerald-950 tw:dark:text-emerald-300">
+              <TrendingUp className="tw:h-3 tw:w-3" /> Active
+            </span>
+          </div>
+
+          <div className="tw:grid tw:grid-cols-2 tw:gap-2.5">
+            <Card className="tw:space-y-2 tw:p-3.5">
+              <FileText className="tw:h-5 tw:w-5 tw:text-brand-600 tw:dark:text-brand-400" />
+              <h3 className="tw:font-heading tw:text-lg tw:font-bold tw:leading-none">{uploadStats.totalUploads}</h3>
+              <p className="tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">Materials Uploaded</p>
+              <div className="tw:h-1.5 tw:overflow-hidden tw:rounded-full tw:bg-slate-100 tw:dark:bg-slate-800">
+                <div className="tw:h-full tw:rounded-full tw:bg-brand-500" style={{ width: `${Math.min((uploadStats.totalUploads / 10) * 100, 100)}%` }} />
+              </div>
+              <p className="tw:text-[11px] tw:text-slate-400">
+                {uploadStats.totalUploads >= 10 ? 'Goal reached!' : `${10 - uploadStats.totalUploads} more to unlock Bronze Badge`}
+              </p>
+            </Card>
+            <Card className="tw:space-y-2 tw:p-3.5">
+              <Award className="tw:h-5 tw:w-5 tw:text-amber-600 tw:dark:text-amber-400" />
+              <h3 className="tw:font-heading tw:text-lg tw:font-bold tw:leading-none">{uploadStats.totalPoints}</h3>
+              <p className="tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">Points Earned</p>
+              <p className="tw:text-[11px] tw:text-slate-400">+10 pts per upload</p>
+            </Card>
+            <Card className="tw:space-y-2 tw:p-3.5">
+              <CheckCircle2 className="tw:h-5 tw:w-5 tw:text-emerald-600 tw:dark:text-emerald-400" />
+              <h3 className="tw:font-heading tw:text-lg tw:font-bold tw:leading-none">{uploadStats.completed}</h3>
+              <p className="tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">Processed Successfully</p>
+              <p className="tw:text-[11px] tw:text-slate-400">
+                {uploadStats.totalUploads > 0
+                  ? `${Math.round((uploadStats.completed / uploadStats.totalUploads) * 100)}% success rate`
+                  : '0% success rate'}
+              </p>
+            </Card>
+            <Card className="tw:space-y-2 tw:p-3.5">
+              <Clock className="tw:h-5 tw:w-5 tw:text-slate-500 tw:dark:text-slate-400" />
+              <h3 className="tw:font-heading tw:text-lg tw:font-bold tw:leading-none">{uploadStats.pending || 0}</h3>
+              <p className="tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">Processing</p>
+              <p className="tw:text-[11px] tw:text-slate-400">Auto-generating content...</p>
+            </Card>
+          </div>
+
+          {uploadStats.totalUploads >= 10 && (
+            <div className="tw:flex tw:items-center tw:gap-2 tw:rounded-xl tw:bg-amber-100 tw:p-3 tw:text-xs tw:font-semibold tw:text-amber-700 tw:dark:bg-amber-500/15 tw:dark:text-amber-300">
+              <Award className="tw:h-4 tw:w-4 tw:flex-none" /> Congratulations! You've unlocked the Bronze Contributor badge!
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Upload Modal - Multi-Step */}
+      <Dialog open={showUploadModal} onOpenChange={(open) => { if (!open) closeUploadModal(); }}>
+        <DialogPopup className="tw:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{uploadStep === 5 ? 'Processing Material' : 'Upload Material'}</DialogTitle>
+          </DialogHeader>
+
+          <div className="tw:mt-3 tw:max-h-[70vh] tw:space-y-4 tw:overflow-y-auto tw:pr-0.5">
+            {uploadStep === 4 && (
+              <form onSubmit={handleUploadSubmit} className="tw:space-y-3.5">
+                <div className="tw:grid tw:grid-cols-2 tw:gap-2 tw:rounded-xl tw:bg-slate-50 tw:p-3 tw:text-xs tw:dark:bg-slate-800/60">
+                  <div>
+                    <span className="tw:block tw:text-slate-400">Faculty</span>
+                    <strong className="tw:block tw:truncate">{uploadContext.facultyName || 'Not available'}</strong>
+                  </div>
+                  <div>
+                    <span className="tw:block tw:text-slate-400">Department</span>
+                    <strong className="tw:block tw:truncate">{uploadContext.departmentName || 'Not available'}</strong>
+                  </div>
+                </div>
+
+                {!uploadForm.departmentId && (
+                  <div className="tw:space-y-2 tw:rounded-xl tw:bg-amber-50 tw:p-3 tw:text-xs tw:text-amber-700 tw:dark:bg-amber-500/10 tw:dark:text-amber-300">
+                    <p>We could not detect your upload department from your profile.</p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => openProfileFallbackSheet()}
+                      disabled={profileFallbackSaving}
+                    >
+                      Select faculty and department
+                    </Button>
+                  </div>
+                )}
+
+                <label className="tw:block tw:space-y-1.5">
+                  <span className="tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300">Course Code</span>
+                  <Input
+                    type="text"
+                    value={newCourse.courseCode}
+                    onChange={(e) => setNewCourse({ ...newCourse, courseCode: e.target.value.toUpperCase() })}
+                    placeholder="e.g., GST 105"
+                    required
+                  />
+                </label>
+
+                <label className="tw:block tw:space-y-1.5">
+                  <span className="tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300">Course Name</span>
+                  <Input
+                    type="text"
+                    value={newCourse.courseName}
+                    onChange={(e) => setNewCourse({ ...newCourse, courseName: e.target.value })}
+                    placeholder="e.g., Use of English and Communication Skills"
+                    required
+                  />
+                </label>
+
+                <label className="tw:block tw:space-y-1.5">
+                  <span className="tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300">Course Unit</span>
+                  <Input
+                    type="number"
+                    value={newCourse.creditUnits}
+                    onChange={(e) => {
+                      const nextValue = e.target.value;
+                      if (nextValue === '') {
+                        setNewCourse({ ...newCourse, creditUnits: '' });
+                        return;
+                      }
+                      setNewCourse({ ...newCourse, creditUnits: nextValue });
+                    }}
+                    placeholder="e.g., 2"
+                    min="1"
+                    max="6"
+                    step="1"
+                    required
+                  />
+                </label>
+
+                <label className="tw:block tw:space-y-1.5">
+                  <span className="tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300">Attach Material</span>
+                  <input
+                    type="file"
+                    accept=".pdf"
+                    onChange={(e) => {
+                      const file = e.target.files && e.target.files[0];
+                      if (!file) {
+                        setUploadForm((current) => ({ ...current, file: null }));
+                        return;
+                      }
+                      if (file.type !== 'application/pdf') {
+                        setUploadError('Only PDF files are allowed');
+                        setUploadForm((current) => ({ ...current, file: null }));
+                        e.target.value = '';
+                        return;
+                      }
+                      if (file.size > MAX_CLOUDINARY_RAW_UPLOAD_BYTES) {
+                        setUploadError(
+                          <span>
+                            File is too large ({formatBytes(file.size)}). Maximum allowed is {formatBytes(MAX_CLOUDINARY_RAW_UPLOAD_BYTES)}. Compress it and re-upload using:{' '}
+                            {PDF_COMPRESS_SITES.map((s, idx) => (
+                              <span key={s.url}>
+                                <a href={s.url} target="_blank" rel="noreferrer">{s.label}</a>
+                                {idx === PDF_COMPRESS_SITES.length - 1 ? '' : ' or '}
+                              </span>
+                            ))}
+                            .
+                          </span>
+                        );
+                        setUploadForm((current) => ({ ...current, file: null }));
+                        e.target.value = '';
+                        return;
+                      }
+                      // Cloudinary raw upload limit is 10MB on the current plan.
+                      setUploadError(null);
+                      setUploadForm((current) => ({ ...current, file }));
+                    }}
+                    required
+                    className="tw:block tw:w-full tw:text-xs tw:text-slate-500 tw:file:mr-3 tw:file:rounded-lg tw:file:border-0 tw:file:bg-brand-50 tw:file:px-3 tw:file:py-2 tw:file:text-xs tw:file:font-semibold tw:file:text-brand-700 tw:dark:file:bg-brand-950 tw:dark:file:text-brand-300"
+                  />
+                  {uploadForm.file && (
+                    <p className="tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">{uploadForm.file.name}</p>
+                  )}
+                </label>
+
+                {uploadError && (
+                  <div className="tw:flex tw:items-start tw:gap-2 tw:rounded-xl tw:bg-red-100 tw:p-3 tw:text-xs tw:text-red-700 tw:dark:bg-red-500/15 tw:dark:text-red-300">
+                    <X className="tw:h-3.5 tw:w-3.5 tw:flex-none" /> <div>{uploadError}</div>
+                  </div>
+                )}
+
+                <div className="tw:flex tw:gap-2">
+                  <Button type="button" onClick={closeUploadModal} variant="outline" disabled={uploading} className="tw:flex-1">
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="tw:flex-1"
+                    disabled={
+                      uploading ||
+                      !uploadForm.departmentId ||
+                      !uploadForm.file ||
+                      !newCourse.courseCode.trim() ||
+                      !newCourse.courseName.trim()
+                    }
+                  >
+                    {uploading ? 'Uploading...' : 'Upload Material'}
+                  </Button>
+                </div>
+
+                <p className="tw:text-[11px] tw:text-slate-400">
+                  <strong>Tip:</strong> Keep your PDF under {formatBytes(MAX_CLOUDINARY_RAW_UPLOAD_BYTES)}. If it is larger, compress it and re-upload using:{' '}
+                  {PDF_COMPRESS_SITES.map((s, idx) => (
+                    <span key={s.url}>
+                      <a href={s.url} target="_blank" rel="noreferrer" className="tw:text-brand-600 tw:dark:text-brand-400">{s.label}</a>
+                      {idx === PDF_COMPRESS_SITES.length - 1 ? '' : ', '}
+                    </span>
+                  ))}
+                  .
+                </p>
+              </form>
+            )}
+
+            {uploadStep === 5 && (
+              <div className="tw:flex tw:flex-col tw:items-center tw:gap-3 tw:text-center">
+                {processingStatus.stage === 'completed' ? (
+                  <span className="tw:flex tw:h-14 tw:w-14 tw:items-center tw:justify-center tw:rounded-full tw:bg-emerald-100 tw:text-emerald-600 tw:dark:bg-emerald-950 tw:dark:text-emerald-300"><CheckCircle2 className="tw:h-7 tw:w-7" /></span>
+                ) : processingStatus.stage === 'failed' ? (
+                  <span className="tw:flex tw:h-14 tw:w-14 tw:items-center tw:justify-center tw:rounded-full tw:bg-red-100 tw:text-red-600 tw:dark:bg-red-500/15 tw:dark:text-red-300"><X className="tw:h-7 tw:w-7" /></span>
+                ) : (
+                  <span className="tw:flex tw:h-14 tw:w-14 tw:items-center tw:justify-center tw:rounded-full tw:bg-brand-100 tw:text-brand-600 tw:dark:bg-brand-950 tw:dark:text-brand-300"><Loader2 className="tw:h-7 tw:w-7 tw:animate-spin" /></span>
+                )}
+
+                <h3 className="tw:font-heading tw:text-base tw:font-bold">
+                  {processingStatus.stage === 'completed' ? 'Upload Complete!' : processingStatus.stage === 'failed' ? 'Processing Failed' : 'Processing Your Material'}
+                </h3>
+                <p className="tw:text-sm tw:text-slate-500 tw:dark:text-slate-400">{processingStatus.message}</p>
+
+                {processingStatus.stage !== 'failed' && (
+                  <div className="tw:flex tw:w-full tw:items-center tw:gap-2">
+                    <div className="tw:h-1.5 tw:flex-1 tw:overflow-hidden tw:rounded-full tw:bg-slate-100 tw:dark:bg-slate-800">
+                      <div className="tw:h-full tw:rounded-full tw:bg-brand-500 tw:transition-all" style={{ width: `${processingStatus.progress}%` }} />
+                    </div>
+                    <span className="tw:flex-none tw:text-xs tw:font-bold">{processingStatus.progress}%</span>
+                  </div>
+                )}
+
+                <div className="tw:grid tw:w-full tw:grid-cols-2 tw:gap-2 tw:text-left">
+                  {[
+                    { icon: Upload, label: 'Uploading file', done: processingStatus.progress >= 10 },
+                    { icon: FileText, label: 'Generating summary', done: processingStatus.progress >= 35, active: processingStatus.stage === 'generating-summary' },
+                    { icon: LayoutGrid, label: 'Creating questions', done: processingStatus.progress >= 65, active: processingStatus.stage === 'generating-questions' },
+                    { icon: CheckCircle2, label: 'Complete', done: processingStatus.progress >= 100 },
+                  ].map(({ icon: StageIcon, label, done, active }) => (
+                    <div
+                      key={label}
+                      className={cn(
+                        'tw:flex tw:items-center tw:gap-1.5 tw:rounded-lg tw:p-2 tw:text-[11px] tw:font-medium',
+                        done
+                          ? 'tw:bg-emerald-50 tw:text-emerald-700 tw:dark:bg-emerald-950/40 tw:dark:text-emerald-300'
+                          : active
+                          ? 'tw:bg-brand-50 tw:text-brand-700 tw:dark:bg-brand-950/40 tw:dark:text-brand-300'
+                          : 'tw:bg-slate-50 tw:text-slate-400 tw:dark:bg-slate-800/60 tw:dark:text-slate-500',
+                      )}
+                    >
+                      <StageIcon className="tw:h-3.5 tw:w-3.5 tw:flex-none" /> {label}
+                    </div>
+                  ))}
+                </div>
+
+                {processingStatus.stage === 'failed' && (
+                  <Button
+                    onClick={() => {
+                      closeStatusStream();
+                      setProcessingStatus({ stage: '', progress: 0, message: '' });
+                      setUploadStep(4);
+                    }}
+                    className="tw:w-full"
+                  >
+                    Try Again
+                  </Button>
+                )}
+
+                {processingStatus.stage === 'completed' && (
+                  <Button onClick={handleCompletionClose} className="tw:w-full">View Material</Button>
+                )}
+
+                {processingStatus.stage !== 'completed' && processingStatus.stage !== 'failed' && (
+                  <p className="tw:text-[11px] tw:text-slate-400">Please wait while our system processes your material. This may take a few minutes.</p>
+                )}
+              </div>
+            )}
+          </div>
+        </DialogPopup>
+      </Dialog>
+
+      <Sheet
+        open={showProfileFallbackSheet}
+        onOpenChange={(open) => { if (!open && !profileFallbackSaving) closeProfileFallbackSheet(); }}
+      >
+        <SheetPopup>
+          <SheetHeader>
+            <p className="tw:text-xs tw:font-bold tw:tracking-wide tw:text-brand-600 tw:uppercase tw:dark:text-brand-400">Profile Check</p>
+            <SheetTitle>Select your faculty and department</SheetTitle>
+            <SheetDescription>
+              We will save this to your profile and refresh the upload form in the background so you can continue.
+            </SheetDescription>
+          </SheetHeader>
+
+          <form onSubmit={handleProfileFallbackSubmit} className="tw:mt-4 tw:space-y-3.5">
+            <label className="tw:block tw:space-y-1.5">
+              <span className="tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300">Faculty</span>
+              <select
+                value={profileFallbackForm.facultyId}
+                onChange={handleProfileFallbackFacultyChange}
+                disabled={profileFallbackSaving}
+                required
+                className="tw:h-11 tw:w-full tw:rounded-xl tw:border tw:border-slate-200 tw:bg-white tw:px-3 tw:text-sm tw:outline-none tw:focus:border-brand-500 tw:dark:border-slate-800 tw:dark:bg-slate-900 tw:dark:text-slate-100"
+              >
+                <option value="">Select faculty</option>
+                {faculties.map((faculty) => (
+                  <option key={faculty._id} value={faculty._id}>{faculty.name}</option>
+                ))}
+              </select>
+            </label>
+
+            <label className="tw:block tw:space-y-1.5">
+              <span className="tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300">Department</span>
+              <select
+                value={profileFallbackForm.departmentId}
+                onChange={(event) => {
+                  setProfileFallbackForm((current) => ({
+                    ...current,
+                    departmentId: event.target.value,
+                  }));
+                  setProfileFallbackError('');
+                }}
+                disabled={!profileFallbackForm.facultyId || profileFallbackLoading || profileFallbackSaving}
+                required
+                className="tw:h-11 tw:w-full tw:rounded-xl tw:border tw:border-slate-200 tw:bg-white tw:px-3 tw:text-sm tw:outline-none tw:focus:border-brand-500 tw:dark:border-slate-800 tw:dark:bg-slate-900 tw:dark:text-slate-100"
+              >
+                <option value="">
+                  {profileFallbackForm.facultyId
+                    ? profileFallbackLoading
+                      ? 'Loading departments...'
+                      : 'Select department'
+                    : 'Select faculty first'}
+                </option>
+                {profileFallbackDepartments.map((department) => (
+                  <option key={department._id} value={department._id}>{department.name}</option>
+                ))}
+              </select>
+            </label>
+
+            {profileFallbackError && (
+              <div className="tw:rounded-xl tw:bg-red-100 tw:p-3 tw:text-xs tw:text-red-700 tw:dark:bg-red-500/15 tw:dark:text-red-300">{profileFallbackError}</div>
+            )}
+
+            <div className="tw:flex tw:gap-2">
+              <Button type="button" variant="outline" onClick={closeProfileFallbackSheet} disabled={profileFallbackSaving} className="tw:flex-1">
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                className="tw:flex-1"
+                disabled={
+                  profileFallbackSaving ||
+                  profileFallbackLoading ||
+                  !profileFallbackForm.facultyId ||
+                  !profileFallbackForm.departmentId
+                }
+              >
+                {profileFallbackSaving ? 'Saving...' : 'Save and continue'}
+              </Button>
+            </div>
+          </form>
+        </SheetPopup>
+      </Sheet>
+
+      <Dialog open={!!duplicateInfo} onOpenChange={(open) => { if (!open) setDuplicateInfo(null); }}>
+        <DialogPopup>
+          <DialogHeader>
+            <DialogTitle>{duplicateInfo?.kind === 'course' ? 'Course Already Exists' : 'Material Already Uploaded'}</DialogTitle>
+          </DialogHeader>
+          <p className="tw:mt-2 tw:text-sm tw:text-slate-600 tw:dark:text-slate-300">
+            {duplicateInfo?.kind === 'course'
+              ? `"${duplicateInfo?.title || 'This course'}"${duplicateInfo?.name ? ` (${duplicateInfo.name})` : ''} already exists.`
+              : `"${duplicateInfo?.title || 'This material'}" has already been uploaded for this course.`}
+          </p>
+          <div className="tw:mt-4 tw:flex tw:gap-2">
+            <Button variant="outline" onClick={() => setDuplicateInfo(null)} className="tw:flex-1">Close</Button>
+            <Button
+              onClick={() => {
+                const courseId = duplicateInfo?.courseId;
+                setDuplicateInfo(null);
+                if (courseId && courseId !== 'new') {
+                  navigate(`/course/${courseId}`);
+                }
+              }}
+              className="tw:flex-1"
+            >
+              Go to Course
+            </Button>
+          </div>
+        </DialogPopup>
+      </Dialog>
     </div>
   );
 };

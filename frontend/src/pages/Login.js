@@ -45,7 +45,7 @@ const Login = () => {
         return;
       }
       const userRole = response.data.role;
-      navigate(userRole === 'admin' ? '/admin/upload' : '/explore');
+      navigate(userRole === 'admin' ? '/admin/upload' : '/home');
     } catch (err) {
       setError(err.response?.data?.message || 'Invalid credentials');
     } finally {
