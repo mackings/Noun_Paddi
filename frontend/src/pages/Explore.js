@@ -184,9 +184,8 @@ const Explore = () => {
 
       <Card className="tw:flex tw:flex-col tw:gap-3 tw:bg-brand-600 tw:p-5 tw:text-white tw:border-none">
         <div>
-          <p className="tw:text-xs tw:font-bold tw:tracking-wide tw:text-brand-100 tw:uppercase">Get course summary</p>
-          <h2 className="tw:font-heading tw:mt-1 tw:text-base tw:font-bold">Upload your material to generate summaries</h2>
-          <p className="tw:mt-1 tw:text-sm tw:text-brand-100">Head to the upload flow to get a clean summary and practice questions for any course.</p>
+          <p className="tw:text-xs tw:font-bold tw:tracking-wide tw:text-brand-100 tw:uppercase">GET FREE Course Summary</p>
+          <h2 className="tw:font-heading tw:mt-1 tw:text-base tw:font-bold tw:text-white">Upload your material to generate summaries</h2>
         </div>
         <Link
           to="/dashboard?upload=1"
@@ -297,7 +296,7 @@ const Explore = () => {
             <p className="tw:text-sm tw:text-slate-500 tw:dark:text-slate-400">No courses found. Try adjusting your search or filter.</p>
           </Card>
         ) : (
-          <div className="tw:grid tw:grid-cols-2 tw:gap-3">
+          <div className="tw:grid tw:grid-cols-2 tw:gap-3 tw:md:grid-cols-3 tw:lg:grid-cols-4">
             {displayedCourses.map((course) => (
               <Link key={course._id} to={`/course/${course._id}`} className="tw:block">
                 <Card interactive className="tw:flex tw:h-full tw:flex-col tw:gap-2 tw:p-4">

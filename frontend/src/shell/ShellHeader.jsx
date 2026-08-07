@@ -22,7 +22,7 @@ const ShellHeader = ({ title, className }) => {
   return (
     <header
       className={cn(
-        'tw:sticky tw:top-0 tw:z-30 tw:flex tw:items-center tw:gap-3 tw:border-b tw:border-slate-200/70 tw:bg-white/90 tw:px-4 tw:py-3 tw:backdrop-blur tw:dark:border-slate-800 tw:dark:bg-slate-950/90',
+        'tw:sticky tw:top-0 tw:z-30 tw:flex tw:items-center tw:gap-3 tw:border-b tw:border-slate-200/70 tw:bg-white/90 tw:px-4 tw:py-3 tw:backdrop-blur tw:dark:border-slate-800 tw:dark:bg-slate-950/90 tw:md:top-16',
         className,
       )}
     >

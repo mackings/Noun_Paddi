@@ -211,7 +211,7 @@ const Videos = () => {
             />
           </div>
 
-          <div className="tw:grid tw:grid-cols-2 tw:gap-3">
+          <div className="tw:grid tw:grid-cols-2 tw:gap-3 tw:md:grid-cols-3 tw:lg:grid-cols-4">
             {filteredCourses.map((course) => (
               <button
                 type="button"

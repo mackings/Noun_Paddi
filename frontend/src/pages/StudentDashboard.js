@@ -1026,7 +1026,7 @@ const StudentDashboard = () => {
         </Button>
       </Card>
 
-      <div className="tw:grid tw:grid-cols-2 tw:gap-2.5">
+      <div className="tw:grid tw:grid-cols-2 tw:gap-2.5 tw:md:grid-cols-4">
         <Card className="tw:flex tw:items-center tw:gap-3 tw:p-3.5">
           <span className="tw:flex tw:h-9 tw:w-9 tw:flex-none tw:items-center tw:justify-center tw:rounded-lg tw:bg-blue-100 tw:text-blue-600 tw:dark:bg-blue-500/15 tw:dark:text-blue-300"><BookOpen className="tw:h-4 tw:w-4" /></span>
           <div>
@@ -1069,7 +1069,7 @@ const StudentDashboard = () => {
             </div>
           </div>
 
-          <div className="tw:grid tw:grid-cols-2 tw:gap-2.5">
+          <div className="tw:grid tw:grid-cols-2 tw:gap-2.5 tw:md:grid-cols-4">
             <Card className="tw:p-3.5 tw:text-center">
               <h3 className="tw:font-heading tw:text-lg tw:font-bold">{gamificationData?.totals?.totalPoints || 0}</h3>
               <p className="tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">Total Points</p>
@@ -1176,7 +1176,7 @@ const StudentDashboard = () => {
         </div>
 
         {stats?.recentMaterials && stats.recentMaterials.length > 0 ? (
-          <div className="tw:space-y-2.5">
+          <div className="tw:space-y-2.5 tw:md:grid tw:md:grid-cols-2 tw:md:gap-2.5 tw:md:space-y-0 tw:lg:grid-cols-3">
             {stats.recentMaterials.slice(0, 6).map((material) => (
               <Link key={material._id} to={`/course/${material.courseId?._id}`}>
                 <Card interactive className="tw:flex tw:items-start tw:gap-3 tw:p-3.5">
@@ -1226,7 +1226,7 @@ const StudentDashboard = () => {
             </span>
           </div>
 
-          <div className="tw:grid tw:grid-cols-2 tw:gap-2.5">
+          <div className="tw:grid tw:grid-cols-2 tw:gap-2.5 tw:md:grid-cols-4">
             <Card className="tw:space-y-2 tw:p-3.5">
               <FileText className="tw:h-5 tw:w-5 tw:text-brand-600 tw:dark:text-brand-400" />
               <h3 className="tw:font-heading tw:text-lg tw:font-bold tw:leading-none">{uploadStats.totalUploads}</h3>

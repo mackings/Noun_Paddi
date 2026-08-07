@@ -121,3 +121,17 @@
   margin: 0;
   color: inherit;
 }
+
+/* Desktop: center each page's own content column instead of letting cards/text stretch
+   edge-to-edge at wide viewports. Targets every .np-shell EXCEPT the shell-level root
+   (StudentShell.jsx, marked .np-shell-root) so the top nav band it renders still spans
+   the full viewport width — :not() rather than a descendant selector so this still
+   applies to the 5 routes reachable logged-out, where there is no root wrapper to nest
+   inside (StudentShell just renders the page's own .np-shell directly in that case). */
+@media (min-width: 768px) {
+  .np-shell:not(.np-shell-root) {
+    max-width: 64rem;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}

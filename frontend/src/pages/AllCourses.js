@@ -178,7 +178,7 @@ const AllCourses = () => {
         </Card>
       ) : (
         <>
-          <div className="tw:grid tw:grid-cols-2 tw:gap-3">
+          <div className="tw:grid tw:grid-cols-2 tw:gap-3 tw:md:grid-cols-3 tw:lg:grid-cols-4">
             {paginatedCourses.map((course) => (
               <Link key={course._id} to={`/course/${course._id}`} className="tw:block">
                 <Card interactive className="tw:flex tw:h-full tw:flex-col tw:gap-2 tw:p-4">

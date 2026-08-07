@@ -722,7 +722,7 @@ const Practice = () => {
         <div className="tw:space-y-4 tw:p-4">
         <p className="tw:-mt-2 tw:text-sm tw:text-slate-500 tw:dark:text-slate-400">Select a course to start practicing</p>
 
-        <div className="tw:space-y-2.5">
+        <div className="tw:space-y-2.5 tw:md:grid tw:md:grid-cols-2 tw:md:gap-2.5 tw:md:space-y-0 tw:lg:grid-cols-3">
           {courses.map((course) => (
             <Card key={course._id} interactive className="tw:flex tw:items-center tw:justify-between tw:gap-3 tw:p-4" onClick={() => selectCourseForExam(course._id)}>
               <div>
@@ -809,7 +809,7 @@ const Practice = () => {
           Choose how long you want to practice. The timer counts down and auto-submits when time runs out.
         </p>
 
-        <div className="tw:grid tw:grid-cols-2 tw:gap-2.5">
+        <div className="tw:grid tw:grid-cols-2 tw:gap-2.5 tw:md:grid-cols-3">
           {timerOptions.map((option) => (
             <Card
               key={option.value}
