@@ -2,8 +2,11 @@ import React, { useState } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import SEO from '../components/SEO';
-import { FiUser, FiMail, FiLock, FiBook, FiHash, FiFileText, FiMapPin, FiEye, FiEyeOff } from 'react-icons/fi';
-import './Auth.css';
+import { User, Mail, Lock, BookOpen, Hash, FileText, MapPin, Eye, EyeOff, Check, X } from 'lucide-react';
+import { Card } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { cn } from '../lib/utils';
 
 const NIGERIA_STATES = [
   'Abia',
@@ -149,6 +152,8 @@ const FACULTIES = [
   { _id: 'de-and-general-studies', name: 'DE & General Studies' },
 ];
 
+const selectClass = 'tw:h-11 tw:w-full tw:rounded-xl tw:border tw:border-slate-200 tw:bg-white tw:pl-10 tw:pr-3 tw:text-sm tw:outline-none tw:focus:border-brand-500 tw:dark:border-slate-800 tw:dark:bg-slate-900 tw:dark:text-slate-100';
+
 const Signup = () => {
   const [formData, setFormData] = useState({
     name: '',
@@ -280,7 +285,7 @@ const Signup = () => {
   const passwordHelper = getPasswordHelper(formData.password);
 
   return (
-    <div className="auth-container">
+    <div className="np-shell tw:flex tw:min-h-[calc(100vh-64px)] tw:items-center tw:justify-center tw:bg-slate-50 tw:p-4 tw:py-8 tw:dark:bg-slate-950">
       <SEO
         title="Sign Up - Join NounPaddi | NOUN Study Platform"
         description="Create your free NounPaddi account to access personalized course materials, practice exams, and IT placement opportunities for National Open University of Nigeria students."
@@ -288,83 +293,80 @@ const Signup = () => {
         keywords="sign up, register, create account, NOUN student registration, join NounPaddi, free account"
         robots="noindex, nofollow"
       />
-      <div className="auth-card signup-card">
-        <div className="auth-logo">
-          <FiBook />
+
+      <div className="tw:w-full tw:max-w-md tw:space-y-5">
+        <div className="tw:text-center">
+          <span className="tw:mx-auto tw:flex tw:h-12 tw:w-12 tw:items-center tw:justify-center tw:rounded-2xl tw:bg-brand-600 tw:text-white">
+            <BookOpen className="tw:h-6 tw:w-6" />
+          </span>
+          <h1 className="tw:font-heading tw:mt-3 tw:text-xl tw:font-bold tw:tracking-tight">Join NounPaddi</h1>
+          <p className="tw:mt-1 tw:text-sm tw:text-slate-500 tw:dark:text-slate-400">Start your learning journey with personalized study materials and practice exams</p>
         </div>
-        <h1 className="auth-title">Join NounPaddi</h1>
-        <p className="auth-subtitle">Start your learning journey with personalized study materials and practice exams</p>
 
-        {error && <div className="alert alert-danger">{error}</div>}
+        <Card className="tw:space-y-4 tw:p-5">
+          {error && (
+            <div className="tw:rounded-xl tw:bg-red-100 tw:px-3.5 tw:py-2.5 tw:text-sm tw:text-red-700 tw:dark:bg-red-500/15 tw:dark:text-red-300">
+              {error}
+            </div>
+          )}
 
-        <form onSubmit={handleSubmit} className="auth-form">
-          <div className="form-group">
-            <label className="form-label">Full Name</label>
-            <div className="input-group">
-              <FiUser className="input-icon" size={20} />
-              <input
+          <form onSubmit={handleSubmit} className="tw:space-y-4">
+            <label className="tw:block tw:space-y-1.5">
+              <span className="tw:flex tw:items-center tw:gap-1 tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300"><User className="tw:h-3.5 tw:w-3.5" /> Full Name</span>
+              <Input
                 type="text"
                 name="name"
-                className="form-control"
                 placeholder="Enter your full name"
                 value={formData.name}
                 onChange={handleChange}
                 maxLength={80}
                 required
               />
-            </div>
-            {fieldErrors.name && <p className="field-error">{fieldErrors.name}</p>}
-          </div>
+              {fieldErrors.name && <p className="tw:text-xs tw:font-medium tw:text-red-600 tw:dark:text-red-400">{fieldErrors.name}</p>}
+            </label>
 
-          <div className="form-group">
-            <label className="form-label">Email Address</label>
-            <div className="input-group">
-              <FiMail className="input-icon" size={20} />
-              <input
+            <label className="tw:block tw:space-y-1.5">
+              <span className="tw:flex tw:items-center tw:gap-1 tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300"><Mail className="tw:h-3.5 tw:w-3.5" /> Email Address</span>
+              <Input
                 type="email"
                 name="email"
-                className="form-control"
                 placeholder="Enter your email"
                 value={formData.email}
                 onChange={handleChange}
                 required
               />
-            </div>
-            {fieldErrors.email && <p className="field-error">{fieldErrors.email}</p>}
-          </div>
+              {fieldErrors.email && <p className="tw:text-xs tw:font-medium tw:text-red-600 tw:dark:text-red-400">{fieldErrors.email}</p>}
+            </label>
 
-          {formData.role === 'student' && (
-            <>
-              <div className="form-group">
-                <label className="form-label">Faculty</label>
-                <div className="input-group">
-                  <FiBook className="input-icon" size={20} />
-                  <select
-                    name="faculty"
-                    className="form-control"
-                    value={formData.faculty}
-                    onChange={handleChange}
-                    required
-                  >
-                    <option value="">Select your faculty</option>
-                    {faculties.map((faculty) => (
-                      <option key={faculty._id} value={faculty._id}>
-                        {faculty.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                {fieldErrors.faculty && <p className="field-error">{fieldErrors.faculty}</p>}
-              </div>
+            {formData.role === 'student' && (
+              <>
+                <label className="tw:block tw:space-y-1.5">
+                  <span className="tw:flex tw:items-center tw:gap-1 tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300"><BookOpen className="tw:h-3.5 tw:w-3.5" /> Faculty</span>
+                  <div className="tw:relative">
+                    <BookOpen className="tw:pointer-events-none tw:absolute tw:top-1/2 tw:left-3 tw:h-4 tw:w-4 tw:-translate-y-1/2 tw:text-slate-400" />
+                    <select
+                      name="faculty"
+                      value={formData.faculty}
+                      onChange={handleChange}
+                      required
+                      className={selectClass}
+                    >
+                      <option value="">Select your faculty</option>
+                      {faculties.map((faculty) => (
+                        <option key={faculty._id} value={faculty._id}>
+                          {faculty.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {fieldErrors.faculty && <p className="tw:text-xs tw:font-medium tw:text-red-600 tw:dark:text-red-400">{fieldErrors.faculty}</p>}
+                </label>
 
-              <div className="form-group">
-                <label className="form-label">Matric Number</label>
-                <div className="input-group">
-                  <FiHash className="input-icon" size={20} />
-                  <input
+                <label className="tw:block tw:space-y-1.5">
+                  <span className="tw:flex tw:items-center tw:gap-1 tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300"><Hash className="tw:h-3.5 tw:w-3.5" /> Matric Number</span>
+                  <Input
                     type="text"
                     name="matricNumber"
-                    className="form-control"
                     value={formData.matricNumber}
                     onChange={handleChange}
                     placeholder="e.g., NOUN/CSC/23/123456"
@@ -372,101 +374,96 @@ const Signup = () => {
                     maxLength={24}
                     required
                   />
-                </div>
-                {fieldErrors.matricNumber && <p className="field-error">{fieldErrors.matricNumber}</p>}
-              </div>
+                  {fieldErrors.matricNumber && <p className="tw:text-xs tw:font-medium tw:text-red-600 tw:dark:text-red-400">{fieldErrors.matricNumber}</p>}
+                </label>
 
-              <div className="signup-row">
-                <div className="form-group">
-                  <label className="form-label">Department</label>
-                  <div className="input-group">
-                    <FiFileText className="input-icon" size={20} />
-                    <input
+                <div className="tw:grid tw:grid-cols-1 tw:gap-4 tw:sm:grid-cols-2">
+                  <label className="tw:block tw:space-y-1.5">
+                    <span className="tw:flex tw:items-center tw:gap-1 tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300"><FileText className="tw:h-3.5 tw:w-3.5" /> Department</span>
+                    <Input
                       type="text"
                       name="department"
-                      className="form-control"
                       value={formData.department}
                       onChange={handleChange}
                       placeholder="e.g., Computer Science"
                       maxLength={80}
                       required
                     />
-                  </div>
-                  {fieldErrors.department && <p className="field-error">{fieldErrors.department}</p>}
+                    {fieldErrors.department && <p className="tw:text-xs tw:font-medium tw:text-red-600 tw:dark:text-red-400">{fieldErrors.department}</p>}
+                  </label>
+                  <label className="tw:block tw:space-y-1.5">
+                    <span className="tw:flex tw:items-center tw:gap-1 tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300"><MapPin className="tw:h-3.5 tw:w-3.5" /> Study Center</span>
+                    <div className="tw:relative">
+                      <MapPin className="tw:pointer-events-none tw:absolute tw:top-1/2 tw:left-3 tw:h-4 tw:w-4 tw:-translate-y-1/2 tw:text-slate-400" />
+                      <select
+                        name="studyCenter"
+                        value={formData.studyCenter}
+                        onChange={handleChange}
+                        required
+                        className={selectClass}
+                      >
+                        <option value="">Select your study center</option>
+                        {NIGERIA_STATES.map((state) => (
+                          <option key={state} value={state}>
+                            {state}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    {fieldErrors.studyCenter && <p className="tw:text-xs tw:font-medium tw:text-red-600 tw:dark:text-red-400">{fieldErrors.studyCenter}</p>}
+                  </label>
                 </div>
-                <div className="form-group">
-                  <label className="form-label">Study Center</label>
-                  <div className="input-group">
-                    <FiMapPin className="input-icon" size={20} />
-                    <select
-                      name="studyCenter"
-                      className="form-control"
-                      value={formData.studyCenter}
-                      onChange={handleChange}
-                      required
-                    >
-                      <option value="">Select your study center</option>
-                      {NIGERIA_STATES.map((state) => (
-                        <option key={state} value={state}>
-                          {state}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  {fieldErrors.studyCenter && <p className="field-error">{fieldErrors.studyCenter}</p>}
-                </div>
-              </div>
-            </>
-          )}
+              </>
+            )}
 
-          <div className="form-group">
-            <label className="form-label">Password</label>
-            <div className="input-group">
-              <FiLock className="input-icon" size={20} />
-              <input
-                type={showPassword ? 'text' : 'password'}
-                name="password"
-                className="form-control password-input"
-                placeholder="Create a strong password"
-                value={formData.password}
-                onChange={handleChange}
-                minLength="8"
-                required
-              />
-              <button
-                type="button"
-                className="password-toggle"
-                onClick={() => setShowPassword(!showPassword)}
-                aria-label="Toggle password visibility"
-              >
-                {showPassword ? <FiEyeOff size={20} /> : <FiEye size={20} />}
-              </button>
-            </div>
-            <p className="password-helper">{passwordHelper}</p>
-            <div className="password-checklist">
-              {passwordChecks.map((check) => (
-                <p
-                  key={check.key}
-                  className={`password-check ${check.passed ? 'passed' : 'pending'}`}
+            <label className="tw:block tw:space-y-1.5">
+              <span className="tw:flex tw:items-center tw:gap-1 tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300"><Lock className="tw:h-3.5 tw:w-3.5" /> Password</span>
+              <div className="tw:relative">
+                <Input
+                  type={showPassword ? 'text' : 'password'}
+                  name="password"
+                  placeholder="Create a strong password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  minLength="8"
+                  required
+                  className="tw:pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label="Toggle password visibility"
+                  className="tw:absolute tw:top-1/2 tw:right-3 tw:-translate-y-1/2 tw:text-slate-400 tw:hover:text-slate-600 tw:dark:hover:text-slate-300"
                 >
-                  {check.passed ? 'OK' : 'NO'} {check.label}
-                </p>
-              ))}
-            </div>
-            {fieldErrors.password && <p className="field-error">{fieldErrors.password}</p>}
-          </div>
+                  {showPassword ? <EyeOff className="tw:h-4 tw:w-4" /> : <Eye className="tw:h-4 tw:w-4" />}
+                </button>
+              </div>
+              <p className="tw:text-xs tw:text-slate-400">{passwordHelper}</p>
+              <div className="tw:grid tw:grid-cols-1 tw:gap-1 tw:sm:grid-cols-2">
+                {passwordChecks.map((check) => (
+                  <p
+                    key={check.key}
+                    className={cn(
+                      'tw:flex tw:items-center tw:gap-1.5 tw:text-xs',
+                      check.passed ? 'tw:text-emerald-600 tw:dark:text-emerald-400' : 'tw:text-slate-400',
+                    )}
+                  >
+                    {check.passed ? <Check className="tw:h-3.5 tw:w-3.5 tw:flex-none" /> : <X className="tw:h-3.5 tw:w-3.5 tw:flex-none" />}
+                    {check.label}
+                  </p>
+                ))}
+              </div>
+              {fieldErrors.password && <p className="tw:text-xs tw:font-medium tw:text-red-600 tw:dark:text-red-400">{fieldErrors.password}</p>}
+            </label>
 
-          <button
-            type="submit"
-            className={`btn btn-primary btn-block btn-lg ${loading ? 'btn-loading' : ''}`}
-            disabled={loading}
-          >
-            {loading ? 'Creating Account...' : 'Create Account'}
-          </button>
-        </form>
+            <Button type="submit" disabled={loading} className="tw:w-full">
+              {loading ? 'Creating Account...' : 'Create Account'}
+            </Button>
+          </form>
+        </Card>
 
-        <p className="auth-footer">
-          Already have an account? <Link to="/login">Sign In</Link>
+        <p className="tw:text-center tw:text-sm tw:text-slate-500 tw:dark:text-slate-400">
+          Already have an account? <Link to="/login" className="tw:font-semibold tw:text-brand-600 tw:dark:text-brand-400">Sign In</Link>
         </p>
       </div>
     </div>

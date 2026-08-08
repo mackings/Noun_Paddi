@@ -4,7 +4,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { Toaster } from '../components/ui/sonner';
 import BottomTabBar from './BottomTabBar';
 import TopNavBar from './TopNavBar';
-import '../styles/tailwind.css';
 
 // Wraps every student-facing route (see studentShellRoutes.js for the exact list) with
 // the shell chrome, but only once a student is actually logged in. Five of the wrapped

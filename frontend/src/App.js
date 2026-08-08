@@ -5,6 +5,11 @@ import { FiBriefcase, FiCheckCircle, FiGrid, FiShield, FiUserPlus, FiBell, FiX }
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import Navbar from './components/Navbar';
+// Loaded here (not just from StudentShell, which only wraps logged-in student routes) so
+// the design system's tw:-prefixed utilities and .np-shell font/theme rules are always
+// available, including on pre-login pages like /login and /signup that render outside
+// StudentShell entirely.
+import './styles/tailwind.css';
 import Signup from './pages/Signup';
 import Login from './pages/Login';
 import Explore from './pages/Explore';
@@ -12,6 +17,7 @@ import Explore from './pages/Explore';
 // /tutor route below. Re-add this import if the in-app page ever comes back.
 // import Tutor from './pages/Tutor';
 import Ask from './pages/Ask';
+import CourseMaterial from './pages/CourseMaterial';
 import AllCourses from './pages/AllCourses';
 import Practice from './pages/Practice';
 import AdminUpload from './pages/AdminUpload';
@@ -429,6 +435,10 @@ const AppLayout = () => {
                   <Route
                     path="/ask"
                     element={<Ask />}
+                  />
+                  <Route
+                    path="/course-material"
+                    element={<CourseMaterial />}
                   />
                   <Route
                     path="/courses"

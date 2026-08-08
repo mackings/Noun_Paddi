@@ -2,22 +2,25 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import {
   LayoutDashboard, BookOpen, Award, MessageSquare, Calendar, PlayCircle, Bell,
-  ShieldCheck, Briefcase, ClipboardList, User,
+  ShieldCheck, Briefcase, ClipboardList, FileSearch, User,
 } from 'lucide-react';
 import { Card } from '../components/ui/card';
 import { useAuth } from '../contexts/AuthContext';
 import { TMA_WHATSAPP_URL } from '../shell/tmaWhatsapp';
 
 // The full feature tray, in the order requested: Course Summary, Past Questions, TMA,
-// Projects, Plagiarism, then the rest. Tab-bar destinations (Summary, TMA, Past Question)
-// are also cross-listed here for first-run discoverability, since a first-time student
-// sees this grid before learning the bottom tab bar exists. Profile is not listed here —
-// it's the top-right icon button instead, since it's account management, not a study
-// feature. "TMA" has no in-app page — it opens a WhatsApp chat instead (tmaWhatsapp.js).
+// Course Material, Projects, Plagiarism, then the rest. Tab-bar destinations (Summary,
+// AI Tutor, Past Question) are also cross-listed here for first-run discoverability,
+// since a first-time student sees this grid before learning the bottom tab bar exists.
+// Profile is not listed here — it's the top-right icon button instead, since it's account
+// management, not a study feature. "TMA" has no in-app page — it opens a WhatsApp chat
+// instead (tmaWhatsapp.js). "Course Material" is a live web search for the real course
+// guide/lecture notes PDF (not a summary) — see pages/CourseMaterial.js.
 const FEATURES = [
   { key: 'course-summary', path: '/courses', label: 'Course Summary', description: 'Browse courses and get clean summaries', icon: BookOpen },
   { key: 'past-questions', path: '/ask', label: 'Past Questions', description: 'Ask about past questions', icon: MessageSquare },
   { key: 'tma', path: TMA_WHATSAPP_URL, label: 'TMA', description: 'Chat with us on WhatsApp', icon: ClipboardList, external: true },
+  { key: 'course-material', path: '/course-material', label: 'Course Material', description: 'Search and download the real course PDF', icon: FileSearch },
   { key: 'projects', path: '/projects', label: 'Projects', description: 'Consultation and project fees', icon: Briefcase },
   { key: 'plagiarism', path: '/plagiarism', label: 'Plagiarism Checker', description: 'Check your project for originality', icon: ShieldCheck },
   { key: 'dashboard', path: '/dashboard', label: 'Dashboard', description: 'Your progress at a glance', icon: LayoutDashboard },

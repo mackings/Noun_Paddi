@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Download,
-  MessageSquare,
+  FileText,
   Search,
   Send,
   UserCircle,
@@ -11,11 +11,12 @@ import {
 import api from '../utils/api';
 import { trackFeatureVisit } from '../utils/featureTracking';
 import SEO from '../components/SEO';
+import ShellHeader from '../shell/ShellHeader';
 import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { cn } from '../lib/utils';
 
-const ASK_EXAMPLES = [
+const MATERIAL_EXAMPLES = [
   'GST 105',
 ];
 
@@ -30,11 +31,11 @@ const buildLoadingTitle = (value) => {
   const trimmed = String(value || '').trim();
   const courseCode = extractCourseCode(trimmed);
   if (courseCode) {
-    return `Finding ${courseCode}`;
+    return `Finding ${courseCode} course material`;
   }
 
   if (!trimmed) {
-    return 'Finding your result';
+    return 'Finding your course material';
   }
 
   return `Finding ${trimmed.slice(0, 36)}`;
@@ -48,7 +49,7 @@ const isMobileClient = () => {
 const triggerDownload = (blobUrl, fileName) => {
   const anchor = document.createElement('a');
   anchor.href = blobUrl;
-  anchor.download = fileName || 'noun-file';
+  anchor.download = fileName || 'noun-course-material';
   document.body.appendChild(anchor);
   anchor.click();
   document.body.removeChild(anchor);
@@ -70,14 +71,14 @@ const readBlobErrorMessage = async (requestError, fallback) => {
   return responseData?.message || fallback;
 };
 
-const askStructuredData = {
+const courseMaterialStructuredData = {
   '@context': 'https://schema.org',
   '@graph': [
     {
       '@type': 'WebPage',
-      name: 'Past Questions and NOUN Help',
-      url: 'https://paddi.com.ng/ask',
-      description: 'Find NOUN past questions, timetable updates, matriculation information, TMA help, and NOUN study files in Past Questions.',
+      name: 'NOUN Course Material Search',
+      url: 'https://paddi.com.ng/course-material',
+      description: 'Search for the real NOUN course material (course guide, lecture notes, or textbook PDF) for any course by course code, sourced from the official NOUN website, Google, and other NOUN-related sites.',
       isPartOf: {
         '@type': 'WebSite',
         name: 'NounPaddi',
@@ -89,18 +90,10 @@ const askStructuredData = {
       mainEntity: [
         {
           '@type': 'Question',
-          name: 'Can Past Questions find NOUN past questions?',
+          name: 'Can Course Material find the actual NOUN course guide PDF?',
           acceptedAnswer: {
             '@type': 'Answer',
-            text: 'Past Questions helps students find NOUN past questions and related study files by course code, then opens or prepares those files for download inside the app when possible.',
-          },
-        },
-        {
-          '@type': 'Question',
-          name: 'Can Past Questions show NOUN timetable, matriculation, and TMA information?',
-          acceptedAnswer: {
-            '@type': 'Answer',
-            text: 'Yes. Past Questions is designed for NOUN timetable updates, matriculation information, TMA guidance, and other NOUN student questions in a simple chat-style interface.',
+            text: 'Yes. Course Material searches the official NOUN website first, then the wider web, for the real course guide or lecture notes PDF for a course — not a summary.',
           },
         },
       ],
@@ -126,7 +119,7 @@ function ResponseCard({ message, onSuggestionClick }) {
   if (error) {
     return (
       <Card className="tw:space-y-1 tw:border-red-200 tw:bg-red-50 tw:p-4 tw:dark:border-red-500/20 tw:dark:bg-red-500/10">
-        <h3 className="tw:font-heading tw:text-sm tw:font-bold tw:text-red-700 tw:dark:text-red-300">Past Questions could not complete that request</h3>
+        <h3 className="tw:font-heading tw:text-sm tw:font-bold tw:text-red-700 tw:dark:text-red-300">Course Material could not complete that request</h3>
         <p className="tw:text-xs tw:text-red-600 tw:dark:text-red-300">{error}</p>
       </Card>
     );
@@ -152,7 +145,7 @@ function ResponseCard({ message, onSuggestionClick }) {
       )}
       {data.followUpQuestion && (
         <div className="tw:flex tw:items-center tw:gap-2 tw:rounded-xl tw:bg-brand-50 tw:p-3 tw:text-xs tw:text-brand-700 tw:dark:bg-brand-950/40 tw:dark:text-brand-300">
-          <MessageSquare className="tw:h-4 tw:w-4 tw:flex-none" />
+          <FileText className="tw:h-4 tw:w-4 tw:flex-none" />
           <span>{data.followUpQuestion}</span>
         </div>
       )}
@@ -172,14 +165,14 @@ function ResponseCard({ message, onSuggestionClick }) {
         </div>
       )}
 
-      {(data.type === 'past_question_pdf' || data.type === 'timetable_pdf') && (
+      {data.type === 'course_material_pdf' && (
         <div className="tw:space-y-2 tw:rounded-xl tw:border tw:border-slate-200 tw:p-3 tw:dark:border-slate-800">
           <div className="tw:flex tw:items-center tw:justify-between tw:gap-2">
             <div>
               <p className="tw:text-[11px] tw:font-bold tw:tracking-wide tw:text-brand-600 tw:uppercase tw:dark:text-brand-400">
-                {data.type === 'timetable_pdf' ? 'Timetable File' : 'Past Question PDF'}
+                Course Material PDF
               </p>
-              <h4 className="tw:text-sm tw:font-semibold">{data.pdf?.fileName || (data.type === 'timetable_pdf' ? 'NOUN timetable' : 'NOUN past question')}</h4>
+              <h4 className="tw:text-sm tw:font-semibold">{data.pdf?.fileName || 'NOUN course material'}</h4>
             </div>
             <div className="tw:flex-none">
               {data.pdfLoading && (
@@ -190,7 +183,7 @@ function ResponseCard({ message, onSuggestionClick }) {
               {data.pdfBlobUrl && (
                 <a
                   href={data.pdfBlobUrl}
-                  download={data.pdf?.fileName || 'noun-past-question.pdf'}
+                  download={data.pdf?.fileName || 'noun-course-material.pdf'}
                   className={cn('tw:inline-flex tw:items-center tw:gap-1.5 tw:rounded-xl tw:bg-brand-600 tw:px-3 tw:py-1.5 tw:text-xs tw:font-semibold tw:text-white tw:hover:bg-brand-500')}
                 >
                   <Download className="tw:h-3.5 tw:w-3.5" /> Download
@@ -200,7 +193,7 @@ function ResponseCard({ message, onSuggestionClick }) {
           </div>
           {data.pdfBlobUrl && data.pdfCanPreview !== false && (
             <iframe
-              title={data.pdf?.fileName || 'Past Questions PDF Viewer'}
+              title={data.pdf?.fileName || 'Course Material PDF Viewer'}
               src={data.pdfBlobUrl}
               className="tw:h-80 tw:w-full tw:rounded-lg tw:border tw:border-slate-200 tw:dark:border-slate-800"
             />
@@ -267,7 +260,7 @@ function ResponseCard({ message, onSuggestionClick }) {
   );
 }
 
-const Ask = () => {
+const CourseMaterial = () => {
   const [query, setQuery] = useState('');
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -285,7 +278,7 @@ const Ask = () => {
     // guard for the rest of the component's life (verified: this was why the Search
     // button stayed stuck on "Searching..." even after the result had rendered).
     mountedRef.current = true;
-    trackFeatureVisit('ask');
+    trackFeatureVisit('course_material');
     const blobUrls = blobUrlsRef.current;
     return () => {
       mountedRef.current = false;
@@ -311,7 +304,7 @@ const Ask = () => {
 
   const scrollToMessage = (messageId) => {
     window.requestAnimationFrame(() => {
-      const target = document.getElementById(`ask-message-${messageId}`);
+      const target = document.getElementById(`course-material-message-${messageId}`);
       if (target) {
         target.scrollIntoView({
           behavior: 'smooth',
@@ -417,7 +410,7 @@ const Ask = () => {
 
         triggerDownload(
           blobUrl,
-          file.fileName || (file.extension === 'pdf' ? 'noun-past-question.pdf' : 'noun-file'),
+          file.fileName || (file.extension === 'pdf' ? 'noun-course-material.pdf' : 'noun-file'),
         );
 
         return {
@@ -429,7 +422,7 @@ const Ask = () => {
             pdfBlobUrl: blobUrl,
             pdfCanPreview: file.extension === 'pdf' && !mobileClient,
             pdfLoading: false,
-            type: file.extension === 'pdf' ? 'past_question_pdf' : message.data.type,
+            type: file.extension === 'pdf' ? 'course_material_pdf' : message.data.type,
             answer: file.extension === 'pdf'
               ? 'Your download has started. You can download it again below if needed.'
               : 'The file is ready. The download has started, and you can download it again below if needed.',
@@ -459,7 +452,7 @@ const Ask = () => {
   const submitQuery = async (value) => {
     const trimmed = String(value || query).trim();
     if (!trimmed || loading) {
-      if (!trimmed) setComposerError('Type what you want to find first.');
+      if (!trimmed) setComposerError('Type a course code or course title first.');
       return;
     }
 
@@ -477,7 +470,7 @@ const Ask = () => {
       loading: true,
       data: {
         loadingTitle: buildLoadingTitle(trimmed),
-        loadingMessage: 'Searching and preparing the result.',
+        loadingMessage: 'Searching NOUN, Google, and related sites for the real course material.',
       },
     };
 
@@ -488,7 +481,7 @@ const Ask = () => {
     scrollToMessage(placeholderId);
 
     try {
-      const result = await api.post('/ask/query', { query: trimmed });
+      const result = await api.post('/ask/query', { query: trimmed, mode: 'course_material' });
       const payload = result.data?.data || null;
       if (payload && Array.isArray(payload.files) && payload.files.length > 0) {
         payload.onOpenFile = (file) => loadListedFileIntoMessage(placeholderId, file);
@@ -509,7 +502,7 @@ const Ask = () => {
         setLoading(false);
       }
 
-      if (payload?.type === 'past_question_pdf' && payload?.pdf?.token) {
+      if (payload?.type === 'course_material_pdf' && payload?.pdf?.token) {
         await loadPdfIntoMessage(placeholderId, payload.pdf.token, payload.pdf.fileName);
       }
     } catch (requestError) {
@@ -517,8 +510,8 @@ const Ask = () => {
       updateMessage(placeholderId, () => ({
         loading: false,
         error: status === 401
-          ? 'Sign in to use Past Questions and open NOUN files.'
-          : (requestError.response?.data?.message || 'Past Questions could not process that request.'),
+          ? 'Sign in to use Course Material and open NOUN files.'
+          : (requestError.response?.data?.message || 'Course Material could not process that request.'),
         data: null,
       }));
     } finally {
@@ -529,105 +522,111 @@ const Ask = () => {
   };
 
   return (
-    <div className="np-shell tw:space-y-4 tw:p-4">
+    <div className="np-shell">
       <SEO
-        title="Past Questions: NOUN Past Questions, Timetable, Matriculation and TMA Help"
-        description="Past Questions helps NOUN students find past questions, timetable updates, matriculation information, TMA help, and NOUN study files in one place."
-        url="/ask"
-        keywords="Past Questions, NOUN past questions, NOUN timetable, NOUN matriculation, NOUN TMA, NOUN study help, NOUN student support"
+        title="Course Material: NOUN Course Guides and Lecture Notes"
+        description="Search for the real NOUN course material — course guide, lecture notes, or textbook PDF — for any course by course code, sourced from the official NOUN website, Google, and other NOUN-related sites."
+        url="/course-material"
+        keywords="NOUN course material, NOUN course guide, NOUN lecture notes, NOUN textbook, NOUN study material"
         robots="index, follow"
-        structuredData={askStructuredData}
+        structuredData={courseMaterialStructuredData}
       />
+      <ShellHeader title="Course Material" />
 
-      <div>
-        <p className="tw:text-xs tw:font-bold tw:tracking-wide tw:text-brand-600 tw:uppercase tw:dark:text-brand-400">Past Questions</p>
-        <h1 className="tw:font-heading tw:mt-1 tw:text-lg tw:font-bold tw:tracking-tight">Find NOUN past questions with just course codes like GST 101.</h1>
-        <div className="tw:mt-3 tw:flex tw:flex-wrap tw:gap-2">
-          {ASK_EXAMPLES.map((example) => (
-            <button
-              key={example}
-              type="button"
-              onClick={() => submitQuery(example)}
-              disabled={loading}
-              className="tw:flex tw:items-center tw:gap-2 tw:rounded-xl tw:border tw:border-slate-200 tw:bg-white tw:px-3 tw:py-2 tw:text-left tw:transition-colors tw:hover:bg-slate-50 tw:disabled:opacity-50 tw:dark:border-slate-800 tw:dark:bg-slate-900 tw:dark:hover:bg-slate-800"
-            >
-              <span className="tw:flex tw:h-8 tw:w-8 tw:flex-none tw:items-center tw:justify-center tw:rounded-lg tw:bg-brand-100 tw:text-brand-600 tw:dark:bg-brand-950 tw:dark:text-brand-300">
-                <Search className="tw:h-4 tw:w-4" />
-              </span>
-              <span>
-                <strong className="tw:block tw:text-sm">{example}</strong>
-                <span className="tw:text-xs tw:text-slate-400">Tap to search past questions</span>
-              </span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div ref={threadShellRef} className="tw:space-y-3">
-        <div ref={threadRef} className="tw:space-y-3">
-          {messages.map((message) => (
-            <div
-              key={message.id}
-              id={`ask-message-${message.id}`}
-              className={cn('tw:flex tw:gap-2.5', message.role === 'user' && 'tw:flex-row-reverse')}
-            >
-              <span
-                className={cn(
-                  'tw:flex tw:h-8 tw:w-8 tw:flex-none tw:items-center tw:justify-center tw:rounded-full',
-                  message.role === 'assistant'
-                    ? 'tw:bg-brand-100 tw:text-brand-600 tw:dark:bg-brand-950 tw:dark:text-brand-300'
-                    : 'tw:bg-slate-100 tw:text-slate-500 tw:dark:bg-slate-800 tw:dark:text-slate-400',
-                )}
+      <div className="tw:space-y-4 tw:p-4">
+        <div>
+          <p className="tw:text-xs tw:font-bold tw:tracking-wide tw:text-brand-600 tw:uppercase tw:dark:text-brand-400">Course Material</p>
+          <h1 className="tw:font-heading tw:mt-1 tw:text-lg tw:font-bold tw:tracking-tight">Find the real NOUN course material with just a course code like GST 101.</h1>
+          <p className="tw:mt-1 tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">
+            Searches the official NOUN website first, then Google and other NOUN-related sites — the actual course guide or lecture notes, not a summary.
+          </p>
+          <div className="tw:mt-3 tw:flex tw:flex-wrap tw:gap-2">
+            {MATERIAL_EXAMPLES.map((example) => (
+              <button
+                key={example}
+                type="button"
+                onClick={() => submitQuery(example)}
+                disabled={loading}
+                className="tw:flex tw:items-center tw:gap-2 tw:rounded-xl tw:border tw:border-slate-200 tw:bg-white tw:px-3 tw:py-2 tw:text-left tw:transition-colors tw:hover:bg-slate-50 tw:disabled:opacity-50 tw:dark:border-slate-800 tw:dark:bg-slate-900 tw:dark:hover:bg-slate-800"
               >
-                {message.role === 'assistant' ? <MessageSquare className="tw:h-4 tw:w-4" /> : <UserCircle className="tw:h-4 tw:w-4" />}
-              </span>
-              <div className="tw:min-w-0 tw:flex-1">
-                {message.role === 'user' ? (
-                  <p className="tw:ml-auto tw:w-fit tw:rounded-2xl tw:rounded-tr-sm tw:bg-brand-600 tw:px-3.5 tw:py-2 tw:text-sm tw:text-white">{message.text}</p>
-                ) : (
-                  <ResponseCard message={message} onSuggestionClick={submitQuery} />
-                )}
-              </div>
-            </div>
-          ))}
+                <span className="tw:flex tw:h-8 tw:w-8 tw:flex-none tw:items-center tw:justify-center tw:rounded-lg tw:bg-brand-100 tw:text-brand-600 tw:dark:bg-brand-950 tw:dark:text-brand-300">
+                  <Search className="tw:h-4 tw:w-4" />
+                </span>
+                <span>
+                  <strong className="tw:block tw:text-sm">{example}</strong>
+                  <span className="tw:text-xs tw:text-slate-400">Tap to search course material</span>
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
 
-        <form
-          onSubmit={(event) => {
-            event.preventDefault();
-            submitQuery();
-          }}
-          className="tw:space-y-1.5"
-        >
-          <label htmlFor="ask-input" className="tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300">
-            Enter your course code
-          </label>
-          <div className="tw:space-y-2">
-            <textarea
-              id="ask-input"
-              placeholder="Example: GST 101"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' && !event.shiftKey) {
-                  event.preventDefault();
-                  submitQuery();
-                }
-              }}
-              rows={2}
-              className="tw:w-full tw:resize-none tw:rounded-xl tw:border tw:border-slate-200 tw:bg-white tw:p-3 tw:text-sm tw:outline-none tw:focus:border-brand-500 tw:dark:border-slate-800 tw:dark:bg-slate-900 tw:dark:text-slate-100"
-            />
-            <p className="tw:text-xs tw:text-slate-400">Examples: GST 101, ECO 202, MAC 211.</p>
-            <Button type="submit" disabled={loading} className="tw:w-full">
-              {loading ? <Loader2 className="tw:h-4 tw:w-4 tw:animate-spin" /> : <Send className="tw:h-4 tw:w-4" />}
-              {loading ? 'Searching...' : 'Search Past Questions'}
-            </Button>
+        <div ref={threadShellRef} className="tw:space-y-3">
+          <div ref={threadRef} className="tw:space-y-3">
+            {messages.map((message) => (
+              <div
+                key={message.id}
+                id={`course-material-message-${message.id}`}
+                className={cn('tw:flex tw:gap-2.5', message.role === 'user' && 'tw:flex-row-reverse')}
+              >
+                <span
+                  className={cn(
+                    'tw:flex tw:h-8 tw:w-8 tw:flex-none tw:items-center tw:justify-center tw:rounded-full',
+                    message.role === 'assistant'
+                      ? 'tw:bg-brand-100 tw:text-brand-600 tw:dark:bg-brand-950 tw:dark:text-brand-300'
+                      : 'tw:bg-slate-100 tw:text-slate-500 tw:dark:bg-slate-800 tw:dark:text-slate-400',
+                  )}
+                >
+                  {message.role === 'assistant' ? <FileText className="tw:h-4 tw:w-4" /> : <UserCircle className="tw:h-4 tw:w-4" />}
+                </span>
+                <div className="tw:min-w-0 tw:flex-1">
+                  {message.role === 'user' ? (
+                    <p className="tw:ml-auto tw:w-fit tw:rounded-2xl tw:rounded-tr-sm tw:bg-brand-600 tw:px-3.5 tw:py-2 tw:text-sm tw:text-white">{message.text}</p>
+                  ) : (
+                    <ResponseCard message={message} onSuggestionClick={submitQuery} />
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
-          {composerError && <p className="tw:text-xs tw:font-medium tw:text-red-600 tw:dark:text-red-400">{composerError}</p>}
-        </form>
+
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              submitQuery();
+            }}
+            className="tw:space-y-1.5"
+          >
+            <label htmlFor="course-material-input" className="tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300">
+              Enter your course code
+            </label>
+            <div className="tw:space-y-2">
+              <textarea
+                id="course-material-input"
+                placeholder="Example: GST 101"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' && !event.shiftKey) {
+                    event.preventDefault();
+                    submitQuery();
+                  }
+                }}
+                rows={2}
+                className="tw:w-full tw:resize-none tw:rounded-xl tw:border tw:border-slate-200 tw:bg-white tw:p-3 tw:text-sm tw:outline-none tw:focus:border-brand-500 tw:dark:border-slate-800 tw:dark:bg-slate-900 tw:dark:text-slate-100"
+              />
+              <p className="tw:text-xs tw:text-slate-400">Examples: GST 101, ECO 202, MAC 211.</p>
+              <Button type="submit" disabled={loading} className="tw:w-full">
+                {loading ? <Loader2 className="tw:h-4 tw:w-4 tw:animate-spin" /> : <Send className="tw:h-4 tw:w-4" />}
+                {loading ? 'Searching...' : 'Search Course Material'}
+              </Button>
+            </div>
+            {composerError && <p className="tw:text-xs tw:font-medium tw:text-red-600 tw:dark:text-red-400">{composerError}</p>}
+          </form>
+        </div>
       </div>
     </div>
   );
 };
 
-export default Ask;
+export default CourseMaterial;

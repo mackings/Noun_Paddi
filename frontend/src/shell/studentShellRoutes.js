@@ -15,6 +15,7 @@ export const STUDENT_SHELL_PATHS = [
   '/projects/my-fees',
   '/consultation-terms',
   '/ask',
+  '/course-material',
   '/courses',
   '/courses/all',
   '/practice',

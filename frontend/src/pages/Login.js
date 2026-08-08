@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import SEO from '../components/SEO';
-import { FiMail, FiLock, FiBook, FiEye, FiEyeOff } from 'react-icons/fi';
-import './Auth.css';
+import { Mail, Lock, BookOpen, Eye, EyeOff } from 'lucide-react';
+import { Card } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -54,7 +56,7 @@ const Login = () => {
   };
 
   return (
-    <div className="auth-container">
+    <div className="np-shell tw:flex tw:min-h-[calc(100vh-64px)] tw:items-center tw:justify-center tw:bg-slate-50 tw:p-4 tw:dark:bg-slate-950">
       <SEO
         title="Login - NounPaddi"
         description="Sign in to NounPaddi to access course materials, practice exams, and IT placement opportunities for NOUN students."
@@ -62,73 +64,73 @@ const Login = () => {
         keywords="login, sign in, NOUN student portal, NounPaddi login"
         robots="noindex, nofollow"
       />
-      <div className="auth-card">
-        <div className="auth-logo">
-          <FiBook />
+
+      <div className="tw:w-full tw:max-w-sm tw:space-y-5">
+        <div className="tw:text-center">
+          <span className="tw:mx-auto tw:flex tw:h-12 tw:w-12 tw:items-center tw:justify-center tw:rounded-2xl tw:bg-brand-600 tw:text-white">
+            <BookOpen className="tw:h-6 tw:w-6" />
+          </span>
+          <h1 className="tw:font-heading tw:mt-3 tw:text-xl tw:font-bold tw:tracking-tight">Welcome Back!</h1>
+          <p className="tw:mt-1 tw:text-sm tw:text-slate-500 tw:dark:text-slate-400">Sign in to continue your learning journey with NounPaddi</p>
         </div>
-        <h1 className="auth-title">Welcome Back!</h1>
-        <p className="auth-subtitle">Sign in to continue your learning journey with NounPaddi</p>
 
-        {error && <div className="alert alert-danger">{error}</div>}
+        <Card className="tw:space-y-4 tw:p-5">
+          {error && (
+            <div className="tw:rounded-xl tw:bg-red-100 tw:px-3.5 tw:py-2.5 tw:text-sm tw:text-red-700 tw:dark:bg-red-500/15 tw:dark:text-red-300">
+              {error}
+            </div>
+          )}
 
-        <form onSubmit={handleSubmit} className="auth-form">
-          <div className="form-group">
-            <label className="form-label">Email Address</label>
-            <div className="input-group">
-              <FiMail className="input-icon" size={20} />
-              <input
+          <form onSubmit={handleSubmit} className="tw:space-y-4">
+            <label className="tw:block tw:space-y-1.5">
+              <span className="tw:flex tw:items-center tw:gap-1 tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300"><Mail className="tw:h-3.5 tw:w-3.5" /> Email Address</span>
+              <Input
                 type="email"
                 name="email"
-                className="form-control"
                 placeholder="Enter your email"
                 value={formData.email}
                 onChange={handleChange}
                 required
               />
+            </label>
+
+            <label className="tw:block tw:space-y-1.5">
+              <span className="tw:flex tw:items-center tw:gap-1 tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300"><Lock className="tw:h-3.5 tw:w-3.5" /> Password</span>
+              <div className="tw:relative">
+                <Input
+                  type={showPassword ? 'text' : 'password'}
+                  name="password"
+                  placeholder="Enter your password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  required
+                  className="tw:pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label="Toggle password visibility"
+                  className="tw:absolute tw:top-1/2 tw:right-3 tw:-translate-y-1/2 tw:text-slate-400 tw:hover:text-slate-600 tw:dark:hover:text-slate-300"
+                >
+                  {showPassword ? <EyeOff className="tw:h-4 tw:w-4" /> : <Eye className="tw:h-4 tw:w-4" />}
+                </button>
+              </div>
+            </label>
+
+            <div className="tw:text-right">
+              <Link to="/forgot-password" className="tw:text-xs tw:font-semibold tw:text-brand-600 tw:dark:text-brand-400">
+                Forgot Password?
+              </Link>
             </div>
-          </div>
 
-          <div className="form-group">
-            <label className="form-label">Password</label>
-            <div className="input-group">
-              <FiLock className="input-icon" size={20} />
-              <input
-                type={showPassword ? 'text' : 'password'}
-                name="password"
-                className="form-control password-input"
-                placeholder="Enter your password"
-                value={formData.password}
-                onChange={handleChange}
-                required
-              />
-              <button
-                type="button"
-                className="password-toggle"
-                onClick={() => setShowPassword(!showPassword)}
-                aria-label="Toggle password visibility"
-              >
-                {showPassword ? <FiEyeOff size={20} /> : <FiEye size={20} />}
-              </button>
-            </div>
-          </div>
+            <Button type="submit" disabled={loading} className="tw:w-full">
+              {loading ? 'Signing In...' : 'Sign In'}
+            </Button>
+          </form>
+        </Card>
 
-          <div style={{ textAlign: 'right', marginBottom: '12px' }}>
-            <Link to="/forgot-password" style={{ color: '#667eea', fontSize: '14px', fontWeight: '600' }}>
-              Forgot Password?
-            </Link>
-          </div>
-
-          <button
-            type="submit"
-            className={`btn btn-primary btn-block btn-lg ${loading ? 'btn-loading' : ''}`}
-            disabled={loading}
-          >
-            {loading ? 'Signing In...' : 'Sign In'}
-          </button>
-        </form>
-
-        <p className="auth-footer">
-          Don't have an account? <Link to="/signup">Sign Up</Link>
+        <p className="tw:text-center tw:text-sm tw:text-slate-500 tw:dark:text-slate-400">
+          Don't have an account? <Link to="/signup" className="tw:font-semibold tw:text-brand-600 tw:dark:text-brand-400">Sign Up</Link>
         </p>
       </div>
     </div>

@@ -63,6 +63,7 @@ function attachFileTokens(files = [], userId) {
 exports.askQuestion = async (req, res) => {
   try {
     const query = String(req.body?.query || '').trim();
+    const mode = String(req.body?.mode || '').trim();
     if (!query) {
       return res.status(400).json({
         success: false,
@@ -70,7 +71,7 @@ exports.askQuestion = async (req, res) => {
       });
     }
 
-    const result = await answerAskQuery(query);
+    const result = await answerAskQuery(query, mode);
     const responseData = { ...result };
 
     if (result.pdfUrl) {

@@ -3,14 +3,14 @@ const axios = require('axios');
 const GEMINI_MODEL = 'gemini-2.5-flash';
 const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 const USER_AGENT = 'Mozilla/5.0 (compatible; NounPaddiAsk/1.0; +https://paddi.com.ng)';
-const MAX_PAGE_SCAN_COUNT = 3;
+const MAX_PAGE_SCAN_COUNT = 6;
 const MAX_FILE_CANDIDATES_TO_VERIFY = 8;
 const WHATSAPP_GROUP_URL = 'https://chat.whatsapp.com/Ezx0OmcT1bs1BSymYT1f4G';
 const PUREDU_PAST_QUESTIONS_ENDPOINT = 'https://puredu.net/Past-Questions.php';
 const PUREDU_TMA_ENDPOINT = 'https://puredu.net/TMAs.php';
 const BBCNOUN_PAST_QUESTIONS_ENDPOINT = 'https://bbcnoun.com.ng/wp-admin/admin-ajax.php';
 const BBCNOUN_PAST_QUESTIONS_NONCE = '3c02b73c95';
-const PRIORITY_DOMAINS = ['noungeeks.com', 'puredu.net', 'bbcnoun.com.ng'];
+const PRIORITY_DOMAINS = ['nou.edu.ng', 'noungeeks.com', 'puredu.net', 'bbcnoun.com.ng'];
 const SITE_SEED_URLS = {
   past_question: [
     { url: 'https://noungeeks.com/noun-past-questions/', title: 'NounGeeks Past Questions' },
@@ -117,6 +117,24 @@ function classifyIntent(query) {
 }
 
 function buildClarification(intent, query) {
+  if (intent === 'course_material') {
+    const courseCode = extractCourseCode(query);
+    if (courseCode) return null;
+
+    return {
+      type: 'clarification',
+      intent,
+      title: 'I need the course code',
+      answer: 'Send the exact course code so I can search for the course material (course guide, lecture notes, or textbook PDF) for that course.',
+      followUpQuestion: 'Reply with something like "GST 105 course material" or "BIO 101 course material".',
+      suggestions: [
+        'GST 105 course material',
+        'BIO 101 course material',
+        'CSC 202 course material',
+      ],
+    };
+  }
+
   if (intent !== 'past_question') return null;
 
   const courseCode = extractCourseCode(query);
@@ -432,7 +450,12 @@ async function runGeminiGroundedPrompt(prompt) {
           'x-goog-api-key': apiKey,
           'Content-Type': 'application/json',
         },
-        timeout: 30000,
+        // 30s was too tight — verified directly that Gemini sometimes runs a dozen-plus
+        // internal search-query variations within one grounded call (especially for
+        // course_material's more exploratory prompt) and can legitimately take longer
+        // than that to respond, which was surfacing as a generic "could not complete"
+        // error even though the request would have succeeded given more time.
+        timeout: 55000,
       }
     );
 
@@ -599,6 +622,12 @@ function scorePdfCandidate(candidate, query, intent = 'past_question') {
   if (isLikelyDownloadUrl(candidate.url)) score += 2;
   if (intent === 'past_question' && haystack.includes('past question')) score += 3;
   if (intent === 'timetable' && (haystack.includes('timetable') || haystack.includes('schedule'))) score += 4;
+  if (intent === 'course_material') {
+    if (/course\s*guide|course\s*material|lecture\s*note|study\s*material|textbook|module/.test(haystack)) score += 4;
+    if (hostname === 'nou.edu.ng' || hostname.endsWith('.nou.edu.ng')) score += 4;
+    if (/past\s*question|exam\s*paper|\bqp\b/.test(haystack)) score -= 5;
+    if (/\bsummary\b|\bsummarized\b|\bstudy\s*guide\b/.test(haystack)) score -= 5;
+  }
   if (haystack.includes('noun')) score += 2;
   if (haystack.includes('exam')) score += 1;
   if (courseCode && haystack.includes(courseCode.toLowerCase())) score += 3;
@@ -607,11 +636,29 @@ function scorePdfCandidate(candidate, query, intent = 'past_question') {
   if (haystack.includes('first semester')) score += 1;
   if (haystack.includes('second semester')) score += 1;
   if (haystack.includes('2025') || haystack.includes('2026')) score += intent === 'timetable' ? 1 : 0;
-  if (PRIORITY_DOMAINS.some((domain) => hostname === domain || hostname.endsWith(`.${domain}`))) {
+  // The URL's own hostname only reflects a priority domain once a redirect has been
+  // resolved — at scoring time, many candidates are still opaque
+  // vertexaisearch.cloud.google.com grounding redirects, so also check the grounding
+  // chunk's title (isPriorityGroundingSource), which carries the real hostname Google
+  // indexed (e.g. "nou.edu.ng") before that resolution happens.
+  if (
+    PRIORITY_DOMAINS.some((domain) => hostname === domain || hostname.endsWith(`.${domain}`)) ||
+    isPriorityGroundingSource(candidate)
+  ) {
     score += 3;
   }
 
   return score;
+}
+
+// Grounding chunk titles are the hostname Google actually indexed (e.g. "nou.edu.ng"),
+// even though the chunk's own `url` is an opaque vertexaisearch.cloud.google.com redirect
+// that only resolves to the real domain once fetched. Checking the title here — not just
+// the URL's own hostname — is what lets an official-domain result get priority scanning
+// even before that redirect has been followed.
+function isPriorityGroundingSource(candidate) {
+  const haystack = `${candidate?.title || ''} ${candidate?.url || ''}`.toLowerCase();
+  return PRIORITY_DOMAINS.some((domain) => haystack.includes(domain));
 }
 
 async function findBestPdfFile(query, sources, intent = 'past_question') {
@@ -626,10 +673,45 @@ async function findBestPdfFile(query, sources, intent = 'past_question') {
 
   const scannedCandidates = [];
 
-  const explorationSources = [...sources, ...seededSources];
+  // Keep whichever duplicate has a title — candidate pools are built by concatenating a
+  // title-less de-duped list with the raw, title-preserving grounding sources, so the
+  // same URL often appears twice with only the second copy carrying its real title (e.g.
+  // "nou.edu.ng"). A naive first-seen dedup would silently keep the title-less copy and
+  // defeat isPriorityGroundingSource's title check below.
+  const explorationByUrl = new Map();
+  for (const source of [...sources, ...seededSources]) {
+    const key = String(source?.url || '').trim();
+    if (!key) continue;
+    const existing = explorationByUrl.get(key);
+    if (!existing || (!existing.title && source?.title)) {
+      explorationByUrl.set(key, source);
+    }
+  }
+  const dedupedExplorationSources = Array.from(explorationByUrl.values());
+
+  // Verified/priority-domain sources (Gemini's actual grounded search hits, especially
+  // nou.edu.ng) get scanned before Gemini's own text-derived candidateUrls guesses — a
+  // real case showed Gemini finding nou.edu.ng via grounding but then omitting it from
+  // its own JSON candidateUrls, reasoning (incorrectly) that NOUN doesn't expose direct
+  // PDFs. Without this, that source would fall outside the limited scan budget below.
+  const explorationSources = [...dedupedExplorationSources].sort((a, b) => (
+    (isPriorityGroundingSource(b) ? 1 : 0) - (isPriorityGroundingSource(a) ? 1 : 0)
+  ));
 
   for (const source of explorationSources.slice(0, Math.max(MAX_PAGE_SCAN_COUNT, seededSources.length + MAX_PAGE_SCAN_COUNT))) {
     if (isLikelyDownloadUrl(source.url)) continue;
+
+    // Some grounding sources are opaque redirect URLs (e.g. Gemini's
+    // vertexaisearch.cloud.google.com/grounding-api-redirect/... chunks) that resolve
+    // directly to the file itself rather than to an HTML page containing a link to it.
+    // Queuing the source URL as its own candidate lets verifyPdfCandidate's redirect
+    // handling catch that case; the HTML-link scan below still handles the other case,
+    // where the resolved page merely links out to the real file.
+    scannedCandidates.push({
+      url: source.url,
+      title: source.title,
+      direct: false,
+    });
 
     try {
       const pdfLinks = await fetchPdfLinksFromPage(source.url);
@@ -716,6 +798,14 @@ function buildFileCandidateList(grounded) {
 }
 
 function buildSuggestions(intent, query) {
+  if (intent === 'course_material') {
+    return [
+      `${extractCourseCode(query) || 'GST 105'} course material`,
+      `${extractCourseCode(query) || 'GST 105'} course guide`,
+      `${extractCourseCode(query) || 'GST 105'} lecture notes`,
+    ];
+  }
+
   if (intent === 'past_question') {
     return [
       `${extractCourseCode(query) || 'GST 105'} past question`,
@@ -801,11 +891,54 @@ async function buildPastQuestionResponse(query, grounded) {
     title: parsed.title || bestPdf.title || 'NOUN past question',
     answer: parsed.answer || 'Gemini found a past question PDF that matches your request. It is ready to open below.',
     pdfUrl: bestPdf.url,
-    fileName: (bestPdf.title || 'noun-past-question').replace(/[^\w\s.-]/g, '').trim() || 'noun-past-question.pdf',
+    fileName: (parsed.title || bestPdf.title || 'noun-past-question').replace(/[^\w\s.-]/g, '').trim() || 'noun-past-question.pdf',
     suggestions: parsed.suggestions || [
       'Find another year for this course',
       'Look for first semester version',
       'Search a different NOUN course past question',
+    ],
+  });
+}
+
+async function buildCourseMaterialResponse(query, grounded) {
+  const parsed = grounded.parsed || {};
+  const candidatePool = [
+    ...buildFileCandidateList(grounded),
+    ...(grounded.sources || []),
+  ];
+  const bestPdf = await findBestPdfFile(query, candidatePool, 'course_material');
+
+  if (!bestPdf) {
+    return withWhatsAppGroup({
+      type: 'information',
+      intent: 'course_material',
+      title: parsed.title || 'No course material PDF found',
+      answer: parsed.answer || `Gemini searched the web but did not find a usable course material PDF for "${query}". Add the exact course code, or the course title, and try again.`,
+      sections: [
+        {
+          title: 'No verified file found yet',
+          items: [
+            'A grounded result was found, but no direct downloadable course material PDF could be verified.',
+            'The NOUN portal may require login for this particular course, or the file may be behind a viewer.',
+            'Try a slightly different wording, or just the exact course code.',
+          ],
+        },
+      ],
+      suggestions: buildSuggestions('course_material', query),
+    });
+  }
+
+  return withWhatsAppGroup({
+    type: 'course_material_pdf',
+    intent: 'course_material',
+    title: parsed.title || bestPdf.title || 'NOUN course material',
+    answer: parsed.answer || 'Gemini found a course material PDF that matches your request. It is ready to open below.',
+    pdfUrl: bestPdf.url,
+    fileName: (parsed.title || bestPdf.title || 'noun-course-material').replace(/[^\w\s.-]/g, '').trim() || 'noun-course-material.pdf',
+    suggestions: parsed.suggestions || [
+      'Find the course guide instead',
+      'Search a different NOUN course material',
+      'Look for the latest edition',
     ],
   });
 }
@@ -857,7 +990,7 @@ async function buildTimetableResponse(query, grounded) {
     answer: parsed.answer || 'I found a downloadable timetable document. If a newer one is not public yet, this may be the latest verified file I could open.',
     sections: Array.isArray(parsed.sections) ? parsed.sections : [],
     pdfUrl: bestPdf.url,
-    fileName: (bestPdf.title || 'noun-timetable').replace(/[^\w\s.-]/g, '').trim() || 'noun-timetable.pdf',
+    fileName: (parsed.title || bestPdf.title || 'noun-timetable').replace(/[^\w\s.-]/g, '').trim() || 'noun-timetable.pdf',
     suggestions: Array.isArray(parsed.suggestions) && parsed.suggestions.length > 0
       ? parsed.suggestions
       : buildSuggestions('timetable', query),
@@ -916,6 +1049,32 @@ Rules:
 - Prefer actual past-question documents or pages that clearly point to past questions.
 - Prioritize these websites when relevant: noungeeks.com, puredu.net, bbcnoun.com.ng.
 - Include up to 6 candidate URLs that are the most likely direct PDF links or page links that lead to the file.
+- Do not include links, URLs, source names, or citations in the answer.
+- If you do not find a reliable match, make that clear in the answer.
+- Keep the response compact and useful for a student.`;
+  }
+
+  if (intent === 'course_material') {
+    return `Use Google Search grounding to research this request about a National Open University of Nigeria (NOUN) course: "${query}".
+
+Find the actual COURSE MATERIAL for this course — the full course guide, lecture notes/units, or textbook PDF that NOUN or a NOUN-related site provides for studying the course. This is NOT a past exam question paper and NOT a short summary or study guide — it must be the real, complete course document.
+
+Return ONLY valid JSON in this exact shape:
+{
+  "type": "course_material_pdf",
+  "title": "short result title",
+  "answer": "one short student-friendly paragraph with no links, no URLs, and no citations",
+  "candidateUrls": ["https://example.com/file.pdf", "https://example.com/page-with-file"],
+  "suggestions": ["follow up 1", "follow up 2", "follow up 3"]
+}
+
+Rules:
+- Focus only on NOUN-related results.
+- The single most important source is NOUN's own official website (nou.edu.ng) — search there first.
+- If nothing official is found, search the wider web (Google) for the course guide or course material PDF hosted anywhere legitimate.
+- Only after that, consider these community sites if relevant: noungeeks.com, puredu.net, bbcnoun.com.ng.
+- Do NOT return past-question papers, exam question papers, or short AI-style summaries — only the actual course material/guide/lecture notes.
+- Include up to 6 candidate URLs that are the most likely direct PDF links or page links that lead to the real course material file.
 - Do not include links, URLs, source names, or citations in the answer.
 - If you do not find a reliable match, make that clear in the answer.
 - Keep the response compact and useful for a student.`;
@@ -993,19 +1152,26 @@ Rules:
 - Keep it student-friendly and ready for UI presentation.`;
 }
 
-async function answerAskQuery(query) {
+async function answerAskQuery(query, mode) {
   const cleanQuery = normalizeWhitespace(query);
   if (!cleanQuery) {
     throw new Error('Please enter a question.');
   }
 
-  const intent = classifyIntent(cleanQuery);
+  // `mode` lets a caller (e.g. the Course Material page) pin the intent explicitly
+  // instead of relying on free-text classification, since that page's search box is
+  // scoped to one kind of request rather than the general Ask/Past Questions chat.
+  const intent = mode === 'course_material' ? 'course_material' : classifyIntent(cleanQuery);
   const clarification = buildClarification(intent, cleanQuery);
   if (clarification) {
     return clarification;
   }
 
   const grounded = await runGeminiGroundedPrompt(buildGroundedPrompt(cleanQuery, intent));
+
+  if (intent === 'course_material') {
+    return buildCourseMaterialResponse(cleanQuery, grounded);
+  }
 
   if (intent === 'past_question') {
     return buildPastQuestionResponse(cleanQuery, grounded);
@@ -1016,4 +1182,10 @@ async function answerAskQuery(query) {
 
 module.exports = {
   answerAskQuery,
+  _private: {
+    runGeminiGroundedPrompt,
+    buildGroundedPrompt,
+    findBestPdfFile,
+    buildFileCandidateList,
+  },
 };
