@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import { useNavigate, Link, useLocation } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link, useLocation, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import SEO from '../components/SEO';
-import { User, Mail, Lock, BookOpen, Hash, FileText, MapPin, Eye, EyeOff, Check, X } from 'lucide-react';
+import api from '../utils/api';
+import { User, Mail, Lock, BookOpen, Hash, FileText, MapPin, Eye, EyeOff, Check, X, Gift } from 'lucide-react';
 import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -173,6 +174,24 @@ const Signup = () => {
   const { signup } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const { slug: referralSlug } = useParams();
+  const [referrerName, setReferrerName] = useState('');
+
+  useEffect(() => {
+    if (!referralSlug) return;
+    let cancelled = false;
+    api.get(`/users/referral-preview/${encodeURIComponent(referralSlug)}`)
+      .then((response) => {
+        if (!cancelled) setReferrerName(response.data?.data?.name || '');
+      })
+      .catch(() => {
+        // A stale or invalid slug in the URL shouldn't block signup — it just means no
+        // "invited by" banner shows, the same as visiting /signup directly.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [referralSlug]);
 
   const getSafeRedirect = () => {
     const params = new URLSearchParams(location.search);
@@ -253,6 +272,7 @@ const Signup = () => {
         faculty: facultyLabel,
         department: departmentLabel,
         matricNumber: safeMatricNumber,
+        referralSlug,
       });
       const redirect = getSafeRedirect();
       if (redirect) {
@@ -302,6 +322,13 @@ const Signup = () => {
           <h1 className="tw:font-heading tw:mt-3 tw:text-xl tw:font-bold tw:tracking-tight">Join NounPaddi</h1>
           <p className="tw:mt-1 tw:text-sm tw:text-slate-500 tw:dark:text-slate-400">Start your learning journey with personalized study materials and practice exams</p>
         </div>
+
+        {referrerName && (
+          <div className="tw:flex tw:items-center tw:gap-2 tw:rounded-xl tw:bg-brand-50 tw:px-3.5 tw:py-2.5 tw:text-sm tw:text-brand-700 tw:dark:bg-brand-950/40 tw:dark:text-brand-300">
+            <Gift className="tw:h-4 tw:w-4 tw:flex-none" />
+            <span>You were invited by <strong>{referrerName}</strong></span>
+          </div>
+        )}
 
         <Card className="tw:space-y-4 tw:p-5">
           {error && (

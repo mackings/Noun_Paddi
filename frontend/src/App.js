@@ -379,6 +379,10 @@ const AppLayout = () => {
           <Routes>
                 <Route path="/" element={<RootRedirect />} />
                 <Route path="/signup" element={<Signup />} />
+                {/* Personalized campus-ambassador links, e.g. paddi.com.ng/register/macs —
+                    same Signup page, it just reads the :slug param and attributes the new
+                    signup to whoever owns that referral slug. */}
+                <Route path="/register/:slug" element={<Signup />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/reset-password" element={<ResetPassword />} />

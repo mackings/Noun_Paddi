@@ -8,6 +8,7 @@ const MAX_FILE_CANDIDATES_TO_VERIFY = 8;
 const WHATSAPP_GROUP_URL = 'https://chat.whatsapp.com/Ezx0OmcT1bs1BSymYT1f4G';
 const PUREDU_PAST_QUESTIONS_ENDPOINT = 'https://puredu.net/Past-Questions.php';
 const PUREDU_TMA_ENDPOINT = 'https://puredu.net/TMAs.php';
+const PUREDU_ECOURSEWARE_ENDPOINT = 'https://puredu.net/e-courseware/search';
 const BBCNOUN_PAST_QUESTIONS_ENDPOINT = 'https://bbcnoun.com.ng/wp-admin/admin-ajax.php';
 const BBCNOUN_PAST_QUESTIONS_NONCE = '3c02b73c95';
 const PRIORITY_DOMAINS = ['nou.edu.ng', 'noungeeks.com', 'puredu.net', 'bbcnoun.com.ng'];
@@ -281,6 +282,45 @@ async function searchBbcnounFiles(courseCode) {
   }
 }
 
+// PurEdu's e-courseware search is a clean JSON API (GET .../search?code=GST101 ->
+// { matches: [{ code, title, filename, url, size }], total }) — unlike the past-question
+// and TMA endpoints above, there's no HTML to parse and no request body/nonce to forge.
+// Verified directly: the returned `url` is a real, directly downloadable PDF (confirmed
+// via a HEAD-equivalent GET returning Content-Type: application/pdf), so these results
+// are trusted as direct downloads without needing the generic verifyPdfCandidate step.
+async function searchPureduCourseMaterial(courseCode) {
+  const compactCode = String(courseCode || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (!compactCode) return [];
+
+  try {
+    const response = await axios.get(PUREDU_ECOURSEWARE_ENDPOINT, {
+      params: { code: compactCode },
+      headers: {
+        'User-Agent': USER_AGENT,
+        Accept: 'application/json',
+      },
+      timeout: 20000,
+    });
+
+    const matches = Array.isArray(response.data?.matches) ? response.data.matches : [];
+
+    return matches.map((match) => {
+      const absoluteUrl = normalizePotentialFileUrl(match.url);
+      const extension = extractFileExtension(absoluteUrl) || 'pdf';
+      const label = match.title ? `${match.code} - ${match.title}` : match.code;
+
+      return {
+        label,
+        url: absoluteUrl,
+        fileName: match.filename || buildSafeFileName(absoluteUrl, `${match.code}.${extension}`),
+        extension,
+      };
+    });
+  } catch (error) {
+    return [];
+  }
+}
+
 async function getDirectSiteFiles(query, intent) {
   const courseCode = extractCourseCode(query);
   if (!courseCode) return [];
@@ -306,6 +346,10 @@ async function getDirectSiteFiles(query, intent) {
 
   if (intent === 'tma') {
     return searchPureduFiles(PUREDU_TMA_ENDPOINT, courseCode);
+  }
+
+  if (intent === 'course_material') {
+    return searchPureduCourseMaterial(courseCode);
   }
 
   return [];
@@ -1167,11 +1211,28 @@ async function answerAskQuery(query, mode) {
     return clarification;
   }
 
-  const grounded = await runGeminiGroundedPrompt(buildGroundedPrompt(cleanQuery, intent));
-
   if (intent === 'course_material') {
+    // PurEdu's e-courseware search is a fast, direct catalog lookup (verified reliable —
+    // a real JSON API, not a live web search) — checked before the much slower Gemini
+    // grounding fallback, since it resolves the common case in ~1s instead of 20-50s and
+    // doesn't depend on Google Search happening to surface the right page that call.
+    const directFiles = await getDirectSiteFiles(cleanQuery, 'course_material');
+    if (directFiles.length > 0) {
+      return withWhatsAppGroup({
+        type: 'file_list',
+        intent: 'course_material',
+        title: `Found ${directFiles.length} file${directFiles.length === 1 ? '' : 's'} for ${extractCourseCode(cleanQuery) || 'this course'}`,
+        answer: 'I found the course material for this course. Open or download it below.',
+        files: directFiles,
+        suggestions: buildSuggestions('course_material', cleanQuery),
+      });
+    }
+
+    const grounded = await runGeminiGroundedPrompt(buildGroundedPrompt(cleanQuery, intent));
     return buildCourseMaterialResponse(cleanQuery, grounded);
   }
+
+  const grounded = await runGeminiGroundedPrompt(buildGroundedPrompt(cleanQuery, intent));
 
   if (intent === 'past_question') {
     return buildPastQuestionResponse(cleanQuery, grounded);

@@ -5,6 +5,7 @@ const { sendPasswordResetEmail } = require('../utils/emailService');
 const { normalizeEmail } = require('../utils/securityValidation');
 const { auditLog } = require('../utils/securityAudit');
 const { getJwtSecret } = require('../utils/jwtSecret');
+const { generateUniqueReferralSlug } = require('../utils/referralHelper');
 
 // Generate JWT Token
 const generateToken = (id) => {
@@ -40,7 +41,7 @@ const clearAuthCookie = (res) => {
 // @access  Public
 exports.signup = async (req, res) => {
   try {
-    const { name, email, password, faculty, department, studyCenter, matricNumber } = req.body;
+    const { name, email, password, faculty, department, studyCenter, matricNumber, referralSlug } = req.body;
     const safeEmail = normalizeEmail(email);
 
     // Check if user exists
@@ -59,6 +60,22 @@ exports.signup = async (req, res) => {
       });
     }
 
+    // Attribute this signup to whoever's referral link was used, if any (e.g.
+    // paddi.com.ng/register/macs) — looked up by slug and resolved to a real user id so
+    // an invalid or stale slug in the URL never blocks signup, it's just silently ignored.
+    let referredBy = null;
+    if (referralSlug) {
+      const normalizedSlug = String(referralSlug).toLowerCase().trim().slice(0, 40);
+      const referrer = normalizedSlug ? await User.findOne({ referralSlug: normalizedSlug }) : null;
+      if (referrer) {
+        referredBy = referrer._id;
+      }
+    }
+
+    // Every student gets their own referral slug automatically, generated from their
+    // first name with a numeric suffix on collision (see referralHelper.js).
+    const ownReferralSlug = await generateUniqueReferralSlug(User, name);
+
     // Create user
     const user = await User.create({
       name,
@@ -69,6 +86,8 @@ exports.signup = async (req, res) => {
       department,
       studyCenter,
       matricNumber,
+      referralSlug: ownReferralSlug,
+      referredBy,
     });
     const token = generateToken(user._id);
     setAuthCookie(res, token);

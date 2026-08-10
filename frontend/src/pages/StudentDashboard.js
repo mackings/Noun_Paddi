@@ -18,6 +18,10 @@ import {
   ChevronRight,
   User,
   Loader2,
+  Users,
+  Copy,
+  Share2,
+  Check,
 } from 'lucide-react';
 import ShellHeader from '../shell/ShellHeader';
 import { Card } from '../components/ui/card';
@@ -103,6 +107,9 @@ const StudentDashboard = () => {
   const [completedCourseId, setCompletedCourseId] = useState(null);
   const [completedMaterialId, setCompletedMaterialId] = useState(null);
   const [duplicateInfo, setDuplicateInfo] = useState(null);
+  const [referrals, setReferrals] = useState(null);
+  const [showReferralsDialog, setShowReferralsDialog] = useState(false);
+  const [copiedReferralLink, setCopiedReferralLink] = useState(false);
 
   // New course form state
   const [newCourse, setNewCourse] = useState({ courseCode: '', courseName: '', creditUnits: 3 });
@@ -227,11 +234,21 @@ const StudentDashboard = () => {
     }
   };
 
+  const fetchReferrals = async () => {
+    try {
+      const response = await api.get('/users/referrals');
+      setReferrals(response.data.data);
+    } catch (error) {
+      console.error('Error fetching referrals:', error);
+    }
+  };
+
   useEffect(() => {
     fetchStats();
     fetchGamificationDashboard();
     fetchFaculties();
     fetchUploadStats();
+    fetchReferrals();
     trackFeatureVisit('dashboard');
   }, [fetchFaculties]);
 
@@ -982,6 +999,38 @@ const StudentDashboard = () => {
     return `#${rank}`;
   };
 
+  const referralLink = referrals?.slug
+    ? `${window.location.origin}/register/${referrals.slug}`
+    : '';
+
+  const copyReferralLink = async () => {
+    if (!referralLink) return;
+    try {
+      await navigator.clipboard.writeText(referralLink);
+      setCopiedReferralLink(true);
+      setTimeout(() => setCopiedReferralLink(false), 2000);
+    } catch (error) {
+      console.error('Error copying referral link:', error);
+    }
+  };
+
+  const shareReferralLink = async () => {
+    if (!referralLink) return;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Join me on NounPaddi',
+          text: 'Sign up on NounPaddi with my link and get course summaries, practice exams, and more.',
+          url: referralLink,
+        });
+      } catch (error) {
+        // User cancelled the share sheet — nothing to do.
+      }
+    } else {
+      copyReferralLink();
+    }
+  };
+
   if (loading) {
     return (
       <div className="np-shell tw:flex tw:flex-col tw:items-center tw:gap-2 tw:py-16 tw:text-slate-500 tw:dark:text-slate-400">
@@ -1025,6 +1074,26 @@ const StudentDashboard = () => {
           <Upload className="tw:h-4 tw:w-4" /> Get Course Summary
         </Button>
       </Card>
+
+      {referrals && (
+        <Card
+          interactive
+          className="tw:flex tw:items-center tw:gap-3 tw:p-4"
+          onClick={() => setShowReferralsDialog(true)}
+        >
+          <span className="tw:flex tw:h-10 tw:w-10 tw:flex-none tw:items-center tw:justify-center tw:rounded-xl tw:bg-brand-100 tw:text-brand-600 tw:dark:bg-brand-950 tw:dark:text-brand-300">
+            <Users className="tw:h-5 tw:w-5" />
+          </span>
+          <div className="tw:flex-1">
+            <h3 className="tw:font-heading tw:text-sm tw:font-bold">Your Invites</h3>
+            <p className="tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">Share your link and see who signed up</p>
+          </div>
+          <div className="tw:flex tw:flex-none tw:items-center tw:gap-1">
+            <span className="tw:font-heading tw:text-xl tw:font-bold tw:text-brand-600 tw:dark:text-brand-400">{referrals.count}</span>
+            <ChevronRight className="tw:h-4 tw:w-4 tw:text-slate-300 tw:dark:text-slate-600" />
+          </div>
+        </Card>
+      )}
 
       <div className="tw:grid tw:grid-cols-2 tw:gap-2.5 tw:md:grid-cols-4">
         <Card className="tw:flex tw:items-center tw:gap-3 tw:p-3.5">
@@ -1613,6 +1682,55 @@ const StudentDashboard = () => {
             >
               Go to Course
             </Button>
+          </div>
+        </DialogPopup>
+      </Dialog>
+
+      <Dialog open={showReferralsDialog} onOpenChange={setShowReferralsDialog}>
+        <DialogPopup>
+          <DialogHeader>
+            <DialogTitle>Your Invites</DialogTitle>
+          </DialogHeader>
+
+          <div className="tw:mt-3 tw:space-y-4">
+            <div className="tw:space-y-2">
+              <p className="tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300">Your referral link</p>
+              <div className="tw:flex tw:items-center tw:gap-2">
+                <Input readOnly value={referralLink} onFocus={(e) => e.target.select()} className="tw:text-xs" />
+                <Button type="button" variant="outline" size="icon" onClick={copyReferralLink} aria-label="Copy link" className="tw:flex-none">
+                  {copiedReferralLink ? <Check className="tw:h-4 tw:w-4" /> : <Copy className="tw:h-4 tw:w-4" />}
+                </Button>
+                <Button type="button" size="icon" onClick={shareReferralLink} aria-label="Share link" className="tw:flex-none">
+                  <Share2 className="tw:h-4 tw:w-4" />
+                </Button>
+              </div>
+              <p className="tw:text-xs tw:text-slate-400">Anyone who signs up with this link counts as your invite.</p>
+            </div>
+
+            <div className="tw:space-y-2">
+              <p className="tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300">
+                {referrals?.count || 0} {referrals?.count === 1 ? 'person' : 'people'} invited
+              </p>
+              {referrals?.referrals?.length > 0 ? (
+                <div className="tw:max-h-64 tw:space-y-1.5 tw:overflow-y-auto">
+                  {referrals.referrals.map((referred, index) => (
+                    <div key={`${referred.name}-${index}`} className="tw:flex tw:items-center tw:justify-between tw:gap-2 tw:rounded-xl tw:bg-slate-50 tw:p-3 tw:dark:bg-slate-800/60">
+                      <span className="tw:flex tw:items-center tw:gap-2 tw:text-sm tw:font-semibold">
+                        <span className="tw:flex tw:h-7 tw:w-7 tw:flex-none tw:items-center tw:justify-center tw:rounded-full tw:bg-brand-100 tw:text-xs tw:font-bold tw:text-brand-700 tw:dark:bg-brand-950 tw:dark:text-brand-300">
+                          {referred.name?.charAt(0)?.toUpperCase() || '?'}
+                        </span>
+                        {referred.name}
+                      </span>
+                      <span className="tw:text-xs tw:text-slate-400">{formatDate(referred.createdAt)}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="tw:rounded-xl tw:bg-slate-50 tw:p-4 tw:text-center tw:text-xs tw:text-slate-500 tw:dark:bg-slate-800/60 tw:dark:text-slate-400">
+                  No one has signed up with your link yet. Share it to start inviting friends!
+                </p>
+              )}
+            </div>
           </div>
         </DialogPopup>
       </Dialog>

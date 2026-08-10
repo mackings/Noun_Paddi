@@ -2,6 +2,7 @@ const User = require('../models/User');
 const { cloudinary } = require('../config/cloudinary');
 const { validateStrongPassword } = require('../utils/securityValidation');
 const { auditLog } = require('../utils/securityAudit');
+const { generateUniqueReferralSlug } = require('../utils/referralHelper');
 const escapeRegex = (value) => String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 // @desc    Get user profile
@@ -269,6 +270,77 @@ exports.getUsers = async (req, res) => {
     res.status(200).json({
       success: true,
       data: users,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// @desc    Resolve a referral slug to the inviter's display name (used to show a
+//          "You were invited by X" hint on the signup page, e.g. /register/macs)
+// @route   GET /api/users/referral-preview/:slug
+// @access  Public
+exports.getReferralPreview = async (req, res) => {
+  try {
+    const slug = String(req.params.slug || '').toLowerCase().trim().slice(0, 40);
+    if (!slug) {
+      return res.status(404).json({ success: false, message: 'Referral link not found' });
+    }
+
+    const referrer = await User.findOne({ referralSlug: slug }).select('name');
+    if (!referrer) {
+      return res.status(404).json({ success: false, message: 'Referral link not found' });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: { name: referrer.name },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// @desc    Get the logged-in user's own referral link + who they've referred
+// @route   GET /api/users/referrals
+// @access  Private
+exports.getReferrals = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+
+    // Backfill a slug for accounts created before this feature existed — every other
+    // path (signup) already sets one, so this only ever runs once per older account.
+    if (!user.referralSlug) {
+      user.referralSlug = await generateUniqueReferralSlug(User, user.name);
+      await user.save({ validateBeforeSave: false });
+    }
+
+    const referrals = await User.find({ referredBy: user._id })
+      .select('name createdAt')
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        slug: user.referralSlug,
+        count: referrals.length,
+        referrals: referrals.map((referred) => ({
+          name: referred.name,
+          createdAt: referred.createdAt,
+        })),
+      },
     });
   } catch (error) {
     res.status(500).json({

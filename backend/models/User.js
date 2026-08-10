@@ -52,6 +52,18 @@ const userSchema = new mongoose.Schema({
     type: String,
     sparse: true,
   },
+  referralSlug: {
+    type: String,
+    unique: true,
+    sparse: true,
+    lowercase: true,
+    trim: true,
+  },
+  referredBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null,
+  },
   profileImage: {
     type: String,
     default: '',
