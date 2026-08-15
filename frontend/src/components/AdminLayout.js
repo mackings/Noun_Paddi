@@ -139,7 +139,7 @@ const AdminLayout = ({ children }) => {
   );
 
   return (
-    <div className="np-shell tw:flex tw:min-h-screen tw:bg-slate-50 tw:dark:bg-slate-950">
+    <div className="np-shell np-shell-root tw:flex tw:min-h-screen tw:bg-slate-50 tw:dark:bg-slate-950">
       <aside className="tw:sticky tw:top-0 tw:hidden tw:h-screen tw:w-64 tw:flex-col tw:border-r tw:border-slate-200/70 tw:bg-white tw:dark:border-slate-800 tw:dark:bg-slate-950 tw:lg:flex">
         {navContent}
       </aside>
