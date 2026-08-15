@@ -1,8 +1,28 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { FiBell, FiEdit3, FiImage, FiLink2, FiMail, FiSend, FiSmartphone, FiType, FiUsers } from 'react-icons/fi';
+import { Bell, PenSquare, Image, Link2, Mail, Send, Smartphone, Type, Users, Loader2 } from 'lucide-react';
 import api from '../utils/api';
 import { trackFeatureVisit } from '../utils/featureTracking';
-import './AdminBroadcast.css';
+import { Card } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Dialog, DialogPopup, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog';
+import { cn } from '../lib/utils';
+
+const textareaClass = 'tw:w-full tw:resize-none tw:rounded-xl tw:border tw:border-slate-200 tw:bg-white tw:p-3 tw:text-sm tw:outline-none tw:focus:border-brand-500 tw:dark:border-slate-800 tw:dark:bg-slate-900 tw:dark:text-slate-100';
+
+const ChoiceChip = ({ active, icon: Icon, label, onChange, compact }) => (
+  <label className={cn(
+    'tw:flex tw:cursor-pointer tw:items-center tw:gap-2 tw:rounded-xl tw:border tw:px-3 tw:text-sm tw:font-semibold tw:transition-colors',
+    compact ? 'tw:py-2' : 'tw:py-2.5',
+    active
+      ? 'tw:border-brand-600 tw:bg-brand-50 tw:text-brand-700 tw:dark:bg-brand-950 tw:dark:text-brand-300'
+      : 'tw:border-slate-200 tw:text-slate-600 tw:dark:border-slate-800 tw:dark:text-slate-300',
+  )}>
+    <input type="checkbox" checked={active} onChange={onChange} className="tw:hidden" />
+    {Icon && <Icon className="tw:h-4 tw:w-4" />}
+    <span>{label}</span>
+  </label>
+);
 
 const AdminBroadcast = () => {
   const [sendingBroadcast, setSendingBroadcast] = useState(false);
@@ -196,20 +216,20 @@ const AdminBroadcast = () => {
   };
 
   return (
-    <div className="admin-broadcast-page">
-      <section className="broadcast-hero">
-        <p className="broadcast-kicker">Admin Messaging</p>
-        <h1>Broadcast Center</h1>
-        <p>Send updates by push notification, email, or both from one control panel.</p>
-      </section>
+    <div className="tw:space-y-5">
+      <div>
+        <p className="tw:text-xs tw:font-bold tw:tracking-wide tw:text-brand-600 tw:uppercase">Admin Messaging</p>
+        <h1 className="tw:font-heading tw:text-xl tw:font-bold tw:tracking-tight">Broadcast Center</h1>
+        <p className="tw:mt-1 tw:text-sm tw:text-slate-500 tw:dark:text-slate-400">Send updates by push notification, email, or both from one control panel.</p>
+      </div>
 
-      <form className="broadcast-layout" onSubmit={sendBroadcast}>
-        <div className="broadcast-composer">
-          <div className="composer-section">
-            <p className="composer-eyebrow"><FiEdit3 /> Content</p>
-            <div className="broadcast-modern-field">
-              <label htmlFor="broadcast-title"><FiType /> Title</label>
-              <input
+      <form onSubmit={sendBroadcast} className="tw:grid tw:grid-cols-1 tw:gap-4 tw:lg:grid-cols-[1.4fr_1fr]">
+        <Card className="tw:space-y-5 tw:p-5">
+          <div className="tw:space-y-3">
+            <p className="tw:flex tw:items-center tw:gap-1.5 tw:text-xs tw:font-bold tw:tracking-wide tw:text-brand-600 tw:uppercase"><PenSquare className="tw:h-3.5 tw:w-3.5" /> Content</p>
+            <label className="tw:block tw:space-y-1.5">
+              <span className="tw:flex tw:items-center tw:gap-1.5 tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300"><Type className="tw:h-3.5 tw:w-3.5" /> Title</span>
+              <Input
                 id="broadcast-title"
                 name="title"
                 type="text"
@@ -219,10 +239,10 @@ const AdminBroadcast = () => {
                 required
                 maxLength={120}
               />
-            </div>
+            </label>
 
-            <div className="broadcast-modern-field">
-              <label htmlFor="broadcast-message"><FiBell /> Message</label>
+            <label className="tw:block tw:space-y-1.5">
+              <span className="tw:flex tw:items-center tw:gap-1.5 tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300"><Bell className="tw:h-3.5 tw:w-3.5" /> Message</span>
               <textarea
                 id="broadcast-message"
                 name="message"
@@ -232,13 +252,14 @@ const AdminBroadcast = () => {
                 required
                 maxLength={300}
                 rows={5}
+                className={textareaClass}
               />
-              <small>{broadcastForm.message.length}/300</small>
-            </div>
+              <small className="tw:text-xs tw:text-slate-400">{broadcastForm.message.length}/300</small>
+            </label>
 
-            <div className="broadcast-modern-field">
-              <label htmlFor="broadcast-url"><FiLink2 /> Open URL</label>
-              <input
+            <label className="tw:block tw:space-y-1.5">
+              <span className="tw:flex tw:items-center tw:gap-1.5 tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300"><Link2 className="tw:h-3.5 tw:w-3.5" /> Open URL</span>
+              <Input
                 id="broadcast-url"
                 name="url"
                 type="text"
@@ -246,86 +267,49 @@ const AdminBroadcast = () => {
                 onChange={onBroadcastInputChange}
                 placeholder="/explore"
               />
-            </div>
+            </label>
           </div>
 
-          <div className="composer-divider" />
-
-          <div className="composer-section">
-            <p className="composer-eyebrow"><FiImage /> Media</p>
-            <div className="broadcast-modern-field">
-              <label htmlFor="broadcast-image-file">Image (optional)</label>
-              <div className="broadcast-dropzone">
+          <div className="tw:border-t tw:border-slate-200/70 tw:pt-4 tw:dark:border-slate-800">
+            <p className="tw:flex tw:items-center tw:gap-1.5 tw:text-xs tw:font-bold tw:tracking-wide tw:text-brand-600 tw:uppercase"><Image className="tw:h-3.5 tw:w-3.5" /> Media</p>
+            <label htmlFor="broadcast-image-file" className="tw:mt-2 tw:block tw:space-y-1.5">
+              <span className="tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300">Image (optional)</span>
+              <div className="tw:rounded-xl tw:border tw:border-dashed tw:border-slate-300 tw:p-4 tw:dark:border-slate-700">
                 <input
                   id="broadcast-image-file"
                   name="image"
                   type="file"
                   accept="image/*"
                   onChange={onImageFileChange}
+                  className="tw:block tw:w-full tw:text-sm tw:text-slate-500 tw:dark:text-slate-400"
                 />
-                <small>JPG, PNG, WEBP. Max 5MB. Shown in the live preview.</small>
+                <small className="tw:mt-1 tw:block tw:text-xs tw:text-slate-400">JPG, PNG, WEBP. Max 5MB. Shown in the live preview.</small>
               </div>
-            </div>
+            </label>
           </div>
 
-          <div className="composer-divider" />
-
-          <div className="composer-section">
-            <p className="composer-eyebrow"><FiUsers /> Audience & Channels</p>
-            <div className="broadcast-modern-field">
-              <label>Delivery Channels</label>
-              <div className="broadcast-channel-grid">
-                <label className={`broadcast-check ${channels.push ? 'active' : ''}`}>
-                  <input
-                    type="checkbox"
-                    checked={channels.push}
-                    onChange={() => setChannels((prev) => ({ ...prev, push: !prev.push }))}
-                  />
-                  <span className="check-indicator" />
-                  <FiSmartphone />
-                  <span>Push Notification</span>
-                </label>
-                <label className={`broadcast-check ${channels.email ? 'active' : ''}`}>
-                  <input
-                    type="checkbox"
-                    checked={channels.email}
-                    onChange={() => setChannels((prev) => ({ ...prev, email: !prev.email }))}
-                  />
-                  <span className="check-indicator" />
-                  <FiMail />
-                  <span>Email Notification</span>
-                </label>
+          <div className="tw:border-t tw:border-slate-200/70 tw:pt-4 tw:dark:border-slate-800">
+            <p className="tw:flex tw:items-center tw:gap-1.5 tw:text-xs tw:font-bold tw:tracking-wide tw:text-brand-600 tw:uppercase"><Users className="tw:h-3.5 tw:w-3.5" /> Audience & Channels</p>
+            <div className="tw:mt-2 tw:space-y-1.5">
+              <span className="tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300">Delivery Channels</span>
+              <div className="tw:grid tw:grid-cols-2 tw:gap-2">
+                <ChoiceChip active={channels.push} icon={Smartphone} label="Push Notification" onChange={() => setChannels((prev) => ({ ...prev, push: !prev.push }))} />
+                <ChoiceChip active={channels.email} icon={Mail} label="Email Notification" onChange={() => setChannels((prev) => ({ ...prev, email: !prev.email }))} />
               </div>
             </div>
 
             {channels.email && (
-              <div className="broadcast-modern-field">
-                <label>Email Target</label>
-                <div className="broadcast-target-row">
-                  <label className={`broadcast-check compact ${emailTarget === 'all' ? 'active' : ''}`}>
-                    <input
-                      type="checkbox"
-                      checked={emailTarget === 'all'}
-                      onChange={() => setEmailTarget('all')}
-                    />
-                    <span className="check-indicator" />
-                    <span>All Students</span>
-                  </label>
-                  <label className={`broadcast-check compact ${emailTarget === 'single' ? 'active' : ''}`}>
-                    <input
-                      type="checkbox"
-                      checked={emailTarget === 'single'}
-                      onChange={() => setEmailTarget('single')}
-                    />
-                    <span className="check-indicator" />
-                    <span>Specific Emails</span>
-                  </label>
+              <div className="tw:mt-3 tw:space-y-1.5">
+                <span className="tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300">Email Target</span>
+                <div className="tw:flex tw:gap-2">
+                  <ChoiceChip compact active={emailTarget === 'all'} label="All Students" onChange={() => setEmailTarget('all')} />
+                  <ChoiceChip compact active={emailTarget === 'single'} label="Specific Emails" onChange={() => setEmailTarget('single')} />
                 </div>
 
                 {emailTarget === 'single' && (
-                  <div className="broadcast-email-grid">
+                  <div className="tw:space-y-2 tw:pt-1">
                     {singleEmails.map((email, index) => (
-                      <input
+                      <Input
                         key={`email-${index + 1}`}
                         type="email"
                         placeholder={`Recipient email ${index + 1}`}
@@ -336,156 +320,136 @@ const AdminBroadcast = () => {
                         }}
                       />
                     ))}
-                    <small>Enter 1 to 3 email addresses.</small>
+                    <small className="tw:text-xs tw:text-slate-400">Enter 1 to 3 email addresses.</small>
                   </div>
                 )}
               </div>
             )}
           </div>
 
-          <div className="composer-divider" />
-
-          <div className="composer-section">
-            <p className="composer-eyebrow"><FiSend /> Delivery Timing</p>
-            <div className="broadcast-modern-field">
-              <div className="broadcast-target-row">
-                <label className={`broadcast-check compact ${deliveryMode === 'now' ? 'active' : ''}`}>
-                  <input
-                    type="checkbox"
-                    checked={deliveryMode === 'now'}
-                    onChange={() => setDeliveryMode('now')}
-                  />
-                  <span className="check-indicator" />
-                  <span>Send Now</span>
-                </label>
-                <label className={`broadcast-check compact ${deliveryMode === 'schedule' ? 'active' : ''}`}>
-                  <input
-                    type="checkbox"
-                    checked={deliveryMode === 'schedule'}
-                    onChange={() => setDeliveryMode('schedule')}
-                  />
-                  <span className="check-indicator" />
-                  <span>Schedule</span>
-                </label>
-              </div>
-              {deliveryMode === 'schedule' && (
-                <div className="broadcast-email-grid">
-                  <input
-                    type="datetime-local"
-                    value={scheduledAt}
-                    onChange={(event) => setScheduledAt(event.target.value)}
-                  />
-                  <small>Uses your local time zone.</small>
-                </div>
-              )}
+          <div className="tw:border-t tw:border-slate-200/70 tw:pt-4 tw:dark:border-slate-800">
+            <p className="tw:flex tw:items-center tw:gap-1.5 tw:text-xs tw:font-bold tw:tracking-wide tw:text-brand-600 tw:uppercase"><Send className="tw:h-3.5 tw:w-3.5" /> Delivery Timing</p>
+            <div className="tw:mt-2 tw:flex tw:gap-2">
+              <ChoiceChip compact active={deliveryMode === 'now'} label="Send Now" onChange={() => setDeliveryMode('now')} />
+              <ChoiceChip compact active={deliveryMode === 'schedule'} label="Schedule" onChange={() => setDeliveryMode('schedule')} />
             </div>
-          </div>
-        </div>
-
-        <aside className="broadcast-preview-col">
-          <div className="broadcast-preview-card">
-            <p className="preview-card-label">Live Preview</p>
-            <div className="phone-notification">
-              <div className="phone-notification-app">
-                <span className="phone-notification-icon"><FiBell /></span>
-                <span className="phone-notification-app-name">NounPaddi</span>
-                <span className="phone-notification-time">now</span>
+            {deliveryMode === 'schedule' && (
+              <div className="tw:mt-2 tw:space-y-1">
+                <input
+                  type="datetime-local"
+                  value={scheduledAt}
+                  onChange={(event) => setScheduledAt(event.target.value)}
+                  className="tw:h-10 tw:w-full tw:rounded-xl tw:border tw:border-slate-200 tw:bg-white tw:px-3 tw:text-sm tw:outline-none tw:focus:border-brand-500 tw:dark:border-slate-800 tw:dark:bg-slate-900 tw:dark:text-slate-100"
+                />
+                <small className="tw:text-xs tw:text-slate-400">Uses your local time zone.</small>
               </div>
-              <p className={`phone-notification-title ${!broadcastForm.title ? 'is-placeholder' : ''}`}>
+            )}
+          </div>
+        </Card>
+
+        <aside className="tw:space-y-4">
+          <Card className="tw:space-y-3 tw:p-5">
+            <p className="tw:text-xs tw:font-bold tw:tracking-wide tw:text-slate-400 tw:uppercase">Live Preview</p>
+            <div className="tw:rounded-2xl tw:border tw:border-slate-200/70 tw:bg-slate-50 tw:p-3 tw:dark:border-slate-800 tw:dark:bg-slate-900">
+              <div className="tw:flex tw:items-center tw:gap-2 tw:text-xs tw:text-slate-400">
+                <span className="tw:flex tw:h-5 tw:w-5 tw:items-center tw:justify-center tw:rounded tw:bg-brand-600 tw:text-white"><Bell className="tw:h-3 tw:w-3" /></span>
+                <span className="tw:font-semibold tw:text-slate-600 tw:dark:text-slate-300">NounPaddi</span>
+                <span>now</span>
+              </div>
+              <p className={cn('tw:mt-2 tw:text-sm tw:font-bold', !broadcastForm.title && 'tw:text-slate-400 tw:font-normal')}>
                 {broadcastForm.title || 'Your notification title'}
               </p>
-              <p className={`phone-notification-message ${!broadcastForm.message ? 'is-placeholder' : ''}`}>
+              <p className={cn('tw:mt-0.5 tw:text-xs tw:text-slate-500 tw:dark:text-slate-400', !broadcastForm.message && 'tw:text-slate-400')}>
                 {broadcastForm.message || 'Your message will appear here as you type.'}
               </p>
               {imagePreviewUrl && (
-                <img src={imagePreviewUrl} alt="Broadcast preview" className="phone-notification-image" />
+                <img src={imagePreviewUrl} alt="Broadcast preview" className="tw:mt-2 tw:w-full tw:rounded-lg tw:object-cover" />
               )}
             </div>
 
             {channels.email && (
               <>
-                <p className="preview-card-label">Email Preview</p>
-                <div className="email-preview-card">
-                  <p className="email-preview-subject">
-                    {broadcastForm.title || 'Subject line'}
-                  </p>
-                  <p className="email-preview-body">
-                    {broadcastForm.message || 'Email body preview will appear here as you type.'}
-                  </p>
+                <p className="tw:text-xs tw:font-bold tw:tracking-wide tw:text-slate-400 tw:uppercase">Email Preview</p>
+                <div className="tw:rounded-2xl tw:border tw:border-slate-200/70 tw:p-3 tw:dark:border-slate-800">
+                  <p className="tw:text-sm tw:font-bold">{broadcastForm.title || 'Subject line'}</p>
+                  <p className="tw:mt-1 tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">{broadcastForm.message || 'Email body preview will appear here as you type.'}</p>
                 </div>
               </>
             )}
-          </div>
+          </Card>
 
-          <div className="broadcast-summary-card">
-            <div className="broadcast-summary-chips">
-              <span className="summary-chip"><FiSend /> {selectedChannels.join(' + ') || 'No channel'}</span>
-              <span className="summary-chip"><FiUsers /> {recipientSummary}</span>
-              <span className="summary-chip"><FiBell /> {deliveryMode === 'schedule' ? 'Scheduled' : 'Immediate'}</span>
+          <Card className="tw:space-y-3 tw:p-5">
+            <div className="tw:flex tw:flex-wrap tw:gap-2">
+              <span className="tw:flex tw:items-center tw:gap-1 tw:rounded-full tw:bg-slate-100 tw:px-2.5 tw:py-1 tw:text-xs tw:font-semibold tw:text-slate-600 tw:dark:bg-slate-800 tw:dark:text-slate-300"><Send className="tw:h-3 tw:w-3" /> {selectedChannels.join(' + ') || 'No channel'}</span>
+              <span className="tw:flex tw:items-center tw:gap-1 tw:rounded-full tw:bg-slate-100 tw:px-2.5 tw:py-1 tw:text-xs tw:font-semibold tw:text-slate-600 tw:dark:bg-slate-800 tw:dark:text-slate-300"><Users className="tw:h-3 tw:w-3" /> {recipientSummary}</span>
+              <span className="tw:flex tw:items-center tw:gap-1 tw:rounded-full tw:bg-slate-100 tw:px-2.5 tw:py-1 tw:text-xs tw:font-semibold tw:text-slate-600 tw:dark:bg-slate-800 tw:dark:text-slate-300"><Bell className="tw:h-3 tw:w-3" /> {deliveryMode === 'schedule' ? 'Scheduled' : 'Immediate'}</span>
             </div>
 
-            <button
-              type="submit"
-              className="btn btn-primary broadcast-submit-btn"
-              disabled={sendingBroadcast || uploadingImage}
-            >
-              <FiSend />
+            <Button type="submit" disabled={sendingBroadcast || uploadingImage} className="tw:w-full">
+              {sendingBroadcast || uploadingImage ? <Loader2 className="tw:h-4 tw:w-4 tw:animate-spin" /> : <Send className="tw:h-4 tw:w-4" />}
               {sendingBroadcast || uploadingImage
                 ? 'Sending...'
                 : deliveryMode === 'schedule'
                   ? 'Schedule Broadcast'
                   : 'Send Broadcast'}
-            </button>
+            </Button>
 
             {broadcastResult && (
-              <p className={`broadcast-status ${broadcastResult.type}`}>{broadcastResult.text}</p>
+              <p className={cn(
+                'tw:rounded-xl tw:px-3 tw:py-2 tw:text-xs',
+                broadcastResult.type === 'success'
+                  ? 'tw:bg-emerald-100 tw:text-emerald-700 tw:dark:bg-emerald-950 tw:dark:text-emerald-300'
+                  : 'tw:bg-red-100 tw:text-red-700 tw:dark:bg-red-500/15 tw:dark:text-red-300',
+              )}>{broadcastResult.text}</p>
             )}
-          </div>
+          </Card>
         </aside>
       </form>
 
-      {showResultDialog && broadcastResult && (
-        <div className="broadcast-result-overlay" role="dialog" aria-modal="true">
-          <div className="broadcast-result-dialog">
-            <h3>{broadcastResult.type === 'success' ? 'Broadcast Result' : 'Broadcast Error'}</h3>
-            {broadcastResult.scheduled ? (
-              <p className="result-main">
-                Scheduled for <strong>{new Date(broadcastResult.sendAt).toLocaleString()}</strong>
-              </p>
-            ) : (
-              <div className="result-grid">
-                {broadcastResult.pushResult && (
-                  <div className="result-card">
-                    <h4>Push</h4>
-                    <p>Sent: {broadcastResult.pushResult.sent}/{broadcastResult.pushResult.total}</p>
-                    <p>Failed: {broadcastResult.pushResult.failed}</p>
-                    <p>Removed: {broadcastResult.pushResult.removed}</p>
-                  </div>
-                )}
-                {broadcastResult.emailResult && (
-                  <div className="result-card">
-                    <h4>Email</h4>
-                    <p>Sent: {broadcastResult.emailResult.sent}/{broadcastResult.emailResult.total}</p>
-                    <p>Failed: {broadcastResult.emailResult.failed}</p>
-                  </div>
-                )}
-              </div>
-            )}
-            {Array.isArray(broadcastResult.errors) && broadcastResult.errors.length > 0 && (
-              <div className="result-errors">
-                {broadcastResult.errors.map((item, index) => (
-                  <p key={`result-err-${index}`}>{item}</p>
-                ))}
-              </div>
-            )}
-            <div className="result-actions">
-              <button type="button" className="btn btn-primary" onClick={() => setShowResultDialog(false)}>
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <Dialog open={showResultDialog && !!broadcastResult} onOpenChange={setShowResultDialog}>
+        <DialogPopup>
+          {broadcastResult && (
+            <>
+              <DialogHeader>
+                <DialogTitle>{broadcastResult.type === 'success' ? 'Broadcast Result' : 'Broadcast Error'}</DialogTitle>
+              </DialogHeader>
+              {broadcastResult.scheduled ? (
+                <p className="tw:mt-2 tw:text-sm">
+                  Scheduled for <strong>{new Date(broadcastResult.sendAt).toLocaleString()}</strong>
+                </p>
+              ) : (
+                <div className="tw:mt-2 tw:grid tw:grid-cols-2 tw:gap-3">
+                  {broadcastResult.pushResult && (
+                    <div className="tw:rounded-xl tw:bg-slate-50 tw:p-3 tw:text-xs tw:dark:bg-slate-900">
+                      <h4 className="tw:text-sm tw:font-bold">Push</h4>
+                      <p>Sent: {broadcastResult.pushResult.sent}/{broadcastResult.pushResult.total}</p>
+                      <p>Failed: {broadcastResult.pushResult.failed}</p>
+                      <p>Removed: {broadcastResult.pushResult.removed}</p>
+                    </div>
+                  )}
+                  {broadcastResult.emailResult && (
+                    <div className="tw:rounded-xl tw:bg-slate-50 tw:p-3 tw:text-xs tw:dark:bg-slate-900">
+                      <h4 className="tw:text-sm tw:font-bold">Email</h4>
+                      <p>Sent: {broadcastResult.emailResult.sent}/{broadcastResult.emailResult.total}</p>
+                      <p>Failed: {broadcastResult.emailResult.failed}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+              {Array.isArray(broadcastResult.errors) && broadcastResult.errors.length > 0 && (
+                <div className="tw:mt-2 tw:space-y-1">
+                  {broadcastResult.errors.map((item, index) => (
+                    <p key={`result-err-${index}`} className="tw:text-xs tw:text-red-600 tw:dark:text-red-400">{item}</p>
+                  ))}
+                </div>
+              )}
+              <DialogFooter>
+                <Button type="button" onClick={() => setShowResultDialog(false)}>Close</Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogPopup>
+      </Dialog>
     </div>
   );
 };

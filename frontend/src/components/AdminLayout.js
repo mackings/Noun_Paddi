@@ -1,44 +1,48 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
-  FiBell,
-  FiChevronRight,
-  FiCommand,
-  FiGrid,
-  FiUploadCloud,
-  FiLayers,
-  FiUsers,
-  FiActivity,
-  FiBriefcase,
-  FiMap,
-  FiBookOpen,
-  FiShield,
-  FiEdit3,
-  FiAward,
-  FiClipboard,
-} from 'react-icons/fi';
+  Bell,
+  ChevronRight,
+  Command,
+  LayoutGrid,
+  UploadCloud,
+  Layers,
+  Users,
+  Activity,
+  Briefcase,
+  Map,
+  BookOpen,
+  Shield,
+  PenSquare,
+  Award,
+  ClipboardList,
+  Menu,
+  X,
+} from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import './AdminLayout.css';
+import { cn } from '../lib/utils';
+import '../styles/tailwind.css';
 
 const adminMenu = [
-  { to: '/admin/overview', label: 'Overview', icon: FiGrid, key: 'overview' },
-  { to: '/admin/broadcast', label: 'Push Broadcast', icon: FiBell, key: 'broadcast', group: 'Operations' },
-  { to: '/admin/api-usage', label: 'API Usage', icon: FiActivity, key: 'api-usage', group: 'Operations' },
-  { to: '/admin/upload?tab=faculties', label: 'Faculties', icon: FiBriefcase, key: 'faculties', group: 'Academic Setup' },
-  { to: '/admin/upload?tab=departments', label: 'Departments', icon: FiMap, key: 'departments', group: 'Academic Setup' },
-  { to: '/admin/upload?tab=courses', label: 'Courses', icon: FiBookOpen, key: 'courses', group: 'Academic Setup' },
-  { to: '/admin/upload?tab=materials', label: 'Upload Materials', icon: FiUploadCloud, key: 'materials-upload', group: 'Content' },
-  { to: '/admin/materials', label: 'Material Library', icon: FiLayers, key: 'materials-library', group: 'Content' },
-  { to: '/admin/tma?tab=assistant', label: 'TMA', icon: FiEdit3, key: 'tma', group: 'Content' },
-  { to: '/admin/tma?tab=records', label: 'TMA Records', icon: FiClipboard, key: 'tma-records', group: 'Content' },
-  { to: '/admin/quiz', label: 'Live Quiz', icon: FiAward, key: 'quiz', group: 'Content' },
-  { to: '/admin/users', label: 'Users', icon: FiUsers, key: 'users', group: 'Access' },
-  { to: '/admin/users#invite', label: 'Invite Admin', icon: FiShield, key: 'invite-admin', group: 'Access' },
+  { to: '/admin/overview', label: 'Overview', icon: LayoutGrid, key: 'overview' },
+  { to: '/admin/broadcast', label: 'Push Broadcast', icon: Bell, key: 'broadcast', group: 'Operations' },
+  { to: '/admin/api-usage', label: 'API Usage', icon: Activity, key: 'api-usage', group: 'Operations' },
+  { to: '/admin/upload?tab=faculties', label: 'Faculties', icon: Briefcase, key: 'faculties', group: 'Academic Setup' },
+  { to: '/admin/upload?tab=departments', label: 'Departments', icon: Map, key: 'departments', group: 'Academic Setup' },
+  { to: '/admin/upload?tab=courses', label: 'Courses', icon: BookOpen, key: 'courses', group: 'Academic Setup' },
+  { to: '/admin/upload?tab=materials', label: 'Upload Materials', icon: UploadCloud, key: 'materials-upload', group: 'Content' },
+  { to: '/admin/materials', label: 'Material Library', icon: Layers, key: 'materials-library', group: 'Content' },
+  { to: '/admin/tma?tab=assistant', label: 'TMA', icon: PenSquare, key: 'tma', group: 'Content' },
+  { to: '/admin/tma?tab=records', label: 'TMA Records', icon: ClipboardList, key: 'tma-records', group: 'Content' },
+  { to: '/admin/quiz', label: 'Live Quiz', icon: Award, key: 'quiz', group: 'Content' },
+  { to: '/admin/users', label: 'Users', icon: Users, key: 'users', group: 'Access' },
+  { to: '/admin/users#invite', label: 'Invite Admin', icon: Shield, key: 'invite-admin', group: 'Access' },
 ];
 
 const AdminLayout = ({ children }) => {
   const { user } = useAuth();
   const location = useLocation();
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const activeUploadTab = new URLSearchParams(location.search).get('tab') || 'faculties';
   const activeTmaTab = new URLSearchParams(location.search).get('tab') || 'assistant';
@@ -72,68 +76,121 @@ const AdminLayout = ({ children }) => {
     return groups;
   }, {});
 
-  return (
-    <div className="admin-shell">
-      <aside className="admin-sidebar">
-        <div className="admin-sidebar-head">
-          <span className="admin-brand-mark"><FiCommand /></span>
-          <div>
-            <p className="admin-sidebar-kicker">Admin Workspace</p>
-            <h2>NounPaddi</h2>
-          </div>
-        </div>
+  const initials = (user?.name || 'A').charAt(0).toUpperCase();
 
-        <nav className="admin-sidebar-nav">
-          {Object.entries(menuGroups).map(([groupName, items]) => (
-            <div className="admin-nav-group" key={groupName}>
-              <p className="admin-nav-group-label">{groupName}</p>
+  const navContent = (
+    <>
+      <div className="tw:flex tw:items-center tw:gap-3 tw:px-5 tw:py-5">
+        <span className="tw:flex tw:h-10 tw:w-10 tw:items-center tw:justify-center tw:rounded-xl tw:bg-brand-600 tw:text-white">
+          <Command className="tw:h-5 tw:w-5" />
+        </span>
+        <div>
+          <p className="tw:text-[11px] tw:font-bold tw:tracking-wide tw:text-slate-400 tw:uppercase">Admin Workspace</p>
+          <h2 className="tw:font-heading tw:text-base tw:font-bold">NounPaddi</h2>
+        </div>
+      </div>
+
+      <nav className="tw:flex-1 tw:space-y-5 tw:overflow-y-auto tw:px-3 tw:pb-4">
+        {Object.entries(menuGroups).map(([groupName, items]) => (
+          <div key={groupName}>
+            <p className="tw:px-3 tw:pb-1.5 tw:text-[11px] tw:font-bold tw:tracking-wide tw:text-slate-400 tw:uppercase">{groupName}</p>
+            <div className="tw:space-y-0.5">
               {items.map((item) => {
                 const Icon = item.icon;
+                const active = isItemActive(item);
                 return (
                   <Link
                     key={item.to}
                     to={item.to}
-                    className={`admin-nav-item ${isItemActive(item) ? 'active' : ''}`}
+                    onClick={() => setMobileNavOpen(false)}
+                    className={cn(
+                      'tw:flex tw:items-center tw:gap-2.5 tw:rounded-xl tw:px-3 tw:py-2 tw:text-sm tw:font-semibold tw:transition-colors',
+                      active
+                        ? 'tw:bg-brand-600 tw:text-white'
+                        : 'tw:text-slate-600 tw:hover:bg-slate-100 tw:dark:text-slate-300 tw:dark:hover:bg-slate-900',
+                    )}
                   >
-                    <Icon />
+                    <Icon className="tw:h-4 tw:w-4 tw:shrink-0" />
                     <span>{item.label}</span>
                   </Link>
                 );
               })}
             </div>
-          ))}
-        </nav>
-
-        <div className="admin-sidebar-foot">
-          <div className="admin-user-chip">
-            <span className="admin-user-avatar">{(user?.name || 'A').charAt(0).toUpperCase()}</span>
-            <div>
-              <strong>{user?.name || 'Admin'}</strong>
-              <p>{user?.email || 'admin@nounpaddi'}</p>
-            </div>
           </div>
-          <p className="admin-sidebar-tip">
-            <FiBell /> Broadcast updates and platform changes from one workspace.
-          </p>
+        ))}
+      </nav>
+
+      <div className="tw:space-y-3 tw:border-t tw:border-slate-200/70 tw:p-4 tw:dark:border-slate-800">
+        <div className="tw:flex tw:items-center tw:gap-3">
+          <span className="tw:flex tw:h-9 tw:w-9 tw:items-center tw:justify-center tw:rounded-full tw:bg-brand-100 tw:text-sm tw:font-bold tw:text-brand-700 tw:dark:bg-brand-950 tw:dark:text-brand-300">
+            {initials}
+          </span>
+          <div className="tw:min-w-0">
+            <strong className="tw:block tw:truncate tw:text-sm tw:font-bold">{user?.name || 'Admin'}</strong>
+            <p className="tw:truncate tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">{user?.email || 'admin@nounpaddi'}</p>
+          </div>
         </div>
+        <p className="tw:flex tw:items-start tw:gap-1.5 tw:rounded-xl tw:bg-slate-100 tw:p-2.5 tw:text-xs tw:text-slate-500 tw:dark:bg-slate-900 tw:dark:text-slate-400">
+          <Bell className="tw:h-3.5 tw:w-3.5 tw:shrink-0 tw:translate-y-0.5" />
+          Broadcast updates and platform changes from one workspace.
+        </p>
+      </div>
+    </>
+  );
+
+  return (
+    <div className="np-shell tw:flex tw:min-h-screen tw:bg-slate-50 tw:dark:bg-slate-950">
+      <aside className="tw:sticky tw:top-0 tw:hidden tw:h-screen tw:w-64 tw:flex-col tw:border-r tw:border-slate-200/70 tw:bg-white tw:dark:border-slate-800 tw:dark:bg-slate-950 tw:lg:flex">
+        {navContent}
       </aside>
 
-      <main className="admin-main-content">
-        <header className="admin-topbar">
-          <div className="admin-breadcrumb">
-            <span>Admin</span>
-            <FiChevronRight />
-            <strong>{activeItem?.label || 'Overview'}</strong>
+      {mobileNavOpen && (
+        <div className="tw:fixed tw:inset-0 tw:z-50 tw:flex tw:lg:hidden">
+          <div className="tw:absolute tw:inset-0 tw:bg-slate-950/50" onClick={() => setMobileNavOpen(false)} />
+          <aside className="tw:relative tw:flex tw:h-full tw:w-72 tw:flex-col tw:bg-white tw:dark:bg-slate-950">
+            <button
+              type="button"
+              onClick={() => setMobileNavOpen(false)}
+              className="tw:absolute tw:top-4 tw:right-4 tw:flex tw:h-8 tw:w-8 tw:items-center tw:justify-center tw:rounded-lg tw:text-slate-400"
+              aria-label="Close menu"
+            >
+              <X className="tw:h-5 tw:w-5" />
+            </button>
+            {navContent}
+          </aside>
+        </div>
+      )}
+
+      <main className="tw:min-w-0 tw:flex-1">
+        <header className="tw:sticky tw:top-0 tw:z-30 tw:flex tw:items-center tw:justify-between tw:border-b tw:border-slate-200/70 tw:bg-white/95 tw:px-4 tw:py-3 tw:backdrop-blur tw:dark:border-slate-800 tw:dark:bg-slate-950/95 tw:sm:px-6">
+          <div className="tw:flex tw:items-center tw:gap-3">
+            <button
+              type="button"
+              onClick={() => setMobileNavOpen(true)}
+              className="tw:flex tw:h-9 tw:w-9 tw:items-center tw:justify-center tw:rounded-lg tw:border tw:border-slate-200 tw:text-slate-600 tw:dark:border-slate-800 tw:dark:text-slate-300 tw:lg:hidden"
+              aria-label="Open menu"
+            >
+              <Menu className="tw:h-4.5 tw:w-4.5" />
+            </button>
+            <div className="tw:flex tw:items-center tw:gap-1.5 tw:text-sm">
+              <span className="tw:text-slate-400">Admin</span>
+              <ChevronRight className="tw:h-3.5 tw:w-3.5 tw:text-slate-300" />
+              <strong className="tw:font-heading tw:font-bold">{activeItem?.label || 'Overview'}</strong>
+            </div>
           </div>
-          <div className="admin-topbar-actions">
-            <div className="admin-status-pill">
-              <FiActivity />
+          <div className="tw:flex tw:items-center tw:gap-3">
+            <div className="tw:hidden tw:items-center tw:gap-1.5 tw:rounded-full tw:bg-emerald-100 tw:px-3 tw:py-1 tw:text-xs tw:font-semibold tw:text-emerald-700 tw:dark:bg-emerald-950 tw:dark:text-emerald-300 tw:sm:flex">
+              <Activity className="tw:h-3.5 tw:w-3.5" />
               <span>Live workspace</span>
             </div>
-            <span className="admin-topbar-avatar">{(user?.name || 'A').charAt(0).toUpperCase()}</span>
+            <span className="tw:flex tw:h-9 tw:w-9 tw:items-center tw:justify-center tw:rounded-full tw:bg-brand-100 tw:text-sm tw:font-bold tw:text-brand-700 tw:dark:bg-brand-950 tw:dark:text-brand-300">
+              {initials}
+            </span>
           </div>
         </header>
-        {children}
+        <div className="tw:p-4 tw:sm:p-6">
+          {children}
+        </div>
       </main>
     </div>
   );

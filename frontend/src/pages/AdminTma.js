@@ -3,13 +3,18 @@ import { useSearchParams } from 'react-router-dom';
 import api from '../utils/api';
 import { formatDate } from '../utils/dateHelper';
 import {
-  FiCheckCircle,
-  FiFileText,
-  FiPlusCircle,
-  FiUploadCloud,
-} from 'react-icons/fi';
+  CheckCircle2,
+  FileText,
+  PlusCircle,
+  UploadCloud,
+  Loader2,
+} from 'lucide-react';
 import AdminTmaRecords from './AdminTmaRecords';
-import './AdminTma.css';
+import { Card } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Dialog, DialogPopup, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog';
+import { cn } from '../lib/utils';
 
 const ALLOWED_TABS = ['assistant', 'records'];
 
@@ -26,6 +31,9 @@ const sourceTypeLabels = sourceTypes.reduce((labels, item) => {
   labels[item.value] = item.label;
   return labels;
 }, {});
+
+const selectClass = 'tw:h-10 tw:w-full tw:rounded-xl tw:border tw:border-slate-200 tw:bg-white tw:px-3 tw:text-sm tw:outline-none tw:focus:border-brand-500 tw:dark:border-slate-800 tw:dark:bg-slate-900 tw:dark:text-slate-100';
+const textareaClass = 'tw:w-full tw:resize-none tw:rounded-xl tw:border tw:border-slate-200 tw:bg-white tw:p-3 tw:text-sm tw:outline-none tw:focus:border-brand-500 tw:dark:border-slate-800 tw:dark:bg-slate-900 tw:dark:text-slate-100';
 
 const AdminTma = () => {
   const [searchParams] = useSearchParams();
@@ -179,194 +187,179 @@ const AdminTma = () => {
 
   if (loading && activeTab === 'assistant') {
     return (
-      <div className="admin-tma-container">
-        <div className="container">
-          <div className="tma-skeleton-grid">
-            <div className="tma-skeleton-panel large">
-              <div className="tma-skeleton-icon"></div>
-              <div className="tma-skeleton-line wide"></div>
-              <div className="tma-skeleton-line"></div>
-              <div className="tma-skeleton-box"></div>
-              <div className="tma-skeleton-box short"></div>
-            </div>
-            <div className="tma-skeleton-panel">
-              <div className="tma-skeleton-icon"></div>
-              <div className="tma-skeleton-line wide"></div>
-              <div className="tma-skeleton-line"></div>
-              <div className="tma-skeleton-box"></div>
-            </div>
-          </div>
-        </div>
+      <div className="tw:flex tw:flex-col tw:items-center tw:gap-2 tw:py-16 tw:text-slate-500 tw:dark:text-slate-400">
+        <Loader2 className="tw:h-6 tw:w-6 tw:animate-spin" />
+        <p className="tw:text-sm">Loading TMA workspace...</p>
       </div>
     );
   }
 
   return (
-    <div className="admin-tma-container">
-      <div className="container">
-        <section className="tma-hero">
-          <div>
-            <p className="tma-kicker">Admin Workspace</p>
-            <h1>{activeTab === 'records' ? 'TMA Records' : 'TMA Assistant'}</h1>
-            <p>
-              {activeTab === 'records'
-                ? "Log each student's TMA 1, 2, and 3 scores per course for better record keeping."
-                : 'Upload source material and get AI-backed answers for tutor-marked assignment questions.'}
-            </p>
+    <div className="tw:space-y-5">
+      <Card className="tw:flex tw:flex-wrap tw:items-center tw:justify-between tw:gap-4 tw:p-5">
+        <div>
+          <p className="tw:text-xs tw:font-bold tw:tracking-wide tw:text-brand-600 tw:uppercase">Admin Workspace</p>
+          <h1 className="tw:font-heading tw:text-xl tw:font-bold tw:tracking-tight">{activeTab === 'records' ? 'TMA Records' : 'TMA Assistant'}</h1>
+          <p className="tw:mt-1 tw:text-sm tw:text-slate-500 tw:dark:text-slate-400">
+            {activeTab === 'records'
+              ? "Log each student's TMA 1, 2, and 3 scores per course for better record keeping."
+              : 'Upload source material and get AI-backed answers for tutor-marked assignment questions.'}
+          </p>
+        </div>
+        {activeTab === 'assistant' && (
+          <div className="tw:flex tw:gap-4">
+            {[{ label: 'Sources', value: stats.totalSources }, { label: 'Chunks', value: stats.totalChunks }, { label: 'Linked', value: stats.linked }].map((stat) => (
+              <div key={stat.label} className="tw:text-center">
+                <strong className="tw:block tw:font-heading tw:text-lg tw:font-bold">{stat.value}</strong>
+                <span className="tw:text-[11px] tw:text-slate-400">{stat.label}</span>
+              </div>
+            ))}
           </div>
-          {activeTab === 'assistant' && (
-            <div className="tma-hero-stats">
-              <div className="tma-hero-stat">
-                <strong>{stats.totalSources}</strong>
-                <span>Sources</span>
-              </div>
-              <div className="tma-hero-stat">
-                <strong>{stats.totalChunks}</strong>
-                <span>Chunks</span>
-              </div>
-              <div className="tma-hero-stat">
-                <strong>{stats.linked}</strong>
-                <span>Linked</span>
-              </div>
+        )}
+      </Card>
+
+      {activeTab === 'records' ? (
+        <AdminTmaRecords />
+      ) : (
+        <>
+          {message.text && (
+            <div className={cn(
+              'tw:rounded-xl tw:px-3.5 tw:py-2.5 tw:text-sm',
+              message.type === 'success'
+                ? 'tw:bg-emerald-100 tw:text-emerald-700 tw:dark:bg-emerald-950 tw:dark:text-emerald-300'
+                : 'tw:bg-red-100 tw:text-red-700 tw:dark:bg-red-500/15 tw:dark:text-red-300',
+            )}>
+              {message.text}
             </div>
           )}
-        </section>
 
-        {activeTab === 'records' ? (
-          <AdminTmaRecords />
-        ) : (
-          <>
-            {message.text && (
-              <div className={`alert ${message.type === 'success' ? 'alert-success' : 'alert-danger'}`}>
-                {message.text}
-              </div>
-            )}
-
-            <div className="tma-work-grid">
-          <section className="tma-panel tma-answer-panel">
-            <div className="tma-panel-head">
-              <FiCheckCircle />
-              <div>
-                <h2>Answer Question</h2>
-                <p>
-                  {currentCourse
-                    ? `Scoped to ${currentCourse.code || 'the current course'} — searching ${currentCourseSourceCount} source${currentCourseSourceCount === 1 ? '' : 's'}.`
-                    : `Searching across ${sources.length} source${sources.length === 1 ? '' : 's'}.`}
-                </p>
-              </div>
-            </div>
-
-            <form onSubmit={handleAnswer} className="tma-form">
-              <label>
-                <span>Question <em>{answerForm.question.length} characters</em></span>
-                <textarea
-                  value={answerForm.question}
-                  onChange={(event) => setAnswerForm((current) => ({ ...current, question: event.target.value }))}
-                  placeholder="Paste the full TMA question here"
-                  rows={3}
-                  required
-                />
-              </label>
-
-              <label>
-                <span>Options <em>{answerOptionsCount} entered</em></span>
-                <textarea
-                  value={answerForm.optionsText}
-                  onChange={(event) => setAnswerForm((current) => ({ ...current, optionsText: event.target.value }))}
-                  placeholder={'A. Option one\nB. Option two\nC. Option three\nD. Option four'}
-                  rows={3}
-                />
-              </label>
-
-              <button type="submit" className="btn btn-primary tma-primary-action" disabled={answering || !answerForm.question.trim()}>
-                {answering ? <><div className="spinner-small"></div> Answering...</> : <><FiCheckCircle /> Answer</>}
-              </button>
-            </form>
-
-            {answerResult && (
-              <div className="tma-answer-card">
-                <div className="tma-answer-top">
-                  <span>Answer result</span>
-                  <strong>{answerResult.confidence || 0}% confidence</strong>
-                </div>
-                <div className="tma-confidence-track">
-                  <span style={{ width: `${Math.min(Math.max(answerResult.confidence || 0, 0), 100)}%` }} />
-                </div>
-                <div className="tma-final-answer">
-                  <span>Suggested answer</span>
-                  <h3>{answerResult.answer}</h3>
-                </div>
-                <p className="tma-answer-explanation">{answerResult.explanation}</p>
-                {Array.isArray(answerResult.evidence) && answerResult.evidence.length > 0 && (
-                  <div className="tma-evidence-list">
-                    <h4>Supporting Evidence</h4>
-                    {answerResult.evidence.map((item, index) => (
-                      <article key={`${item.sourceId}-${index}`}>
-                        <span>{sourceTypeLabels[item.sourceType] || item.sourceType}</span>
-                        <strong>{item.title}</strong>
-                        <p>{item.excerpt}</p>
-                      </article>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </section>
-
-          <aside>
-            <section className="tma-panel tma-upload-panel">
-              <div className="tma-panel-head compact">
-                <FiUploadCloud />
+          <div className="tw:grid tw:grid-cols-1 tw:gap-4 tw:lg:grid-cols-[1.4fr_1fr]">
+            <Card className="tw:p-5">
+              <div className="tw:flex tw:items-start tw:gap-3">
+                <span className="tw:flex tw:h-9 tw:w-9 tw:shrink-0 tw:items-center tw:justify-center tw:rounded-xl tw:bg-brand-100 tw:text-brand-600 tw:dark:bg-brand-950 tw:dark:text-brand-300"><CheckCircle2 className="tw:h-4.5 tw:w-4.5" /></span>
                 <div>
-                  <h2>Add Source</h2>
-                  <p>Files are saved after extraction completes.</p>
+                  <h2 className="tw:font-heading tw:text-sm tw:font-bold">Answer Question</h2>
+                  <p className="tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">
+                    {currentCourse
+                      ? `Scoped to ${currentCourse.code || 'the current course'} — searching ${currentCourseSourceCount} source${currentCourseSourceCount === 1 ? '' : 's'}.`
+                      : `Searching across ${sources.length} source${sources.length === 1 ? '' : 's'}.`}
+                  </p>
                 </div>
               </div>
 
-              <div className="tma-current-course">
+              <form onSubmit={handleAnswer} className="tw:mt-4 tw:space-y-3">
+                <label className="tw:block tw:space-y-1.5">
+                  <span className="tw:flex tw:items-center tw:justify-between tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300">
+                    Question <em className="tw:text-slate-400 tw:not-italic">{answerForm.question.length} characters</em>
+                  </span>
+                  <textarea
+                    value={answerForm.question}
+                    onChange={(event) => setAnswerForm((current) => ({ ...current, question: event.target.value }))}
+                    placeholder="Paste the full TMA question here"
+                    rows={3}
+                    required
+                    className={textareaClass}
+                  />
+                </label>
+
+                <label className="tw:block tw:space-y-1.5">
+                  <span className="tw:flex tw:items-center tw:justify-between tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300">
+                    Options <em className="tw:text-slate-400 tw:not-italic">{answerOptionsCount} entered</em>
+                  </span>
+                  <textarea
+                    value={answerForm.optionsText}
+                    onChange={(event) => setAnswerForm((current) => ({ ...current, optionsText: event.target.value }))}
+                    placeholder={'A. Option one\nB. Option two\nC. Option three\nD. Option four'}
+                    rows={3}
+                    className={textareaClass}
+                  />
+                </label>
+
+                <Button type="submit" disabled={answering || !answerForm.question.trim()} className="tw:w-full">
+                  {answering ? <><Loader2 className="tw:h-4 tw:w-4 tw:animate-spin" /> Answering...</> : <><CheckCircle2 className="tw:h-4 tw:w-4" /> Answer</>}
+                </Button>
+              </form>
+
+              {answerResult && (
+                <div className="tw:mt-4 tw:space-y-3 tw:rounded-2xl tw:border tw:border-slate-200/70 tw:p-4 tw:dark:border-slate-800">
+                  <div className="tw:flex tw:items-center tw:justify-between tw:text-xs tw:font-semibold tw:text-slate-500 tw:dark:text-slate-400">
+                    <span>Answer result</span>
+                    <strong className="tw:text-slate-900 tw:dark:text-slate-100">{answerResult.confidence || 0}% confidence</strong>
+                  </div>
+                  <div className="tw:h-1.5 tw:w-full tw:overflow-hidden tw:rounded-full tw:bg-slate-100 tw:dark:bg-slate-800">
+                    <span className="tw:block tw:h-full tw:rounded-full tw:bg-brand-600" style={{ width: `${Math.min(Math.max(answerResult.confidence || 0, 0), 100)}%` }} />
+                  </div>
+                  <div>
+                    <span className="tw:text-xs tw:font-semibold tw:text-slate-500 tw:dark:text-slate-400">Suggested answer</span>
+                    <h3 className="tw:font-heading tw:text-base tw:font-bold">{answerResult.answer}</h3>
+                  </div>
+                  <p className="tw:text-sm tw:text-slate-600 tw:dark:text-slate-300">{answerResult.explanation}</p>
+                  {Array.isArray(answerResult.evidence) && answerResult.evidence.length > 0 && (
+                    <div className="tw:space-y-2">
+                      <h4 className="tw:text-xs tw:font-bold tw:tracking-wide tw:text-slate-400 tw:uppercase">Supporting Evidence</h4>
+                      {answerResult.evidence.map((item, index) => (
+                        <article key={`${item.sourceId}-${index}`} className="tw:rounded-xl tw:bg-slate-50 tw:p-3 tw:dark:bg-slate-900">
+                          <span className="tw:text-[11px] tw:font-semibold tw:text-brand-600">{sourceTypeLabels[item.sourceType] || item.sourceType}</span>
+                          <strong className="tw:block tw:text-sm">{item.title}</strong>
+                          <p className="tw:mt-1 tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">{item.excerpt}</p>
+                        </article>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </Card>
+
+            <Card className="tw:p-5">
+              <div className="tw:flex tw:items-start tw:gap-3">
+                <span className="tw:flex tw:h-9 tw:w-9 tw:shrink-0 tw:items-center tw:justify-center tw:rounded-xl tw:bg-brand-100 tw:text-brand-600 tw:dark:bg-brand-950 tw:dark:text-brand-300"><UploadCloud className="tw:h-4.5 tw:w-4.5" /></span>
+                <div>
+                  <h2 className="tw:font-heading tw:text-sm tw:font-bold">Add Source</h2>
+                  <p className="tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">Files are saved after extraction completes.</p>
+                </div>
+              </div>
+
+              <div className="tw:mt-4">
                 {startingNewCourse || !currentCourse ? (
-                  <div className="tma-current-course-empty">
-                    <FiPlusCircle />
+                  <div className="tw:flex tw:items-start tw:gap-2.5 tw:rounded-xl tw:bg-slate-50 tw:p-3 tw:dark:bg-slate-900">
+                    <PlusCircle className="tw:h-4 tw:w-4 tw:shrink-0 tw:translate-y-0.5 tw:text-brand-600" />
                     <div>
-                      <strong>Ready for a new course</strong>
-                      <p>Upload a document below to begin — the course is detected automatically.</p>
+                      <strong className="tw:block tw:text-sm">Ready for a new course</strong>
+                      <p className="tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">Upload a document below to begin — the course is detected automatically.</p>
                     </div>
                   </div>
                 ) : (
-                  <div className="tma-current-course-active">
+                  <div className="tw:flex tw:flex-wrap tw:items-center tw:justify-between tw:gap-2 tw:rounded-xl tw:bg-slate-50 tw:p-3 tw:dark:bg-slate-900">
                     <div>
-                      <span className="tma-current-course-label">Currently working on</span>
-                      <strong>{currentCourse.code || 'Unlinked course'}{currentCourse.name ? ` — ${currentCourse.name}` : ''}</strong>
-                      {currentCourse.updatedAt && <small>Last updated {formatDate(currentCourse.updatedAt)}</small>}
+                      <span className="tw:block tw:text-[11px] tw:font-semibold tw:text-slate-400 tw:uppercase">Currently working on</span>
+                      <strong className="tw:text-sm">{currentCourse.code || 'Unlinked course'}{currentCourse.name ? ` — ${currentCourse.name}` : ''}</strong>
+                      {currentCourse.updatedAt && <small className="tw:block tw:text-xs tw:text-slate-400">Last updated {formatDate(currentCourse.updatedAt)}</small>}
                     </div>
-                    <button
-                      type="button"
-                      className="btn btn-outline-primary tma-start-new-btn"
-                      onClick={() => setStartingNewCourse(true)}
-                    >
-                      <FiPlusCircle /> Start New Course
-                    </button>
+                    <Button type="button" variant="outline" size="sm" onClick={() => setStartingNewCourse(true)}>
+                      <PlusCircle className="tw:h-3.5 tw:w-3.5" /> Start New Course
+                    </Button>
                   </div>
                 )}
               </div>
 
-              <form onSubmit={handleUpload} className="tma-form">
-                <div className="tma-two-col">
-                  <label>
-                    <span>Title</span>
-                    <input
+              <form onSubmit={handleUpload} className="tw:mt-4 tw:space-y-3">
+                <div className="tw:grid tw:grid-cols-2 tw:gap-3">
+                  <label className="tw:block tw:space-y-1.5">
+                    <span className="tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300">Title</span>
+                    <Input
                       type="text"
                       value={uploadForm.title}
                       onChange={(event) => setUploadForm((current) => ({ ...current, title: event.target.value }))}
                       placeholder="e.g. GST 105 TMA 1"
                     />
                   </label>
-                  <label>
-                    <span>Type</span>
+                  <label className="tw:block tw:space-y-1.5">
+                    <span className="tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300">Type</span>
                     <select
                       aria-label="TMA source type"
                       value={uploadForm.sourceType}
                       onChange={(event) => setUploadForm((current) => ({ ...current, sourceType: event.target.value }))}
+                      className={selectClass}
                     >
                       {sourceTypes.map((type) => (
                         <option key={type.value} value={type.value}>{type.label}</option>
@@ -375,60 +368,65 @@ const AdminTma = () => {
                   </label>
                 </div>
 
-                <label className="tma-file-input" htmlFor="tma-source-file">
-                  <span>Document</span>
-                  <div className="tma-file-drop">
-                    <FiFileText />
-                    <strong>{uploadForm.file?.name || 'Choose source document'}</strong>
-                    <small>PDF, DOC, DOCX, or TXT</small>
+                <label htmlFor="tma-source-file" className="tw:block tw:space-y-1.5">
+                  <span className="tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300">Document</span>
+                  <div className="tw:flex tw:flex-col tw:items-center tw:gap-1 tw:rounded-xl tw:border tw:border-dashed tw:border-slate-300 tw:p-5 tw:text-center tw:dark:border-slate-700">
+                    <FileText className="tw:h-6 tw:w-6 tw:text-slate-400" />
+                    <strong className="tw:text-sm">{uploadForm.file?.name || 'Choose source document'}</strong>
+                    <small className="tw:text-xs tw:text-slate-400">PDF, DOC, DOCX, or TXT</small>
                   </div>
                   <input
                     id="tma-source-file"
                     type="file"
                     accept=".pdf,.doc,.docx,.txt,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
                     onChange={(event) => setUploadForm((current) => ({ ...current, file: event.target.files?.[0] || null }))}
+                    className="tw:hidden"
                   />
                 </label>
 
-                <button type="submit" className="btn btn-primary tma-primary-action" disabled={uploading}>
-                  {uploading ? <><div className="spinner-small"></div> Reading...</> : <><FiUploadCloud /> Upload Source</>}
-                </button>
+                <Button type="submit" disabled={uploading} className="tw:w-full">
+                  {uploading ? <><Loader2 className="tw:h-4 tw:w-4 tw:animate-spin" /> Reading...</> : <><UploadCloud className="tw:h-4 tw:w-4" /> Upload Source</>}
+                </Button>
               </form>
-            </section>
-          </aside>
-        </div>
-          </>
-        )}
-      </div>
-
-      {activeTab === 'assistant' && duplicateConflict && (
-        <div className="tma-conflict-overlay" role="dialog" aria-modal="true">
-          <div className="tma-conflict-dialog">
-            <h3>Course already uploaded</h3>
-            <p>
-              <strong>{duplicateConflict.course?.courseCode}</strong>
-              {duplicateConflict.course?.courseName ? ` — ${duplicateConflict.course.courseName}` : ''} already has{' '}
-              {duplicateConflict.existingSources?.length || 0} source{(duplicateConflict.existingSources?.length || 0) === 1 ? '' : 's'} uploaded.
-            </p>
-            <ul className="tma-conflict-list">
-              {(duplicateConflict.existingSources || []).map((item) => (
-                <li key={item._id}>
-                  <strong>{item.title}</strong>
-                  <span>{sourceTypeLabels[item.sourceType] || item.sourceType} · {formatDate(item.createdAt)}</span>
-                </li>
-              ))}
-            </ul>
-            <p>Override to replace the existing source with this new one, or keep the existing source and cancel this upload.</p>
-            <div className="tma-conflict-actions">
-              <button type="button" className="btn btn-outline-primary" onClick={handleKeepExisting} disabled={uploading}>
-                Keep Existing
-              </button>
-              <button type="button" className="btn btn-primary" onClick={handleConfirmOverride} disabled={uploading}>
-                {uploading ? <><div className="spinner-small"></div> Overriding...</> : 'Override'}
-              </button>
-            </div>
+            </Card>
           </div>
-        </div>
+        </>
+      )}
+
+      {activeTab === 'assistant' && (
+        <Dialog open={!!duplicateConflict} onOpenChange={(open) => { if (!open) handleKeepExisting(); }}>
+          <DialogPopup showClose={false}>
+            {duplicateConflict && (
+              <>
+                <DialogHeader>
+                  <DialogTitle>Course already uploaded</DialogTitle>
+                </DialogHeader>
+                <p className="tw:mt-2 tw:text-sm tw:text-slate-600 tw:dark:text-slate-300">
+                  <strong>{duplicateConflict.course?.courseCode}</strong>
+                  {duplicateConflict.course?.courseName ? ` — ${duplicateConflict.course.courseName}` : ''} already has{' '}
+                  {duplicateConflict.existingSources?.length || 0} source{(duplicateConflict.existingSources?.length || 0) === 1 ? '' : 's'} uploaded.
+                </p>
+                <ul className="tw:mt-3 tw:max-h-40 tw:space-y-2 tw:overflow-y-auto">
+                  {(duplicateConflict.existingSources || []).map((item) => (
+                    <li key={item._id} className="tw:rounded-xl tw:bg-slate-50 tw:p-2.5 tw:text-sm tw:dark:bg-slate-900">
+                      <strong className="tw:block">{item.title}</strong>
+                      <span className="tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">{sourceTypeLabels[item.sourceType] || item.sourceType} · {formatDate(item.createdAt)}</span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="tw:mt-3 tw:text-sm tw:text-slate-600 tw:dark:text-slate-300">Override to replace the existing source with this new one, or keep the existing source and cancel this upload.</p>
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={handleKeepExisting} disabled={uploading}>
+                    Keep Existing
+                  </Button>
+                  <Button type="button" onClick={handleConfirmOverride} disabled={uploading}>
+                    {uploading ? <><Loader2 className="tw:h-4 tw:w-4 tw:animate-spin" /> Overriding...</> : 'Override'}
+                  </Button>
+                </DialogFooter>
+              </>
+            )}
+          </DialogPopup>
+        </Dialog>
       )}
     </div>
   );

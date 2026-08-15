@@ -1,19 +1,28 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  FiCheck,
-  FiClock,
-  FiFileText,
-  FiPlay,
-  FiRefreshCw,
-  FiSquare,
-  FiTrash2,
-  FiUploadCloud,
-  FiUsers,
-  FiX,
-} from 'react-icons/fi';
+  Check,
+  Clock,
+  FileText,
+  Play,
+  RefreshCw,
+  Square,
+  Trash2,
+  UploadCloud,
+  Users,
+  X,
+} from 'lucide-react';
 import liveQuizApi from '../utils/liveQuizApi';
 import { createLiveQuizSocket } from '../utils/liveQuizSocket';
-import './AdminLiveQuiz.css';
+import { Card } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { cn } from '../lib/utils';
+
+const statusBadgeClass = {
+  draft: 'tw:bg-slate-100 tw:text-slate-600 tw:dark:bg-slate-800 tw:dark:text-slate-300',
+  live: 'tw:bg-emerald-100 tw:text-emerald-700 tw:dark:bg-emerald-950 tw:dark:text-emerald-300',
+  ended: 'tw:bg-red-100 tw:text-red-700 tw:dark:bg-red-500/15 tw:dark:text-red-300',
+};
 
 const AdminLiveQuiz = () => {
   const [quizzes, setQuizzes] = useState([]);
@@ -270,201 +279,233 @@ const AdminLiveQuiz = () => {
   };
 
   return (
-    <div className="admin-live-quiz-page">
-      <div className="admin-live-quiz-header">
+    <div className="tw:space-y-5">
+      <div className="tw:flex tw:flex-wrap tw:items-center tw:justify-between tw:gap-3">
         <div>
-          <p className="admin-live-quiz-kicker">Live competition</p>
-          <h1>Quiz Control</h1>
-          <p>Generate questions from a PDF, start the live quiz, and moderate recorded answers.</p>
+          <p className="tw:text-xs tw:font-bold tw:tracking-wide tw:text-brand-600 tw:uppercase">Live competition</p>
+          <h1 className="tw:font-heading tw:text-xl tw:font-bold tw:tracking-tight">Quiz Control</h1>
+          <p className="tw:mt-1 tw:text-sm tw:text-slate-500 tw:dark:text-slate-400">Generate questions from a PDF, start the live quiz, and moderate recorded answers.</p>
         </div>
-        <button
-          type="button"
-          className="admin-live-quiz-refresh"
-          onClick={() => loadQuizzes(true)}
-        >
-          <FiRefreshCw />
-          Refresh
-        </button>
+        <Button variant="outline" onClick={() => loadQuizzes(true)}>
+          <RefreshCw className="tw:h-4 tw:w-4" /> Refresh
+        </Button>
       </div>
 
-      {message.text && <div className={`admin-live-quiz-message ${message.type}`}>{message.text}</div>}
-
-      <section className="admin-live-quiz-import">
-        <div className="admin-live-quiz-section-head">
-          <div>
-            <p className="admin-live-quiz-kicker">Gemini question generation</p>
-            <h2>Create a 120-question quiz</h2>
-          </div>
-          <FiFileText />
+      {message.text && (
+        <div className={cn(
+          'tw:rounded-xl tw:px-3.5 tw:py-2.5 tw:text-sm',
+          message.type === 'success'
+            ? 'tw:bg-emerald-100 tw:text-emerald-700 tw:dark:bg-emerald-950 tw:dark:text-emerald-300'
+            : 'tw:bg-red-100 tw:text-red-700 tw:dark:bg-red-500/15 tw:dark:text-red-300',
+        )}>
+          {message.text}
         </div>
-        <form onSubmit={handleUploadImport}>
-          <label>
-            Quiz title
-            <input value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} required />
+      )}
+
+      <Card className="tw:p-5">
+        <div className="tw:flex tw:items-center tw:justify-between tw:gap-3">
+          <div>
+            <p className="tw:text-xs tw:font-bold tw:tracking-wide tw:text-brand-600 tw:uppercase">Gemini question generation</p>
+            <h2 className="tw:font-heading tw:text-base tw:font-bold">Create a 120-question quiz</h2>
+          </div>
+          <FileText className="tw:h-5 tw:w-5 tw:text-slate-300" />
+        </div>
+        <form onSubmit={handleUploadImport} className="tw:mt-4 tw:grid tw:grid-cols-1 tw:gap-3 tw:sm:grid-cols-2">
+          <label className="tw:block tw:space-y-1.5">
+            <span className="tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300">Quiz title</span>
+            <Input value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} required />
           </label>
-          <label>
-            Course code
-            <input value={form.courseCode} onChange={(event) => setForm((current) => ({ ...current, courseCode: event.target.value }))} required />
+          <label className="tw:block tw:space-y-1.5">
+            <span className="tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300">Course code</span>
+            <Input value={form.courseCode} onChange={(event) => setForm((current) => ({ ...current, courseCode: event.target.value }))} required />
           </label>
-          <label className="admin-live-quiz-description">
-            Description
-            <input value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} />
+          <label className="tw:block tw:space-y-1.5 tw:sm:col-span-2">
+            <span className="tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300">Description</span>
+            <Input value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} />
           </label>
-          <label className="admin-live-quiz-file">
-            Future PDF upload
-            <input type="file" accept="application/pdf" onChange={(event) => setForm((current) => ({ ...current, file: event.target.files?.[0] || null }))} />
+          <label className="tw:block tw:space-y-1.5 tw:sm:col-span-2">
+            <span className="tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300">Future PDF upload</span>
+            <input
+              type="file"
+              accept="application/pdf"
+              onChange={(event) => setForm((current) => ({ ...current, file: event.target.files?.[0] || null }))}
+              className="tw:block tw:w-full tw:text-sm tw:text-slate-500 tw:dark:text-slate-400"
+            />
           </label>
-          <div className="admin-live-quiz-import-actions">
-            <button type="button" onClick={handleRootImport} disabled={importing}>
-              <FiFileText />
-              {importing ? 'Generating questions...' : 'Use root NOU107 PDF'}
-            </button>
-            <button type="submit" disabled={importing}>
-              <FiUploadCloud />
-              Import uploaded PDF
-            </button>
+          <div className="tw:flex tw:flex-wrap tw:gap-2 tw:sm:col-span-2">
+            <Button type="button" variant="outline" onClick={handleRootImport} disabled={importing}>
+              <FileText className="tw:h-4 tw:w-4" /> {importing ? 'Generating questions...' : 'Use root NOU107 PDF'}
+            </Button>
+            <Button type="submit" disabled={importing}>
+              <UploadCloud className="tw:h-4 tw:w-4" /> Import uploaded PDF
+            </Button>
           </div>
         </form>
-      </section>
+      </Card>
 
-      <main className="admin-live-quiz-layout">
-        <aside className="admin-live-quiz-list">
-          <div className="admin-live-quiz-section-head">
+      <div className="tw:grid tw:grid-cols-1 tw:gap-4 tw:lg:grid-cols-[300px_1fr]">
+        <Card className="tw:p-4">
+          <div className="tw:flex tw:items-center tw:justify-between">
             <div>
-              <p className="admin-live-quiz-kicker">Quiz library</p>
-              <h2>Quizzes</h2>
+              <p className="tw:text-xs tw:font-bold tw:tracking-wide tw:text-brand-600 tw:uppercase">Quiz library</p>
+              <h2 className="tw:font-heading tw:text-sm tw:font-bold">Quizzes</h2>
             </div>
-            <span>{quizzes.length}</span>
+            <span className="tw:text-sm tw:font-bold tw:text-slate-400">{quizzes.length}</span>
           </div>
-          {loading && <p className="admin-live-quiz-muted">Loading quizzes...</p>}
-          {quizzes.map((quiz) => (
-            <button
-              type="button"
-              key={quiz._id}
-              className={selectedQuizId === quiz._id ? 'admin-live-quiz-list-item active' : 'admin-live-quiz-list-item'}
-              onClick={() => setSelectedQuizId(quiz._id)}
-            >
-              <strong>{quiz.title}</strong>
-              <span>{quiz.courseCode} / {quiz.questionCount} questions / {quiz.status}</span>
-            </button>
-          ))}
-        </aside>
+          <div className="tw:mt-3 tw:max-h-[60vh] tw:space-y-1.5 tw:overflow-y-auto">
+            {loading && <p className="tw:text-sm tw:text-slate-400">Loading quizzes...</p>}
+            {quizzes.map((quiz) => (
+              <button
+                type="button"
+                key={quiz._id}
+                onClick={() => setSelectedQuizId(quiz._id)}
+                className={cn(
+                  'tw:block tw:w-full tw:rounded-xl tw:border tw:p-3 tw:text-left tw:transition-colors',
+                  selectedQuizId === quiz._id
+                    ? 'tw:border-brand-600 tw:bg-brand-50 tw:dark:bg-brand-950'
+                    : 'tw:border-slate-200/70 tw:dark:border-slate-800',
+                )}
+              >
+                <strong className="tw:block tw:text-sm tw:font-bold">{quiz.title}</strong>
+                <span className="tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">{quiz.courseCode} / {quiz.questionCount} questions / {quiz.status}</span>
+              </button>
+            ))}
+          </div>
+        </Card>
 
-        <section className="admin-live-quiz-detail">
-          {!selectedQuiz && <p className="admin-live-quiz-muted">Select or create a quiz.</p>}
+        <div className="tw:space-y-4">
+          {!selectedQuiz && (
+            <Card className="tw:p-10 tw:text-center tw:text-sm tw:text-slate-400">Select or create a quiz.</Card>
+          )}
           {selectedQuiz && (
             <>
-              <div className="admin-live-quiz-detail-head">
-                <div>
-                  <p className="admin-live-quiz-kicker">{selectedQuiz.courseCode}</p>
-                  <h2>{selectedQuiz.title}</h2>
-                  <p>{selectedQuiz.questionCount} questions / {detail?.participantCount || 0} participants</p>
-                </div>
-                <span className={`admin-live-quiz-status ${selectedQuiz.status}`}>{selectedQuiz.status}</span>
-              </div>
-
-              <div className="admin-live-quiz-controls">
-                <button type="button" disabled={Boolean(updatingStatus)} onClick={() => handleStatus('draft')}><FiClock /> {updatingStatus === 'draft' ? 'Updating...' : 'Draft'}</button>
-                <button type="button" disabled={Boolean(updatingStatus)} onClick={() => handleStatus('live')}><FiPlay /> {updatingStatus === 'live' ? 'Starting...' : 'Start quiz'}</button>
-                <button type="button" disabled={Boolean(updatingStatus)} onClick={() => handleStatus('ended')}><FiSquare /> {updatingStatus === 'ended' ? 'Ending...' : 'End quiz'}</button>
-                <button type="button" className="danger" onClick={handleDeleteQuiz}><FiTrash2 /> Delete</button>
-              </div>
-
-              <div className="admin-live-quiz-stats">
-                <div><FiFileText /><strong>{selectedQuiz.questionCount}</strong><span>Questions</span></div>
-                <div><FiUsers /><strong>{detail?.participantCount || 0}</strong><span>Participants</span></div>
-                <div><FiCheck /><strong>{detail?.answerCount || 0}</strong><span>Recorded answers</span></div>
-              </div>
-
-              <div className="admin-live-quiz-leaderboard">
-                <div className="admin-live-quiz-section-head">
+              <Card className="tw:p-5">
+                <div className="tw:flex tw:flex-wrap tw:items-start tw:justify-between tw:gap-3">
                   <div>
-                    <p className="admin-live-quiz-kicker">Live ranking</p>
-                    <h2>Leaderboard</h2>
+                    <p className="tw:text-xs tw:font-bold tw:tracking-wide tw:text-brand-600 tw:uppercase">{selectedQuiz.courseCode}</p>
+                    <h2 className="tw:font-heading tw:text-lg tw:font-bold">{selectedQuiz.title}</h2>
+                    <p className="tw:mt-1 tw:text-sm tw:text-slate-500 tw:dark:text-slate-400">{selectedQuiz.questionCount} questions / {detail?.participantCount || 0} participants</p>
                   </div>
-                  <span>{detail?.leaderboard?.length || 0}</span>
+                  <span className={cn('tw:rounded-full tw:px-3 tw:py-1 tw:text-xs tw:font-bold tw:capitalize', statusBadgeClass[selectedQuiz.status] || statusBadgeClass.draft)}>{selectedQuiz.status}</span>
                 </div>
-                <div className="admin-live-quiz-leader-list">
+
+                <div className="tw:mt-4 tw:flex tw:flex-wrap tw:gap-2">
+                  <Button size="sm" variant="outline" disabled={Boolean(updatingStatus)} onClick={() => handleStatus('draft')}><Clock className="tw:h-3.5 tw:w-3.5" /> {updatingStatus === 'draft' ? 'Updating...' : 'Draft'}</Button>
+                  <Button size="sm" disabled={Boolean(updatingStatus)} onClick={() => handleStatus('live')}><Play className="tw:h-3.5 tw:w-3.5" /> {updatingStatus === 'live' ? 'Starting...' : 'Start quiz'}</Button>
+                  <Button size="sm" variant="outline" disabled={Boolean(updatingStatus)} onClick={() => handleStatus('ended')}><Square className="tw:h-3.5 tw:w-3.5" /> {updatingStatus === 'ended' ? 'Ending...' : 'End quiz'}</Button>
+                  <Button size="sm" variant="destructive" onClick={handleDeleteQuiz}><Trash2 className="tw:h-3.5 tw:w-3.5" /> Delete</Button>
+                </div>
+
+                <div className="tw:mt-4 tw:grid tw:grid-cols-3 tw:gap-3">
+                  <div className="tw:rounded-xl tw:bg-slate-50 tw:p-3 tw:text-center tw:dark:bg-slate-900">
+                    <FileText className="tw:mx-auto tw:h-4 tw:w-4 tw:text-brand-600" />
+                    <strong className="tw:block tw:font-heading tw:text-lg tw:font-bold">{selectedQuiz.questionCount}</strong>
+                    <span className="tw:text-[11px] tw:text-slate-400">Questions</span>
+                  </div>
+                  <div className="tw:rounded-xl tw:bg-slate-50 tw:p-3 tw:text-center tw:dark:bg-slate-900">
+                    <Users className="tw:mx-auto tw:h-4 tw:w-4 tw:text-brand-600" />
+                    <strong className="tw:block tw:font-heading tw:text-lg tw:font-bold">{detail?.participantCount || 0}</strong>
+                    <span className="tw:text-[11px] tw:text-slate-400">Participants</span>
+                  </div>
+                  <div className="tw:rounded-xl tw:bg-slate-50 tw:p-3 tw:text-center tw:dark:bg-slate-900">
+                    <Check className="tw:mx-auto tw:h-4 tw:w-4 tw:text-brand-600" />
+                    <strong className="tw:block tw:font-heading tw:text-lg tw:font-bold">{detail?.answerCount || 0}</strong>
+                    <span className="tw:text-[11px] tw:text-slate-400">Recorded answers</span>
+                  </div>
+                </div>
+              </Card>
+
+              <Card className="tw:p-5">
+                <div className="tw:flex tw:items-center tw:justify-between">
+                  <div>
+                    <p className="tw:text-xs tw:font-bold tw:tracking-wide tw:text-brand-600 tw:uppercase">Live ranking</p>
+                    <h2 className="tw:font-heading tw:text-sm tw:font-bold">Leaderboard</h2>
+                  </div>
+                  <span className="tw:text-sm tw:font-bold tw:text-slate-400">{detail?.leaderboard?.length || 0}</span>
+                </div>
+                <div className="tw:mt-3 tw:space-y-2">
                   {(detail?.leaderboard || []).map((participant) => (
-                    <article key={participant._id}>
-                      <span className="admin-live-quiz-rank">{participant.rank}</span>
-                      <div>
-                        <strong>{participant.username}</strong>
-                        <p>{participant.email}</p>
+                    <article key={participant._id} className="tw:flex tw:items-center tw:gap-3 tw:rounded-xl tw:border tw:border-slate-200/70 tw:p-3 tw:dark:border-slate-800">
+                      <span className="tw:flex tw:h-7 tw:w-7 tw:shrink-0 tw:items-center tw:justify-center tw:rounded-full tw:bg-brand-100 tw:text-xs tw:font-bold tw:text-brand-700 tw:dark:bg-brand-950 tw:dark:text-brand-300">{participant.rank}</span>
+                      <div className="tw:min-w-0 tw:flex-1">
+                        <strong className="tw:block tw:truncate tw:text-sm">{participant.username}</strong>
+                        <p className="tw:truncate tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">{participant.email}</p>
                       </div>
-                      <div className="admin-live-quiz-leader-score">
-                        <strong>{participant.score}</strong>
-                        <span>{participant.correctCount} correct / {participant.answeredCount} answered</span>
+                      <div className="tw:shrink-0 tw:text-right">
+                        <strong className="tw:block tw:text-sm tw:font-bold">{participant.score}</strong>
+                        <span className="tw:text-[11px] tw:text-slate-400">{participant.correctCount} correct / {participant.answeredCount} answered</span>
                       </div>
                     </article>
                   ))}
                   {detail && detail.leaderboard?.length === 0 && (
-                    <p className="admin-live-quiz-muted">No participants are on the leaderboard yet.</p>
+                    <p className="tw:py-4 tw:text-center tw:text-sm tw:text-slate-400">No participants are on the leaderboard yet.</p>
                   )}
                 </div>
-              </div>
+              </Card>
 
-              <div className="admin-live-quiz-answer-key">
-                <div className="admin-live-quiz-section-head">
+              <Card className="tw:p-5">
+                <div className="tw:flex tw:items-center tw:justify-between">
                   <div>
-                    <p className="admin-live-quiz-kicker">Answer key</p>
-                    <h2>Generated questions</h2>
+                    <p className="tw:text-xs tw:font-bold tw:tracking-wide tw:text-brand-600 tw:uppercase">Answer key</p>
+                    <h2 className="tw:font-heading tw:text-sm tw:font-bold">Generated questions</h2>
                   </div>
-                  <button
-                    type="button"
-                    className="admin-live-quiz-inline-action"
-                    onClick={handleToggleAnswerKey}
-                    disabled={!selectedQuizId}
-                  >
+                  <Button size="sm" variant="outline" onClick={handleToggleAnswerKey} disabled={!selectedQuizId}>
                     {showAnswerKey ? 'Hide' : 'Load'}
-                  </button>
+                  </Button>
                 </div>
                 {showAnswerKey ? (
-                  <div className="admin-live-quiz-question-list">
+                  <div className="tw:mt-3 tw:space-y-2">
                     {(detail?.questions || []).map((question) => (
-                      <article key={question._id}>
-                        <span>Q{question.order} / {question.questionType}</span>
-                        <h3>{question.prompt}</h3>
-                        <p>Accepted: {(question.acceptedAnswers || []).join(', ')}</p>
+                      <article key={question._id} className="tw:rounded-xl tw:bg-slate-50 tw:p-3 tw:dark:bg-slate-900">
+                        <span className="tw:text-[11px] tw:font-semibold tw:text-brand-600">Q{question.order} / {question.questionType}</span>
+                        <h3 className="tw:text-sm tw:font-semibold">{question.prompt}</h3>
+                        <p className="tw:mt-1 tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">Accepted: {(question.acceptedAnswers || []).join(', ')}</p>
                       </article>
                     ))}
                   </div>
                 ) : (
-                  <p className="admin-live-quiz-muted">Question key is hidden until needed.</p>
+                  <p className="tw:mt-3 tw:text-sm tw:text-slate-400">Question key is hidden until needed.</p>
                 )}
-              </div>
+              </Card>
 
-              <div className="admin-live-quiz-answers">
-                <div className="admin-live-quiz-section-head">
+              <Card className="tw:p-5">
+                <div className="tw:flex tw:items-center tw:justify-between">
                   <div>
-                    <p className="admin-live-quiz-kicker">Moderation</p>
-                    <h2>Recent answers</h2>
+                    <p className="tw:text-xs tw:font-bold tw:tracking-wide tw:text-brand-600 tw:uppercase">Moderation</p>
+                    <h2 className="tw:font-heading tw:text-sm tw:font-bold">Recent answers</h2>
                   </div>
-                  <span>{(detail?.answers || []).length} of {detail?.answerCount || 0}</span>
+                  <span className="tw:text-xs tw:text-slate-400">{(detail?.answers || []).length} of {detail?.answerCount || 0}</span>
                 </div>
-                {(detail?.answers || []).map((answer) => (
-                  <article className="admin-live-quiz-answer" key={answer._id}>
-                    <div>
-                      <span>Q{answer.questionId?.order} / {answer.questionId?.questionType}</span>
-                      <h3>{answer.questionId?.prompt}</h3>
-                      <p><strong>{answer.participantId?.username}</strong> ({answer.participantId?.email}) answered: {answer.answer}</p>
-                      <small>Accepted: {(answer.questionId?.acceptedAnswers || []).join(', ')}</small>
-                    </div>
-                    <div className="admin-live-quiz-answer-actions">
-                      <span className={answer.isCorrect ? 'correct' : 'incorrect'}>
-                        {answer.isCorrect ? 'Correct' : 'Incorrect'}
-                      </span>
-                      <button type="button" title="Mark correct" onClick={() => handleModerate(answer._id, true)}><FiCheck /></button>
-                      <button type="button" title="Mark incorrect" onClick={() => handleModerate(answer._id, false)}><FiX /></button>
-                    </div>
-                  </article>
-                ))}
-                {detail && detail.answers?.length === 0 && <p className="admin-live-quiz-muted">No answers have been submitted yet.</p>}
-              </div>
+                <div className="tw:mt-3 tw:space-y-2">
+                  {(detail?.answers || []).map((answer) => (
+                    <article key={answer._id} className="tw:flex tw:flex-wrap tw:items-center tw:justify-between tw:gap-3 tw:rounded-xl tw:border tw:border-slate-200/70 tw:p-3 tw:dark:border-slate-800">
+                      <div className="tw:min-w-0">
+                        <span className="tw:text-[11px] tw:font-semibold tw:text-brand-600">Q{answer.questionId?.order} / {answer.questionId?.questionType}</span>
+                        <h3 className="tw:text-sm tw:font-semibold">{answer.questionId?.prompt}</h3>
+                        <p className="tw:text-xs tw:text-slate-500 tw:dark:text-slate-400"><strong>{answer.participantId?.username}</strong> ({answer.participantId?.email}) answered: {answer.answer}</p>
+                        <small className="tw:text-[11px] tw:text-slate-400">Accepted: {(answer.questionId?.acceptedAnswers || []).join(', ')}</small>
+                      </div>
+                      <div className="tw:flex tw:shrink-0 tw:items-center tw:gap-2">
+                        <span className={cn(
+                          'tw:rounded-full tw:px-2.5 tw:py-1 tw:text-xs tw:font-semibold',
+                          answer.isCorrect
+                            ? 'tw:bg-emerald-100 tw:text-emerald-700 tw:dark:bg-emerald-950 tw:dark:text-emerald-300'
+                            : 'tw:bg-red-100 tw:text-red-700 tw:dark:bg-red-500/15 tw:dark:text-red-300',
+                        )}>
+                          {answer.isCorrect ? 'Correct' : 'Incorrect'}
+                        </span>
+                        <button type="button" title="Mark correct" onClick={() => handleModerate(answer._id, true)} className="tw:flex tw:h-7 tw:w-7 tw:items-center tw:justify-center tw:rounded-lg tw:bg-emerald-100 tw:text-emerald-700 tw:dark:bg-emerald-950 tw:dark:text-emerald-300"><Check className="tw:h-3.5 tw:w-3.5" /></button>
+                        <button type="button" title="Mark incorrect" onClick={() => handleModerate(answer._id, false)} className="tw:flex tw:h-7 tw:w-7 tw:items-center tw:justify-center tw:rounded-lg tw:bg-red-100 tw:text-red-700 tw:dark:bg-red-500/15 tw:dark:text-red-300"><X className="tw:h-3.5 tw:w-3.5" /></button>
+                      </div>
+                    </article>
+                  ))}
+                  {detail && detail.answers?.length === 0 && <p className="tw:py-4 tw:text-center tw:text-sm tw:text-slate-400">No answers have been submitted yet.</p>}
+                </div>
+              </Card>
             </>
           )}
-        </section>
-      </main>
+        </div>
+      </div>
     </div>
   );
 };

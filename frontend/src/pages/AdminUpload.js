@@ -3,21 +3,27 @@ import { useSearchParams } from 'react-router-dom';
 import api from '../utils/api';
 import { trackFeatureVisit } from '../utils/featureTracking';
 import {
-  FiUpload,
-  FiCheck,
-  FiPlus,
-  FiBook,
-  FiBriefcase,
-  FiFileText,
-  FiGrid,
-  FiLayers,
-  FiBookOpen,
-  FiSettings,
-  FiSearch
-} from 'react-icons/fi';
-import './Admin.css';
+  Upload,
+  Check,
+  Plus,
+  Book,
+  Briefcase,
+  FileText,
+  Grid3x3,
+  Layers,
+  BookOpen,
+  Settings,
+  Search,
+  Loader2,
+} from 'lucide-react';
+import { Card } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { cn } from '../lib/utils';
 
 const ALLOWED_TABS = ['faculties', 'departments', 'courses', 'materials'];
+
+const selectClass = 'tw:h-10 tw:w-full tw:rounded-xl tw:border tw:border-slate-200 tw:bg-white tw:px-3 tw:text-sm tw:outline-none tw:focus:border-brand-500 tw:dark:border-slate-800 tw:dark:bg-slate-900 tw:dark:text-slate-100';
 
 const AdminUpload = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -291,10 +297,10 @@ const AdminUpload = () => {
   };
 
   const tabs = [
-    { id: 'faculties', label: 'Faculties', icon: FiBriefcase },
-    { id: 'departments', label: 'Departments', icon: FiLayers },
-    { id: 'courses', label: 'Courses', icon: FiBookOpen },
-    { id: 'materials', label: 'Upload Materials', icon: FiUpload },
+    { id: 'faculties', label: 'Faculties', icon: Briefcase },
+    { id: 'departments', label: 'Departments', icon: Layers },
+    { id: 'courses', label: 'Courses', icon: BookOpen },
+    { id: 'materials', label: 'Upload Materials', icon: Upload },
   ];
 
   const handleTabChange = (tabId) => {
@@ -335,624 +341,496 @@ const AdminUpload = () => {
   const activeDepartmentCount = departments.filter((dept) => !dept.isArchived).length;
   const activeCourseCount = courses.filter((course) => !course.isArchived).length;
 
+  const ListToolbar = ({ search, onSearch, placeholder, showArchived, onShowArchivedChange }) => (
+    <div className="tw:mt-3 tw:flex tw:flex-wrap tw:items-center tw:gap-2">
+      <div className="tw:relative tw:min-w-[200px] tw:flex-1">
+        <Search className="tw:pointer-events-none tw:absolute tw:top-1/2 tw:left-3 tw:h-4 tw:w-4 tw:-translate-y-1/2 tw:text-slate-400" />
+        <Input type="text" placeholder={placeholder} value={search} onChange={onSearch} className="tw:pl-9" />
+      </div>
+      <label className="tw:flex tw:items-center tw:gap-1.5 tw:text-xs tw:font-semibold tw:text-slate-600 tw:dark:text-slate-300">
+        <input type="checkbox" checked={showArchived} onChange={onShowArchivedChange} className="tw:h-4 tw:w-4 tw:rounded tw:border-slate-300 tw:accent-brand-600" />
+        Show archived
+      </label>
+    </div>
+  );
+
+  const EmptyState = ({ icon: Icon, text }) => (
+    <div className="tw:flex tw:flex-col tw:items-center tw:gap-2 tw:py-10 tw:text-center">
+      <Icon className="tw:h-8 tw:w-8 tw:text-slate-300" />
+      <p className="tw:text-sm tw:text-slate-500 tw:dark:text-slate-400">{text}</p>
+    </div>
+  );
+
   return (
-    <div className="admin-container">
-      <div className="container">
-        <div className="admin-header">
-          <div className="admin-header-copy">
-            <div className="admin-header-icon">
-              <FiSettings />
-            </div>
-            <div>
-              <p className="admin-kicker">Academic Structure</p>
-              <h1>Admin Management</h1>
-              <p>Set up faculties, departments, courses, and study materials from one organized workspace.</p>
-            </div>
-          </div>
-          <div className="admin-structure-summary">
-            <span><strong>{activeFacultyCount}</strong> Faculties</span>
-            <span><strong>{activeDepartmentCount}</strong> Departments</span>
-            <span><strong>{activeCourseCount}</strong> Courses</span>
+    <div className="tw:space-y-5">
+      <Card className="tw:flex tw:flex-wrap tw:items-center tw:justify-between tw:gap-4 tw:p-5">
+        <div className="tw:flex tw:items-start tw:gap-3">
+          <span className="tw:flex tw:h-10 tw:w-10 tw:shrink-0 tw:items-center tw:justify-center tw:rounded-xl tw:bg-brand-100 tw:text-brand-600 tw:dark:bg-brand-950 tw:dark:text-brand-300"><Settings className="tw:h-5 tw:w-5" /></span>
+          <div>
+            <p className="tw:text-xs tw:font-bold tw:tracking-wide tw:text-brand-600 tw:uppercase">Academic Structure</p>
+            <h1 className="tw:font-heading tw:text-xl tw:font-bold tw:tracking-tight">Admin Management</h1>
+            <p className="tw:mt-1 tw:text-sm tw:text-slate-500 tw:dark:text-slate-400">Set up faculties, departments, courses, and study materials from one organized workspace.</p>
           </div>
         </div>
-
-        {/* Tab Navigation */}
-        <div className="admin-tabs">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              className={`admin-tab ${activeTab === tab.id ? 'active' : ''}`}
-              onClick={() => handleTabChange(tab.id)}
-            >
-              <tab.icon size={20} />
-              <span>{tab.label}</span>
-            </button>
+        <div className="tw:flex tw:gap-4">
+          {[{ label: 'Faculties', value: activeFacultyCount }, { label: 'Departments', value: activeDepartmentCount }, { label: 'Courses', value: activeCourseCount }].map((stat) => (
+            <div key={stat.label} className="tw:text-center">
+              <strong className="tw:block tw:font-heading tw:text-lg tw:font-bold">{stat.value}</strong>
+              <span className="tw:text-[11px] tw:text-slate-400">{stat.label}</span>
+            </div>
           ))}
         </div>
+      </Card>
 
-        {message.text && (
-          <div className={`alert ${message.type === 'success' ? 'alert-success' : 'alert-danger'}`}>
-            {message.text}
-          </div>
-        )}
+      <div className="tw:flex tw:flex-wrap tw:gap-2">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => handleTabChange(tab.id)}
+            className={cn(
+              'tw:flex tw:items-center tw:gap-2 tw:rounded-xl tw:border tw:px-3.5 tw:py-2 tw:text-sm tw:font-semibold tw:transition-colors',
+              activeTab === tab.id
+                ? 'tw:border-brand-600 tw:bg-brand-600 tw:text-white'
+                : 'tw:border-slate-200 tw:text-slate-600 tw:dark:border-slate-800 tw:dark:text-slate-300',
+            )}
+          >
+            <tab.icon className="tw:h-4 tw:w-4" />
+            <span>{tab.label}</span>
+          </button>
+        ))}
+      </div>
 
-        {/* Faculty Tab */}
-        {activeTab === 'faculties' && (
-          <div className="admin-content admin-management-content">
-            <div className="admin-grid admin-management-grid">
-              <div className="admin-form-card admin-management-form">
-                <h2>
-                  <FiPlus /> {editingFacultyId ? 'Update Faculty' : 'Create New Faculty'}
-                </h2>
-                <form onSubmit={handleCreateFaculty}>
-                  <div className="form-group">
-                    <label className="form-label">Faculty Name</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      placeholder="e.g., Science and Technology"
-                      value={facultyForm.name}
-                      onChange={(e) => setFacultyForm({ ...facultyForm, name: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Faculty Code</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      placeholder="e.g., FST"
-                      value={facultyForm.code}
-                      onChange={(e) => setFacultyForm({ ...facultyForm, code: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <button type="submit" className="btn btn-primary btn-block">
-                    <FiPlus /> {editingFacultyId ? 'Update Faculty' : 'Create Faculty'}
-                  </button>
-                  {editingFacultyId && (
-                    <button
-                      type="button"
-                      className="btn btn-secondary btn-block"
-                      onClick={() => {
-                        setEditingFacultyId(null);
-                        setFacultyForm({ name: '', code: '' });
-                      }}
-                    >
-                      Cancel Edit
-                    </button>
-                  )}
-                </form>
-              </div>
+      {message.text && (
+        <div className={cn(
+          'tw:rounded-xl tw:px-3.5 tw:py-2.5 tw:text-sm',
+          message.type === 'success'
+            ? 'tw:bg-emerald-100 tw:text-emerald-700 tw:dark:bg-emerald-950 tw:dark:text-emerald-300'
+            : 'tw:bg-red-100 tw:text-red-700 tw:dark:bg-red-500/15 tw:dark:text-red-300',
+        )}>
+          {message.text}
+        </div>
+      )}
 
-              <div className="admin-list-card faculty-list-card admin-management-list">
-                <div className="admin-list-header-modern">
-                  <h2>
-                    <FiBriefcase /> Existing Faculties
-                  </h2>
-                  <span className="faculty-count-badge">{visibleFaculties.length} shown</span>
-                </div>
-                <div className="faculty-toolbar">
-                  <div className="faculty-search-wrap">
-                    <FiSearch size={16} />
-                    <input
-                      type="text"
-                      placeholder="Search faculties by name or code..."
-                      value={facultySearch}
-                      onChange={(e) => setFacultySearch(e.target.value)}
-                      className="faculty-search-input"
-                    />
-                  </div>
-                  <label className="admin-toggle">
-                    <input
-                      type="checkbox"
-                      checked={showArchivedFaculties}
-                      onChange={(e) => setShowArchivedFaculties(e.target.checked)}
-                    />
-                    <span>Show archived</span>
-                  </label>
-                </div>
-                {faculties.length === 0 ? (
-                  <div className="empty-state-small">
-                    <FiBriefcase size={32} />
-                    <p>No faculties yet. Create one to get started!</p>
-                  </div>
-                ) : visibleFaculties.length === 0 ? (
-                  <div className="empty-state-small">
-                    <FiSearch size={32} />
-                    <p>No faculties matched your search.</p>
-                  </div>
-                ) : (
-                  <div className="item-list">
-                    {visibleFaculties.map((faculty) => (
-                      <div key={faculty._id} className="item-card faculty-item-card entity-item-card">
-                        <div className="item-icon">
-                          <FiBriefcase />
-                        </div>
-                        <div className="item-info">
-                          <div className="faculty-title-row">
-                            <h3>{faculty.name}</h3>
-                            {faculty.isArchived && <span className="item-meta archived">Archived</span>}
-                          </div>
-                          <p className="faculty-code-pill">{faculty.code}</p>
-                        </div>
-                        <div className="item-actions">
-                          <button
-                            type="button"
-                            className="btn btn-outline-secondary btn-sm"
-                            onClick={() => handleEditFaculty(faculty)}
-                          >
-                            Edit
-                          </button>
-                          <button
-                            type="button"
-                            className="btn btn-outline-danger btn-sm"
-                            onClick={() => handleArchiveFaculty(faculty)}
-                          >
-                            {faculty.isArchived ? 'Unarchive' : 'Archive'}
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Department Tab */}
-        {activeTab === 'departments' && (
-          <div className="admin-content admin-management-content">
-            <div className="admin-grid admin-management-grid">
-              <div className="admin-form-card admin-management-form">
-                <h2>
-                  <FiPlus /> {editingDepartmentId ? 'Update Department' : 'Create New Department'}
-                </h2>
-                <form onSubmit={handleCreateDepartment}>
-                  <div className="form-group">
-                    <label className="form-label">Faculty</label>
-                    <select
-                      className="form-control"
-                      value={departmentForm.facultyId}
-                      onChange={(e) => setDepartmentForm({ ...departmentForm, facultyId: e.target.value })}
-                      required
-                    >
-                      <option value="">-- Select Faculty --</option>
-                      {faculties.map((faculty) => (
-                        <option key={faculty._id} value={faculty._id}>
-                          {faculty.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Department Name</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      placeholder="e.g., Computer Science"
-                      value={departmentForm.name}
-                      onChange={(e) => setDepartmentForm({ ...departmentForm, name: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Department Code</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      placeholder="e.g., CSC"
-                      value={departmentForm.code}
-                      onChange={(e) => setDepartmentForm({ ...departmentForm, code: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <button type="submit" className="btn btn-primary btn-block">
-                    <FiPlus /> {editingDepartmentId ? 'Update Department' : 'Create Department'}
-                  </button>
-                  {editingDepartmentId && (
-                    <button
-                      type="button"
-                      className="btn btn-secondary btn-block"
-                      onClick={() => {
-                        setEditingDepartmentId(null);
-                        setDepartmentForm({ name: '', code: '', facultyId: '' });
-                      }}
-                    >
-                      Cancel Edit
-                    </button>
-                  )}
-                </form>
-              </div>
-
-              <div className="admin-list-card admin-management-list">
-                <div className="admin-list-header-modern">
-                  <h2>
-                    <FiLayers /> Existing Departments
-                  </h2>
-                  <span className="faculty-count-badge">{visibleDepartments.length} shown</span>
-                </div>
-                <div className="faculty-toolbar">
-                  <div className="faculty-search-wrap">
-                    <FiSearch size={16} />
-                    <input
-                      type="text"
-                      placeholder="Search departments by name, code, or faculty..."
-                      value={departmentSearch}
-                      onChange={(e) => setDepartmentSearch(e.target.value)}
-                      className="faculty-search-input"
-                    />
-                  </div>
-                  <label className="admin-toggle">
-                    <input
-                      type="checkbox"
-                      checked={showArchivedDepartments}
-                      onChange={(e) => setShowArchivedDepartments(e.target.checked)}
-                    />
-                    <span>Show archived</span>
-                  </label>
-                </div>
-                {departments.length === 0 ? (
-                  <div className="empty-state-small">
-                    <FiLayers size={32} />
-                    <p>No departments yet. Create one to get started!</p>
-                  </div>
-                ) : visibleDepartments.length === 0 ? (
-                  <div className="empty-state-small">
-                    <FiSearch size={32} />
-                    <p>No departments matched your search.</p>
-                  </div>
-                ) : (
-                  <div className="item-list">
-                    {visibleDepartments.map((dept) => (
-                      <div key={dept._id} className="item-card entity-item-card">
-                        <div className="item-icon">
-                          <FiLayers />
-                        </div>
-                        <div className="item-info">
-                          <h3>{dept.name}</h3>
-                          <p>{dept.code}</p>
-                          <span className="item-meta">
-                            {dept.facultyId?.name || 'No faculty'}
-                          </span>
-                          {dept.isArchived && <span className="item-meta archived">Archived</span>}
-                        </div>
-                        <div className="item-actions">
-                          <button
-                            type="button"
-                            className="btn btn-outline-secondary btn-sm"
-                            onClick={() => handleEditDepartment(dept)}
-                          >
-                            Edit
-                          </button>
-                          <button
-                            type="button"
-                            className="btn btn-outline-danger btn-sm"
-                            onClick={() => handleArchiveDepartment(dept)}
-                          >
-                            {dept.isArchived ? 'Unarchive' : 'Archive'}
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Courses Tab */}
-        {activeTab === 'courses' && (
-          <div className="admin-content admin-management-content">
-            <div className="admin-grid admin-management-grid">
-              <div className="admin-form-card admin-management-form">
-                <h2>
-                  <FiPlus /> {editingCourseId ? 'Update Course' : 'Create New Course'}
-                </h2>
-                <form onSubmit={handleCreateCourse}>
-                  <div className="form-group">
-                    <label className="form-label">Department</label>
-                    <select
-                      className="form-control"
-                      value={courseForm.departmentId}
-                      onChange={(e) => setCourseForm({ ...courseForm, departmentId: e.target.value })}
-                      required
-                    >
-                      <option value="">-- Select Department --</option>
-                      {departments.map((dept) => (
-                        <option key={dept._id} value={dept._id}>
-                          {dept.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Course Code</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      placeholder="e.g., CSC101"
-                      value={courseForm.courseCode}
-                      onChange={(e) => setCourseForm({ ...courseForm, courseCode: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Course Name</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      placeholder="e.g., Introduction to Computer Science"
-                      value={courseForm.courseName}
-                      onChange={(e) => setCourseForm({ ...courseForm, courseName: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">Credit Units</label>
-                    <input
-                      type="number"
-                      className="form-control"
-                      min="1"
-                      max="6"
-                      value={courseForm.creditUnits}
-                      onChange={(e) => setCourseForm({ ...courseForm, creditUnits: parseInt(e.target.value) })}
-                      required
-                    />
-                  </div>
-                  <button type="submit" className="btn btn-primary btn-block">
-                    <FiPlus /> {editingCourseId ? 'Update Course' : 'Create Course'}
-                  </button>
-                  {editingCourseId && (
-                    <button
-                      type="button"
-                      className="btn btn-secondary btn-block"
-                      onClick={() => {
-                        setEditingCourseId(null);
-                        setCourseForm({ courseCode: '', courseName: '', creditUnits: 3, departmentId: '' });
-                      }}
-                    >
-                      Cancel Edit
-                    </button>
-                  )}
-                </form>
-              </div>
-
-              <div className="admin-list-card admin-management-list">
-                <div className="admin-list-header-modern">
-                  <h2>
-                    <FiBookOpen /> Existing Courses
-                  </h2>
-                  <span className="faculty-count-badge">{visibleCourses.length} shown</span>
-                </div>
-                <div className="faculty-toolbar">
-                  <div className="faculty-search-wrap">
-                    <FiSearch size={16} />
-                    <input
-                      type="text"
-                      placeholder="Search courses by code, title, or department..."
-                      value={courseSearch}
-                      onChange={(e) => setCourseSearch(e.target.value)}
-                      className="faculty-search-input"
-                    />
-                  </div>
-                  <label className="admin-toggle">
-                    <input
-                      type="checkbox"
-                      checked={showArchivedCourses}
-                      onChange={(e) => setShowArchivedCourses(e.target.checked)}
-                    />
-                    <span>Show archived</span>
-                  </label>
-                </div>
-                {courses.length === 0 ? (
-                  <div className="empty-state-small">
-                    <FiBookOpen size={32} />
-                    <p>No courses yet. Create one to get started!</p>
-                  </div>
-                ) : visibleCourses.length === 0 ? (
-                  <div className="empty-state-small">
-                    <FiSearch size={32} />
-                    <p>No courses matched your search.</p>
-                  </div>
-                ) : (
-                  <div className="item-list">
-                    {visibleCourses.map((course) => (
-                      <div key={course._id} className="item-card entity-item-card">
-                        <div className="item-icon">
-                          <FiBook />
-                        </div>
-                        <div className="item-info">
-                          <h3>{course.courseCode}</h3>
-                          <p>{course.courseName}</p>
-                          <span className="item-meta">{course.creditUnits} Units</span>
-                          {course.departmentId?.name && (
-                            <span className="item-meta">{course.departmentId.name}</span>
-                          )}
-                          {course.isArchived && <span className="item-meta archived">Archived</span>}
-                        </div>
-                        <div className="item-actions">
-                          <button
-                            type="button"
-                            className="btn btn-outline-secondary btn-sm"
-                            onClick={() => handleEditCourse(course)}
-                          >
-                            Edit
-                          </button>
-                          <button
-                            type="button"
-                            className="btn btn-outline-danger btn-sm"
-                            onClick={() => handleArchiveCourse(course)}
-                          >
-                            {course.isArchived ? 'Unarchive' : 'Archive'}
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Materials Tab */}
-        {activeTab === 'materials' && (
-          <div className="admin-content">
-            {!uploadedMaterial ? (
-              <div className="upload-card-modern">
-                <div className="upload-header">
-                  <FiUpload size={48} />
-                  <h2>Upload Course Material</h2>
-                  <p>Upload PDF materials to automatically generate summaries and practice questions</p>
-                </div>
-                <form onSubmit={handleUpload}>
-                  <div className="form-group">
-                    <label className="form-label">Material Title</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      value={materialForm.title}
-                      onChange={(e) => setMaterialForm({ ...materialForm, title: e.target.value })}
-                      placeholder="e.g., Introduction to Algorithms - Chapter 1"
-                      required
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label className="form-label">Select Course</label>
-                    <select
-                      className="form-control"
-                      value={materialForm.courseId}
-                      onChange={(e) => setMaterialForm({ ...materialForm, courseId: e.target.value })}
-                      required
-                    >
-                      <option value="">-- Select a course --</option>
-                      {courses.map((course) => (
-                        <option key={course._id} value={course._id}>
-                          {course.courseCode} - {course.courseName}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="form-group">
-                    <label className="form-label">Upload PDF File</label>
-                    <div className="file-drop-zone">
-                      <input
-                        type="file"
-                        accept=".pdf,.doc,.docx"
-                        onChange={handleFileChange}
-                        className="file-input"
-                        id="file-upload"
-                        required
-                      />
-                      <label htmlFor="file-upload" className="file-drop-label">
-                        <FiFileText size={48} />
-                        <h3>{selectedFile ? selectedFile.name : 'Drop your file here'}</h3>
-                        <p>or click to browse</p>
-                        <span className="file-types">PDF, DOC, DOCX (Max 50MB)</span>
-                      </label>
-                    </div>
-                  </div>
-
-                  <button type="submit" className="btn btn-primary btn-block btn-lg" disabled={uploading}>
-                    {uploading ? (
-                      <>
-                        <div className="spinner-small"></div> Uploading...
-                      </>
-                    ) : (
-                      <>
-                        <FiUpload /> Upload Material
-                      </>
-                    )}
-                  </button>
-                </form>
-              </div>
-            ) : (
-              <div className="processing-card-modern">
-                <div className="success-animation">
-                  <div className="success-icon-large">
-                    <FiCheck />
-                  </div>
-                  <h2>Material Uploaded Successfully!</h2>
-                  <p className="upload-success-subtitle">
-                    <strong>{uploadedMaterial?.title}</strong> has been uploaded and is ready for system processing
-                  </p>
-                </div>
-
-                <div className="ai-processing-info">
-                  <div className="info-card">
-                    <FiFileText size={24} />
-                    <div>
-                      <h4>Summary Generation</h4>
-                      <p>Generate a comprehensive summary with simplified explanations of complex terms using our system.</p>
-                    </div>
-                  </div>
-                  <div className="info-card">
-                    <FiGrid size={24} />
-                    <div>
-                      <h4>Practice Questions</h4>
-                      <p>Create multiple-choice questions to test understanding of the material</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="processing-actions">
-                  <button
-                    onClick={handleGenerateSummary}
-                    className="btn btn-primary btn-lg btn-action"
-                    disabled={generatingSummary || generatingQuestions}
-                  >
-                    {generatingSummary ? (
-                      <>
-                        <div className="spinner-small"></div>
-                        <span>Generating Summary...</span>
-                      </>
-                    ) : (
-                      <>
-                        <FiFileText size={20} />
-                        <span>Generate Summary</span>
-                      </>
-                    )}
-                  </button>
-                  <button
-                    onClick={handleGenerateQuestions}
-                    className="btn btn-primary btn-lg btn-action"
-                    disabled={generatingSummary || generatingQuestions}
-                  >
-                    {generatingQuestions ? (
-                      <>
-                        <div className="spinner-small"></div>
-                        <span>Generating Questions...</span>
-                      </>
-                    ) : (
-                      <>
-                        <FiGrid size={20} />
-                        <span>Generate Questions</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-
-                <button
+      {/* Faculty Tab */}
+      {activeTab === 'faculties' && (
+        <div className="tw:grid tw:grid-cols-1 tw:gap-4 tw:lg:grid-cols-[1fr_1.4fr]">
+          <Card className="tw:p-5">
+            <h2 className="tw:flex tw:items-center tw:gap-2 tw:font-heading tw:text-sm tw:font-bold">
+              <Plus className="tw:h-4 tw:w-4 tw:text-brand-600" /> {editingFacultyId ? 'Update Faculty' : 'Create New Faculty'}
+            </h2>
+            <form onSubmit={handleCreateFaculty} className="tw:mt-3 tw:space-y-3">
+              <label className="tw:block tw:space-y-1.5">
+                <span className="tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300">Faculty Name</span>
+                <Input
+                  type="text"
+                  placeholder="e.g., Science and Technology"
+                  value={facultyForm.name}
+                  onChange={(e) => setFacultyForm({ ...facultyForm, name: e.target.value })}
+                  required
+                />
+              </label>
+              <label className="tw:block tw:space-y-1.5">
+                <span className="tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300">Faculty Code</span>
+                <Input
+                  type="text"
+                  placeholder="e.g., FST"
+                  value={facultyForm.code}
+                  onChange={(e) => setFacultyForm({ ...facultyForm, code: e.target.value })}
+                  required
+                />
+              </label>
+              <Button type="submit" className="tw:w-full">
+                <Plus className="tw:h-4 tw:w-4" /> {editingFacultyId ? 'Update Faculty' : 'Create Faculty'}
+              </Button>
+              {editingFacultyId && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="tw:w-full"
                   onClick={() => {
-                    setUploadedMaterial(null);
-                    setSelectedFile(null);
-                    setMaterialForm({ title: '', courseId: '' });
-                    setMessage({ type: '', text: '' });
+                    setEditingFacultyId(null);
+                    setFacultyForm({ name: '', code: '' });
                   }}
-                  className="btn btn-outline-secondary mt-4"
                 >
-                  Upload Another Material
-                </button>
+                  Cancel Edit
+                </Button>
+              )}
+            </form>
+          </Card>
+
+          <Card className="tw:p-5">
+            <div className="tw:flex tw:items-center tw:justify-between">
+              <h2 className="tw:flex tw:items-center tw:gap-2 tw:font-heading tw:text-sm tw:font-bold"><Briefcase className="tw:h-4 tw:w-4 tw:text-brand-600" /> Existing Faculties</h2>
+              <span className="tw:rounded-full tw:bg-slate-100 tw:px-2.5 tw:py-1 tw:text-xs tw:font-semibold tw:text-slate-600 tw:dark:bg-slate-800 tw:dark:text-slate-300">{visibleFaculties.length} shown</span>
+            </div>
+            <ListToolbar
+              search={facultySearch}
+              onSearch={(e) => setFacultySearch(e.target.value)}
+              placeholder="Search faculties by name or code..."
+              showArchived={showArchivedFaculties}
+              onShowArchivedChange={(e) => setShowArchivedFaculties(e.target.checked)}
+            />
+            {faculties.length === 0 ? (
+              <EmptyState icon={Briefcase} text="No faculties yet. Create one to get started!" />
+            ) : visibleFaculties.length === 0 ? (
+              <EmptyState icon={Search} text="No faculties matched your search." />
+            ) : (
+              <div className="tw:mt-3 tw:max-h-[55vh] tw:space-y-2 tw:overflow-y-auto">
+                {visibleFaculties.map((faculty) => (
+                  <div key={faculty._id} className="tw:flex tw:items-center tw:gap-3 tw:rounded-xl tw:border tw:border-slate-200/70 tw:p-3 tw:dark:border-slate-800">
+                    <span className="tw:flex tw:h-9 tw:w-9 tw:shrink-0 tw:items-center tw:justify-center tw:rounded-xl tw:bg-brand-100 tw:text-brand-600 tw:dark:bg-brand-950 tw:dark:text-brand-300"><Briefcase className="tw:h-4 tw:w-4" /></span>
+                    <div className="tw:min-w-0 tw:flex-1">
+                      <div className="tw:flex tw:items-center tw:gap-2">
+                        <h3 className="tw:truncate tw:text-sm tw:font-bold">{faculty.name}</h3>
+                        {faculty.isArchived && <span className="tw:rounded-full tw:bg-slate-100 tw:px-2 tw:py-0.5 tw:text-[10px] tw:font-semibold tw:text-slate-500 tw:dark:bg-slate-800">Archived</span>}
+                      </div>
+                      <p className="tw:mt-0.5 tw:inline-block tw:rounded-full tw:bg-slate-100 tw:px-2 tw:py-0.5 tw:text-[11px] tw:font-semibold tw:text-slate-500 tw:dark:bg-slate-800 tw:dark:text-slate-400">{faculty.code}</p>
+                    </div>
+                    <div className="tw:flex tw:shrink-0 tw:gap-1.5">
+                      <Button type="button" size="sm" variant="outline" onClick={() => handleEditFaculty(faculty)}>Edit</Button>
+                      <Button type="button" size="sm" variant="outline" onClick={() => handleArchiveFaculty(faculty)}>{faculty.isArchived ? 'Unarchive' : 'Archive'}</Button>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
-          </div>
-        )}
-      </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Department Tab */}
+      {activeTab === 'departments' && (
+        <div className="tw:grid tw:grid-cols-1 tw:gap-4 tw:lg:grid-cols-[1fr_1.4fr]">
+          <Card className="tw:p-5">
+            <h2 className="tw:flex tw:items-center tw:gap-2 tw:font-heading tw:text-sm tw:font-bold">
+              <Plus className="tw:h-4 tw:w-4 tw:text-brand-600" /> {editingDepartmentId ? 'Update Department' : 'Create New Department'}
+            </h2>
+            <form onSubmit={handleCreateDepartment} className="tw:mt-3 tw:space-y-3">
+              <label className="tw:block tw:space-y-1.5">
+                <span className="tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300">Faculty</span>
+                <select
+                  className={selectClass}
+                  value={departmentForm.facultyId}
+                  onChange={(e) => setDepartmentForm({ ...departmentForm, facultyId: e.target.value })}
+                  required
+                >
+                  <option value="">-- Select Faculty --</option>
+                  {faculties.map((faculty) => (
+                    <option key={faculty._id} value={faculty._id}>{faculty.name}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="tw:block tw:space-y-1.5">
+                <span className="tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300">Department Name</span>
+                <Input
+                  type="text"
+                  placeholder="e.g., Computer Science"
+                  value={departmentForm.name}
+                  onChange={(e) => setDepartmentForm({ ...departmentForm, name: e.target.value })}
+                  required
+                />
+              </label>
+              <label className="tw:block tw:space-y-1.5">
+                <span className="tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300">Department Code</span>
+                <Input
+                  type="text"
+                  placeholder="e.g., CSC"
+                  value={departmentForm.code}
+                  onChange={(e) => setDepartmentForm({ ...departmentForm, code: e.target.value })}
+                  required
+                />
+              </label>
+              <Button type="submit" className="tw:w-full">
+                <Plus className="tw:h-4 tw:w-4" /> {editingDepartmentId ? 'Update Department' : 'Create Department'}
+              </Button>
+              {editingDepartmentId && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="tw:w-full"
+                  onClick={() => {
+                    setEditingDepartmentId(null);
+                    setDepartmentForm({ name: '', code: '', facultyId: '' });
+                  }}
+                >
+                  Cancel Edit
+                </Button>
+              )}
+            </form>
+          </Card>
+
+          <Card className="tw:p-5">
+            <div className="tw:flex tw:items-center tw:justify-between">
+              <h2 className="tw:flex tw:items-center tw:gap-2 tw:font-heading tw:text-sm tw:font-bold"><Layers className="tw:h-4 tw:w-4 tw:text-brand-600" /> Existing Departments</h2>
+              <span className="tw:rounded-full tw:bg-slate-100 tw:px-2.5 tw:py-1 tw:text-xs tw:font-semibold tw:text-slate-600 tw:dark:bg-slate-800 tw:dark:text-slate-300">{visibleDepartments.length} shown</span>
+            </div>
+            <ListToolbar
+              search={departmentSearch}
+              onSearch={(e) => setDepartmentSearch(e.target.value)}
+              placeholder="Search departments by name, code, or faculty..."
+              showArchived={showArchivedDepartments}
+              onShowArchivedChange={(e) => setShowArchivedDepartments(e.target.checked)}
+            />
+            {departments.length === 0 ? (
+              <EmptyState icon={Layers} text="No departments yet. Create one to get started!" />
+            ) : visibleDepartments.length === 0 ? (
+              <EmptyState icon={Search} text="No departments matched your search." />
+            ) : (
+              <div className="tw:mt-3 tw:max-h-[55vh] tw:space-y-2 tw:overflow-y-auto">
+                {visibleDepartments.map((dept) => (
+                  <div key={dept._id} className="tw:flex tw:items-center tw:gap-3 tw:rounded-xl tw:border tw:border-slate-200/70 tw:p-3 tw:dark:border-slate-800">
+                    <span className="tw:flex tw:h-9 tw:w-9 tw:shrink-0 tw:items-center tw:justify-center tw:rounded-xl tw:bg-brand-100 tw:text-brand-600 tw:dark:bg-brand-950 tw:dark:text-brand-300"><Layers className="tw:h-4 tw:w-4" /></span>
+                    <div className="tw:min-w-0 tw:flex-1">
+                      <h3 className="tw:truncate tw:text-sm tw:font-bold">{dept.name}</h3>
+                      <div className="tw:mt-0.5 tw:flex tw:flex-wrap tw:items-center tw:gap-1.5 tw:text-[11px] tw:text-slate-500 tw:dark:text-slate-400">
+                        <span className="tw:rounded-full tw:bg-slate-100 tw:px-2 tw:py-0.5 tw:font-semibold tw:dark:bg-slate-800">{dept.code}</span>
+                        <span>{dept.facultyId?.name || 'No faculty'}</span>
+                        {dept.isArchived && <span className="tw:rounded-full tw:bg-slate-100 tw:px-2 tw:py-0.5 tw:font-semibold tw:dark:bg-slate-800">Archived</span>}
+                      </div>
+                    </div>
+                    <div className="tw:flex tw:shrink-0 tw:gap-1.5">
+                      <Button type="button" size="sm" variant="outline" onClick={() => handleEditDepartment(dept)}>Edit</Button>
+                      <Button type="button" size="sm" variant="outline" onClick={() => handleArchiveDepartment(dept)}>{dept.isArchived ? 'Unarchive' : 'Archive'}</Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+        </div>
+      )}
+
+      {/* Courses Tab */}
+      {activeTab === 'courses' && (
+        <div className="tw:grid tw:grid-cols-1 tw:gap-4 tw:lg:grid-cols-[1fr_1.4fr]">
+          <Card className="tw:p-5">
+            <h2 className="tw:flex tw:items-center tw:gap-2 tw:font-heading tw:text-sm tw:font-bold">
+              <Plus className="tw:h-4 tw:w-4 tw:text-brand-600" /> {editingCourseId ? 'Update Course' : 'Create New Course'}
+            </h2>
+            <form onSubmit={handleCreateCourse} className="tw:mt-3 tw:space-y-3">
+              <label className="tw:block tw:space-y-1.5">
+                <span className="tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300">Department</span>
+                <select
+                  className={selectClass}
+                  value={courseForm.departmentId}
+                  onChange={(e) => setCourseForm({ ...courseForm, departmentId: e.target.value })}
+                  required
+                >
+                  <option value="">-- Select Department --</option>
+                  {departments.map((dept) => (
+                    <option key={dept._id} value={dept._id}>{dept.name}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="tw:block tw:space-y-1.5">
+                <span className="tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300">Course Code</span>
+                <Input
+                  type="text"
+                  placeholder="e.g., CSC101"
+                  value={courseForm.courseCode}
+                  onChange={(e) => setCourseForm({ ...courseForm, courseCode: e.target.value })}
+                  required
+                />
+              </label>
+              <label className="tw:block tw:space-y-1.5">
+                <span className="tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300">Course Name</span>
+                <Input
+                  type="text"
+                  placeholder="e.g., Introduction to Computer Science"
+                  value={courseForm.courseName}
+                  onChange={(e) => setCourseForm({ ...courseForm, courseName: e.target.value })}
+                  required
+                />
+              </label>
+              <label className="tw:block tw:space-y-1.5">
+                <span className="tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300">Credit Units</span>
+                <Input
+                  type="number"
+                  min="1"
+                  max="6"
+                  value={courseForm.creditUnits}
+                  onChange={(e) => setCourseForm({ ...courseForm, creditUnits: parseInt(e.target.value) })}
+                  required
+                />
+              </label>
+              <Button type="submit" className="tw:w-full">
+                <Plus className="tw:h-4 tw:w-4" /> {editingCourseId ? 'Update Course' : 'Create Course'}
+              </Button>
+              {editingCourseId && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="tw:w-full"
+                  onClick={() => {
+                    setEditingCourseId(null);
+                    setCourseForm({ courseCode: '', courseName: '', creditUnits: 3, departmentId: '' });
+                  }}
+                >
+                  Cancel Edit
+                </Button>
+              )}
+            </form>
+          </Card>
+
+          <Card className="tw:p-5">
+            <div className="tw:flex tw:items-center tw:justify-between">
+              <h2 className="tw:flex tw:items-center tw:gap-2 tw:font-heading tw:text-sm tw:font-bold"><BookOpen className="tw:h-4 tw:w-4 tw:text-brand-600" /> Existing Courses</h2>
+              <span className="tw:rounded-full tw:bg-slate-100 tw:px-2.5 tw:py-1 tw:text-xs tw:font-semibold tw:text-slate-600 tw:dark:bg-slate-800 tw:dark:text-slate-300">{visibleCourses.length} shown</span>
+            </div>
+            <ListToolbar
+              search={courseSearch}
+              onSearch={(e) => setCourseSearch(e.target.value)}
+              placeholder="Search courses by code, title, or department..."
+              showArchived={showArchivedCourses}
+              onShowArchivedChange={(e) => setShowArchivedCourses(e.target.checked)}
+            />
+            {courses.length === 0 ? (
+              <EmptyState icon={BookOpen} text="No courses yet. Create one to get started!" />
+            ) : visibleCourses.length === 0 ? (
+              <EmptyState icon={Search} text="No courses matched your search." />
+            ) : (
+              <div className="tw:mt-3 tw:max-h-[55vh] tw:space-y-2 tw:overflow-y-auto">
+                {visibleCourses.map((course) => (
+                  <div key={course._id} className="tw:flex tw:items-center tw:gap-3 tw:rounded-xl tw:border tw:border-slate-200/70 tw:p-3 tw:dark:border-slate-800">
+                    <span className="tw:flex tw:h-9 tw:w-9 tw:shrink-0 tw:items-center tw:justify-center tw:rounded-xl tw:bg-brand-100 tw:text-brand-600 tw:dark:bg-brand-950 tw:dark:text-brand-300"><Book className="tw:h-4 tw:w-4" /></span>
+                    <div className="tw:min-w-0 tw:flex-1">
+                      <h3 className="tw:truncate tw:text-sm tw:font-bold">{course.courseCode}</h3>
+                      <p className="tw:truncate tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">{course.courseName}</p>
+                      <div className="tw:mt-0.5 tw:flex tw:flex-wrap tw:items-center tw:gap-1.5 tw:text-[11px] tw:text-slate-500 tw:dark:text-slate-400">
+                        <span className="tw:rounded-full tw:bg-slate-100 tw:px-2 tw:py-0.5 tw:font-semibold tw:dark:bg-slate-800">{course.creditUnits} Units</span>
+                        {course.departmentId?.name && <span className="tw:rounded-full tw:bg-slate-100 tw:px-2 tw:py-0.5 tw:font-semibold tw:dark:bg-slate-800">{course.departmentId.name}</span>}
+                        {course.isArchived && <span className="tw:rounded-full tw:bg-slate-100 tw:px-2 tw:py-0.5 tw:font-semibold tw:dark:bg-slate-800">Archived</span>}
+                      </div>
+                    </div>
+                    <div className="tw:flex tw:shrink-0 tw:gap-1.5">
+                      <Button type="button" size="sm" variant="outline" onClick={() => handleEditCourse(course)}>Edit</Button>
+                      <Button type="button" size="sm" variant="outline" onClick={() => handleArchiveCourse(course)}>{course.isArchived ? 'Unarchive' : 'Archive'}</Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+        </div>
+      )}
+
+      {/* Materials Tab */}
+      {activeTab === 'materials' && (
+        <div>
+          {!uploadedMaterial ? (
+            <Card className="tw:mx-auto tw:max-w-xl tw:p-6">
+              <div className="tw:flex tw:flex-col tw:items-center tw:gap-2 tw:text-center">
+                <Upload className="tw:h-10 tw:w-10 tw:text-brand-600" />
+                <h2 className="tw:font-heading tw:text-lg tw:font-bold">Upload Course Material</h2>
+                <p className="tw:text-sm tw:text-slate-500 tw:dark:text-slate-400">Upload PDF materials to automatically generate summaries and practice questions</p>
+              </div>
+              <form onSubmit={handleUpload} className="tw:mt-5 tw:space-y-3">
+                <label className="tw:block tw:space-y-1.5">
+                  <span className="tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300">Material Title</span>
+                  <Input
+                    type="text"
+                    value={materialForm.title}
+                    onChange={(e) => setMaterialForm({ ...materialForm, title: e.target.value })}
+                    placeholder="e.g., Introduction to Algorithms - Chapter 1"
+                    required
+                  />
+                </label>
+
+                <label className="tw:block tw:space-y-1.5">
+                  <span className="tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300">Select Course</span>
+                  <select
+                    className={selectClass}
+                    value={materialForm.courseId}
+                    onChange={(e) => setMaterialForm({ ...materialForm, courseId: e.target.value })}
+                    required
+                  >
+                    <option value="">-- Select a course --</option>
+                    {courses.map((course) => (
+                      <option key={course._id} value={course._id}>{course.courseCode} - {course.courseName}</option>
+                    ))}
+                  </select>
+                </label>
+
+                <label htmlFor="file-upload" className="tw:block tw:space-y-1.5">
+                  <span className="tw:text-xs tw:font-semibold tw:text-slate-700 tw:dark:text-slate-300">Upload PDF File</span>
+                  <div className="tw:flex tw:flex-col tw:items-center tw:gap-1 tw:rounded-xl tw:border tw:border-dashed tw:border-slate-300 tw:p-6 tw:text-center tw:dark:border-slate-700">
+                    <input
+                      type="file"
+                      accept=".pdf,.doc,.docx"
+                      onChange={handleFileChange}
+                      id="file-upload"
+                      required
+                      className="tw:hidden"
+                    />
+                    <FileText className="tw:h-8 tw:w-8 tw:text-slate-400" />
+                    <h3 className="tw:text-sm tw:font-bold">{selectedFile ? selectedFile.name : 'Drop your file here'}</h3>
+                    <p className="tw:text-xs tw:text-slate-400">or click to browse</p>
+                    <span className="tw:text-[11px] tw:text-slate-400">PDF, DOC, DOCX (Max 50MB)</span>
+                  </div>
+                </label>
+
+                <Button type="submit" disabled={uploading} className="tw:w-full">
+                  {uploading ? <><Loader2 className="tw:h-4 tw:w-4 tw:animate-spin" /> Uploading...</> : <><Upload className="tw:h-4 tw:w-4" /> Upload Material</>}
+                </Button>
+              </form>
+            </Card>
+          ) : (
+            <Card className="tw:mx-auto tw:max-w-2xl tw:space-y-5 tw:p-6 tw:text-center">
+              <div className="tw:flex tw:flex-col tw:items-center tw:gap-2">
+                <span className="tw:flex tw:h-14 tw:w-14 tw:items-center tw:justify-center tw:rounded-full tw:bg-emerald-100 tw:text-emerald-600 tw:dark:bg-emerald-950 tw:dark:text-emerald-300"><Check className="tw:h-7 tw:w-7" /></span>
+                <h2 className="tw:font-heading tw:text-lg tw:font-bold">Material Uploaded Successfully!</h2>
+                <p className="tw:text-sm tw:text-slate-500 tw:dark:text-slate-400">
+                  <strong className="tw:text-slate-700 tw:dark:text-slate-200">{uploadedMaterial?.title}</strong> has been uploaded and is ready for system processing
+                </p>
+              </div>
+
+              <div className="tw:grid tw:grid-cols-1 tw:gap-3 tw:sm:grid-cols-2">
+                <div className="tw:flex tw:items-start tw:gap-3 tw:rounded-xl tw:bg-slate-50 tw:p-4 tw:text-left tw:dark:bg-slate-900">
+                  <FileText className="tw:h-5 tw:w-5 tw:shrink-0 tw:text-brand-600" />
+                  <div>
+                    <h4 className="tw:text-sm tw:font-bold">Summary Generation</h4>
+                    <p className="tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">Generate a comprehensive summary with simplified explanations of complex terms using our system.</p>
+                  </div>
+                </div>
+                <div className="tw:flex tw:items-start tw:gap-3 tw:rounded-xl tw:bg-slate-50 tw:p-4 tw:text-left tw:dark:bg-slate-900">
+                  <Grid3x3 className="tw:h-5 tw:w-5 tw:shrink-0 tw:text-brand-600" />
+                  <div>
+                    <h4 className="tw:text-sm tw:font-bold">Practice Questions</h4>
+                    <p className="tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">Create multiple-choice questions to test understanding of the material</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="tw:flex tw:flex-wrap tw:justify-center tw:gap-2">
+                <Button
+                  onClick={handleGenerateSummary}
+                  disabled={generatingSummary || generatingQuestions}
+                >
+                  {generatingSummary ? <><Loader2 className="tw:h-4 tw:w-4 tw:animate-spin" /> Generating Summary...</> : <><FileText className="tw:h-4 tw:w-4" /> Generate Summary</>}
+                </Button>
+                <Button
+                  onClick={handleGenerateQuestions}
+                  disabled={generatingSummary || generatingQuestions}
+                >
+                  {generatingQuestions ? <><Loader2 className="tw:h-4 tw:w-4 tw:animate-spin" /> Generating Questions...</> : <><Grid3x3 className="tw:h-4 tw:w-4" /> Generate Questions</>}
+                </Button>
+              </div>
+
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setUploadedMaterial(null);
+                  setSelectedFile(null);
+                  setMaterialForm({ title: '', courseId: '' });
+                  setMessage({ type: '', text: '' });
+                }}
+              >
+                Upload Another Material
+              </Button>
+            </Card>
+          )}
+        </div>
+      )}
     </div>
   );
 };

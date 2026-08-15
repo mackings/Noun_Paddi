@@ -3,15 +3,18 @@ import api from '../utils/api';
 import { formatDate } from '../utils/dateHelper';
 import { trackFeatureVisit } from '../utils/featureTracking';
 import {
-  FiFileText,
-  FiGrid,
-  FiTrash2,
-  FiRefreshCw,
-  FiCheckCircle,
-  FiXCircle,
-  FiClock
-} from 'react-icons/fi';
-import './AdminMaterials.css';
+  FileText,
+  Grid3x3,
+  Trash2,
+  RefreshCw,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  Loader2,
+} from 'lucide-react';
+import { Card } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { cn } from '../lib/utils';
 
 const AdminMaterials = () => {
   const [materials, setMaterials] = useState([]);
@@ -112,49 +115,9 @@ const AdminMaterials = () => {
 
   if (loading) {
     return (
-      <div className="admin-materials-container">
-        <div className="container">
-          <div className="materials-skeleton-shell" aria-hidden="true">
-            <div className="materials-hero materials-skeleton-hero">
-              <div className="materials-skeleton-copy">
-                <span className="materials-skeleton-line title"></span>
-                <span className="materials-skeleton-line text"></span>
-              </div>
-              <span className="materials-skeleton-button"></span>
-            </div>
-
-            <div className="materials-stats">
-              {[0, 1, 2, 3].map((item) => (
-                <div className="stat-card materials-skeleton-card" key={item}>
-                  <span className="materials-skeleton-line label"></span>
-                  <span className="materials-skeleton-line value"></span>
-                </div>
-              ))}
-            </div>
-
-            <div className="materials-skeleton-toolbar">
-              <span className="materials-skeleton-search"></span>
-              <span className="materials-skeleton-filter"></span>
-              <span className="materials-skeleton-filter short"></span>
-            </div>
-
-            <div className="materials-grid">
-              {[0, 1, 2].map((item) => (
-                <div className="material-card materials-skeleton-card" key={item}>
-                  <div className="materials-skeleton-card-head">
-                    <span className="materials-skeleton-avatar"></span>
-                    <div className="materials-skeleton-copy">
-                      <span className="materials-skeleton-line text"></span>
-                      <span className="materials-skeleton-line small"></span>
-                    </div>
-                  </div>
-                  <span className="materials-skeleton-line full"></span>
-                  <span className="materials-skeleton-line text"></span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+      <div className="tw:flex tw:flex-col tw:items-center tw:gap-2 tw:py-16 tw:text-slate-500 tw:dark:text-slate-400">
+        <Loader2 className="tw:h-6 tw:w-6 tw:animate-spin" />
+        <p className="tw:text-sm">Loading materials...</p>
       </div>
     );
   }
@@ -195,187 +158,188 @@ const AdminMaterials = () => {
     { value: 'complete', label: 'Complete' },
   ];
 
+  const statCards = [
+    { label: 'Total Materials', value: totalMaterials },
+    { label: 'Summaries Ready', value: summaryCount },
+    { label: 'Questions Ready', value: questionsCount },
+    { label: 'Complete', value: completeCount },
+  ];
+
   return (
-    <div className="admin-materials-container">
-      <div className="container">
-        <div className="materials-hero">
-          <div className="materials-hero-text">
-            <h1>Manage Materials</h1>
-            <p>Generate summaries and questions for uploaded materials.</p>
-          </div>
-          <div className="materials-hero-actions">
-            <button onClick={fetchMaterials} className="btn btn-outline-primary">
-              <FiRefreshCw /> Refresh
-            </button>
-          </div>
+    <div className="tw:space-y-5">
+      <div className="tw:flex tw:flex-wrap tw:items-center tw:justify-between tw:gap-3">
+        <div>
+          <h1 className="tw:font-heading tw:text-xl tw:font-bold tw:tracking-tight">Manage Materials</h1>
+          <p className="tw:mt-1 tw:text-sm tw:text-slate-500 tw:dark:text-slate-400">Generate summaries and questions for uploaded materials.</p>
         </div>
-
-        <div className="materials-stats">
-          <div className="stat-card">
-            <span className="stat-label">Total Materials</span>
-            <span className="stat-value">{totalMaterials}</span>
-          </div>
-          <div className="stat-card">
-            <span className="stat-label">Summaries Ready</span>
-            <span className="stat-value">{summaryCount}</span>
-          </div>
-          <div className="stat-card">
-            <span className="stat-label">Questions Ready</span>
-            <span className="stat-value">{questionsCount}</span>
-          </div>
-          <div className="stat-card">
-            <span className="stat-label">Complete</span>
-            <span className="stat-value">{completeCount}</span>
-          </div>
-        </div>
-
-        {message.text && (
-          <div className={`alert ${message.type === 'success' ? 'alert-success' : 'alert-danger'}`}>
-            {message.text}
-          </div>
-        )}
-
-        <div className="materials-toolbar">
-          <div className="materials-search">
-            <FiFileText />
-            <input
-              type="text"
-              placeholder="Search by title or course..."
-              value={searchTerm}
-              onChange={(event) => setSearchTerm(event.target.value)}
-            />
-          </div>
-          <div className="materials-filters">
-            {filterOptions.map((option) => (
-              <button
-                key={option.value}
-                className={`filter-chip ${statusFilter === option.value ? 'active' : ''}`}
-                onClick={() => setStatusFilter(option.value)}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="materials-status-row">
-          <div className="status-count">
-            Showing <strong>{filteredMaterials.length}</strong> of <strong>{materials.length}</strong>
-          </div>
-          <div className="status-chips">
-            <span className="status-chip">
-              {materials.filter((item) => !item.hasSummary).length} missing summary
-            </span>
-            <span className="status-chip">
-              {materials.filter((item) => item.hasSummary && item.questionsCount === 0).length} missing questions
-            </span>
-            <span className="status-chip">
-              {materials.filter((item) => item.hasSummary && item.questionsCount > 0).length} complete
-            </span>
-          </div>
-        </div>
-
-        {filteredMaterials.length === 0 ? (
-          <div className="empty-state">
-            <FiFileText size={64} />
-            <h3>No Materials Found</h3>
-            <p>
-              {materials.length === 0
-                ? 'Upload materials to get started with system processing.'
-                : 'Try adjusting your search or filters.'}
-            </p>
-          </div>
-        ) : (
-          <div className="materials-grid">
-            {filteredMaterials.map((material, index) => {
-              const courseCode = material.courseId?.courseCode || 'N/A';
-              const courseName = material.courseId?.courseName || 'Unknown course';
-              return (
-                <div
-                  key={material._id}
-                  className="material-card"
-                  style={{ '--delay': index }}
-                >
-                  <div className="material-card-header">
-                    <div className="material-title">
-                      <div className="material-title-icon">
-                        <FiFileText />
-                      </div>
-                      <div>
-                        <h3>{material.title}</h3>
-                        <p>{courseCode} · {courseName}</p>
-                      </div>
-                    </div>
-                    <div className="material-meta">
-                      <FiClock size={14} />
-                      <span>{formatDate(material.createdAt)}</span>
-                    </div>
-                  </div>
-
-                  <div className="material-status">
-                    <span className={`status-pill ${material.hasSummary ? 'status-success' : 'status-pending'}`}>
-                      {material.hasSummary ? <FiCheckCircle /> : <FiXCircle />}
-                      Summary {material.hasSummary ? 'Generated' : 'Missing'}
-                    </span>
-                    <span className={`status-pill ${material.questionsCount > 0 ? 'status-success' : 'status-pending'}`}>
-                      {material.questionsCount > 0 ? <FiCheckCircle /> : <FiXCircle />}
-                      {material.questionsCount > 0
-                        ? `${material.questionsCount} Questions`
-                        : 'Questions Missing'}
-                    </span>
-                  </div>
-
-                  <div className="material-actions">
-                    {!material.hasSummary && (
-                      <button
-                        onClick={() => handleGenerateSummary(material._id)}
-                        className="btn btn-sm btn-primary"
-                        disabled={processingId === material._id && processingType === 'summary'}
-                      >
-                        {processingId === material._id && processingType === 'summary' ? (
-                          <>
-                            <div className="spinner-small"></div> Generating...
-                          </>
-                        ) : (
-                          <>
-                            <FiFileText /> Summary
-                          </>
-                        )}
-                      </button>
-                    )}
-
-                    {material.hasSummary && material.questionsCount === 0 && (
-                      <button
-                        onClick={() => handleGenerateQuestions(material._id)}
-                        className="btn btn-sm btn-primary"
-                        disabled={processingId === material._id && processingType === 'questions'}
-                      >
-                        {processingId === material._id && processingType === 'questions' ? (
-                          <>
-                            <div className="spinner-small"></div> Generating...
-                          </>
-                        ) : (
-                          <>
-                            <FiGrid /> Questions
-                          </>
-                        )}
-                      </button>
-                    )}
-
-                    <button
-                      onClick={() => handleDelete(material._id, material.title)}
-                      className="btn btn-sm btn-danger"
-                      disabled={processingId === material._id}
-                    >
-                      <FiTrash2 /> Delete
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+        <Button variant="outline" onClick={fetchMaterials}>
+          <RefreshCw className="tw:h-4 tw:w-4" /> Refresh
+        </Button>
       </div>
+
+      <div className="tw:grid tw:grid-cols-2 tw:gap-3 tw:lg:grid-cols-4">
+        {statCards.map((stat) => (
+          <Card key={stat.label} className="tw:p-4">
+            <span className="tw:block tw:text-xs tw:font-semibold tw:text-slate-500 tw:dark:text-slate-400">{stat.label}</span>
+            <span className="tw:font-heading tw:text-xl tw:font-bold">{stat.value}</span>
+          </Card>
+        ))}
+      </div>
+
+      {message.text && (
+        <div className={cn(
+          'tw:rounded-xl tw:px-3.5 tw:py-2.5 tw:text-sm',
+          message.type === 'success'
+            ? 'tw:bg-emerald-100 tw:text-emerald-700 tw:dark:bg-emerald-950 tw:dark:text-emerald-300'
+            : 'tw:bg-red-100 tw:text-red-700 tw:dark:bg-red-500/15 tw:dark:text-red-300',
+        )}>
+          {message.text}
+        </div>
+      )}
+
+      <div className="tw:flex tw:flex-wrap tw:items-center tw:gap-3">
+        <div className="tw:relative tw:min-w-[220px] tw:flex-1">
+          <FileText className="tw:pointer-events-none tw:absolute tw:top-1/2 tw:left-3 tw:h-4 tw:w-4 tw:-translate-y-1/2 tw:text-slate-400" />
+          <input
+            type="text"
+            placeholder="Search by title or course..."
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+            className="tw:h-10 tw:w-full tw:rounded-xl tw:border tw:border-slate-200 tw:bg-white tw:pr-3 tw:pl-9 tw:text-sm tw:outline-none tw:focus:border-brand-500 tw:dark:border-slate-800 tw:dark:bg-slate-900 tw:dark:text-slate-100"
+          />
+        </div>
+        <div className="tw:flex tw:flex-wrap tw:gap-2">
+          {filterOptions.map((option) => (
+            <button
+              key={option.value}
+              onClick={() => setStatusFilter(option.value)}
+              className={cn(
+                'tw:rounded-xl tw:border tw:px-3 tw:py-2 tw:text-xs tw:font-semibold tw:transition-colors',
+                statusFilter === option.value
+                  ? 'tw:border-brand-600 tw:bg-brand-600 tw:text-white'
+                  : 'tw:border-slate-200 tw:text-slate-600 tw:dark:border-slate-800 tw:dark:text-slate-300',
+              )}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="tw:flex tw:flex-wrap tw:items-center tw:justify-between tw:gap-3 tw:text-sm">
+        <div className="tw:text-slate-500 tw:dark:text-slate-400">
+          Showing <strong className="tw:text-slate-900 tw:dark:text-slate-100">{filteredMaterials.length}</strong> of <strong className="tw:text-slate-900 tw:dark:text-slate-100">{materials.length}</strong>
+        </div>
+        <div className="tw:flex tw:flex-wrap tw:gap-2 tw:text-xs">
+          <span className="tw:rounded-full tw:bg-slate-100 tw:px-2.5 tw:py-1 tw:font-semibold tw:text-slate-600 tw:dark:bg-slate-800 tw:dark:text-slate-300">
+            {materials.filter((item) => !item.hasSummary).length} missing summary
+          </span>
+          <span className="tw:rounded-full tw:bg-slate-100 tw:px-2.5 tw:py-1 tw:font-semibold tw:text-slate-600 tw:dark:bg-slate-800 tw:dark:text-slate-300">
+            {materials.filter((item) => item.hasSummary && item.questionsCount === 0).length} missing questions
+          </span>
+          <span className="tw:rounded-full tw:bg-emerald-100 tw:px-2.5 tw:py-1 tw:font-semibold tw:text-emerald-700 tw:dark:bg-emerald-950 tw:dark:text-emerald-300">
+            {materials.filter((item) => item.hasSummary && item.questionsCount > 0).length} complete
+          </span>
+        </div>
+      </div>
+
+      {filteredMaterials.length === 0 ? (
+        <Card className="tw:flex tw:flex-col tw:items-center tw:gap-2 tw:p-10 tw:text-center">
+          <FileText className="tw:h-10 tw:w-10 tw:text-slate-300" />
+          <h3 className="tw:font-heading tw:text-sm tw:font-bold">No Materials Found</h3>
+          <p className="tw:text-sm tw:text-slate-500 tw:dark:text-slate-400">
+            {materials.length === 0
+              ? 'Upload materials to get started with system processing.'
+              : 'Try adjusting your search or filters.'}
+          </p>
+        </Card>
+      ) : (
+        <div className="tw:grid tw:grid-cols-1 tw:gap-4 tw:md:grid-cols-2 tw:xl:grid-cols-3">
+          {filteredMaterials.map((material) => {
+            const courseCode = material.courseId?.courseCode || 'N/A';
+            const courseName = material.courseId?.courseName || 'Unknown course';
+            const isProcessing = processingId === material._id;
+            return (
+              <Card key={material._id} className="tw:flex tw:flex-col tw:gap-4 tw:p-4">
+                <div className="tw:flex tw:items-start tw:justify-between tw:gap-2">
+                  <div className="tw:flex tw:items-start tw:gap-2.5">
+                    <span className="tw:flex tw:h-9 tw:w-9 tw:shrink-0 tw:items-center tw:justify-center tw:rounded-xl tw:bg-brand-100 tw:text-brand-600 tw:dark:bg-brand-950 tw:dark:text-brand-300">
+                      <FileText className="tw:h-4.5 tw:w-4.5" />
+                    </span>
+                    <div>
+                      <h3 className="tw:text-sm tw:font-bold">{material.title}</h3>
+                      <p className="tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">{courseCode} · {courseName}</p>
+                    </div>
+                  </div>
+                  <span className="tw:flex tw:shrink-0 tw:items-center tw:gap-1 tw:text-[11px] tw:text-slate-400">
+                    <Clock className="tw:h-3 tw:w-3" /> {formatDate(material.createdAt)}
+                  </span>
+                </div>
+
+                <div className="tw:flex tw:flex-wrap tw:gap-2">
+                  <span className={cn(
+                    'tw:flex tw:items-center tw:gap-1 tw:rounded-full tw:px-2.5 tw:py-1 tw:text-xs tw:font-semibold',
+                    material.hasSummary
+                      ? 'tw:bg-emerald-100 tw:text-emerald-700 tw:dark:bg-emerald-950 tw:dark:text-emerald-300'
+                      : 'tw:bg-amber-100 tw:text-amber-700 tw:dark:bg-amber-500/15 tw:dark:text-amber-300',
+                  )}>
+                    {material.hasSummary ? <CheckCircle2 className="tw:h-3 tw:w-3" /> : <XCircle className="tw:h-3 tw:w-3" />}
+                    Summary {material.hasSummary ? 'Generated' : 'Missing'}
+                  </span>
+                  <span className={cn(
+                    'tw:flex tw:items-center tw:gap-1 tw:rounded-full tw:px-2.5 tw:py-1 tw:text-xs tw:font-semibold',
+                    material.questionsCount > 0
+                      ? 'tw:bg-emerald-100 tw:text-emerald-700 tw:dark:bg-emerald-950 tw:dark:text-emerald-300'
+                      : 'tw:bg-amber-100 tw:text-amber-700 tw:dark:bg-amber-500/15 tw:dark:text-amber-300',
+                  )}>
+                    {material.questionsCount > 0 ? <CheckCircle2 className="tw:h-3 tw:w-3" /> : <XCircle className="tw:h-3 tw:w-3" />}
+                    {material.questionsCount > 0 ? `${material.questionsCount} Questions` : 'Questions Missing'}
+                  </span>
+                </div>
+
+                <div className="tw:mt-auto tw:flex tw:flex-wrap tw:gap-2">
+                  {!material.hasSummary && (
+                    <Button
+                      size="sm"
+                      onClick={() => handleGenerateSummary(material._id)}
+                      disabled={isProcessing && processingType === 'summary'}
+                    >
+                      {isProcessing && processingType === 'summary' ? (
+                        <><Loader2 className="tw:h-3.5 tw:w-3.5 tw:animate-spin" /> Generating...</>
+                      ) : (
+                        <><FileText className="tw:h-3.5 tw:w-3.5" /> Summary</>
+                      )}
+                    </Button>
+                  )}
+
+                  {material.hasSummary && material.questionsCount === 0 && (
+                    <Button
+                      size="sm"
+                      onClick={() => handleGenerateQuestions(material._id)}
+                      disabled={isProcessing && processingType === 'questions'}
+                    >
+                      {isProcessing && processingType === 'questions' ? (
+                        <><Loader2 className="tw:h-3.5 tw:w-3.5 tw:animate-spin" /> Generating...</>
+                      ) : (
+                        <><Grid3x3 className="tw:h-3.5 tw:w-3.5" /> Questions</>
+                      )}
+                    </Button>
+                  )}
+
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => handleDelete(material._id, material.title)}
+                    disabled={isProcessing}
+                  >
+                    <Trash2 className="tw:h-3.5 tw:w-3.5" /> Delete
+                  </Button>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };

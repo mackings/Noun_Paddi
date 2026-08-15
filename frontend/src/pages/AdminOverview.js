@@ -1,29 +1,33 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  FiActivity,
-  FiAward,
-  FiArrowDownRight,
-  FiArrowUpRight,
-  FiBook,
-  FiBriefcase,
-  FiCheckCircle,
-  FiClock,
-  FiFileText,
-  FiGrid,
-  FiRefreshCw,
-  FiShield,
-  FiUploadCloud,
-  FiUsers,
-} from 'react-icons/fi';
+  Activity,
+  Award,
+  ArrowDownRight,
+  ArrowUpRight,
+  Book,
+  Briefcase,
+  CheckCircle2,
+  Clock,
+  FileText,
+  Grid3x3,
+  RefreshCw,
+  Shield,
+  UploadCloud,
+  Users,
+  Loader2,
+} from 'lucide-react';
 import api from '../utils/api';
 import { trackFeatureVisit } from '../utils/featureTracking';
 import { getRelativeTime } from '../utils/dateHelper';
-import './AdminOverview.css';
+import { Card } from '../components/ui/card';
+import { cn } from '../lib/utils';
 
 const CHART_WIDTH = 600;
 const CHART_HEIGHT = 200;
 const CHART_PAD_X = 8;
+const CHART_ACCENT = '#4f46e5';
+const CHART_ACCENT_SOFT = 'rgba(79, 70, 229, 0.15)';
 
 const buildSeries = (users, viewMode) => {
   const now = new Date();
@@ -173,224 +177,184 @@ const AdminOverview = () => {
 
   if (initialLoading) {
     return (
-      <div className="admin-overview-page">
-        <div className="overview-skeleton-hero">
-          <div className="overview-skeleton-line short"></div>
-          <div className="overview-skeleton-line title"></div>
-          <div className="overview-skeleton-line wide"></div>
-        </div>
-        <div className="overview-skeleton-grid">
-          {Array.from({ length: 6 }).map((_, index) => (
-            <div key={index} className="overview-skeleton-card">
-              <div className="overview-skeleton-icon"></div>
-              <div className="overview-skeleton-line"></div>
-              <div className="overview-skeleton-line short"></div>
-            </div>
-          ))}
-        </div>
+      <div className="tw:flex tw:flex-col tw:items-center tw:gap-2 tw:py-16 tw:text-slate-500 tw:dark:text-slate-400">
+        <Loader2 className="tw:h-6 tw:w-6 tw:animate-spin" />
+        <p className="tw:text-sm">Loading overview...</p>
       </div>
     );
   }
 
+  const statCards = [
+    { icon: Briefcase, label: 'Faculties', value: stats?.overview?.totalFaculties || 0, hint: 'Academic groups' },
+    { icon: Book, label: 'Courses', value: stats?.overview?.totalCourses || 0, hint: 'Course records' },
+    { icon: FileText, label: 'Materials', value: stats?.overview?.totalMaterials || 0, hint: 'Uploaded files' },
+    { icon: Users, label: 'Students', value: studentCount, hint: 'Registered learners' },
+    { icon: Shield, label: 'Admins', value: adminCount, hint: 'Workspace access' },
+  ];
+
+  const quickActions = [
+    { to: '/admin/broadcast', icon: Grid3x3, title: 'Push Broadcast', desc: 'Send updates to all subscribed users.' },
+    { to: '/admin/api-usage', icon: Activity, title: 'API Usage', desc: 'Monitor model calls, tokens, and operation health.' },
+    { to: '/admin/upload?tab=materials', icon: UploadCloud, title: 'Upload Materials', desc: 'Add course files and trigger learning content workflows.' },
+    { to: '/admin/users', icon: CheckCircle2, title: 'Manage Users', desc: 'View profiles and invite trusted admins.' },
+  ];
+
   return (
-    <div className="admin-overview-page">
-      <section className="overview-hero">
-        <div className="overview-hero-content">
-          <p className="overview-kicker">NounPaddi Admin</p>
-          <h1>Operations Overview</h1>
-          <p>Monitor academic content, platform users, generation coverage, and admin activity.</p>
+    <div className="tw:space-y-5">
+      <Card className="tw:flex tw:flex-wrap tw:items-center tw:justify-between tw:gap-3 tw:p-5">
+        <div>
+          <p className="tw:text-xs tw:font-bold tw:tracking-wide tw:text-brand-600 tw:uppercase">NounPaddi Admin</p>
+          <h1 className="tw:font-heading tw:text-xl tw:font-bold tw:tracking-tight">Operations Overview</h1>
+          <p className="tw:mt-1 tw:text-sm tw:text-slate-500 tw:dark:text-slate-400">Monitor academic content, platform users, generation coverage, and admin activity.</p>
         </div>
-        <div className="overview-hero-actions">
-          <span className="overview-sync-pill">
-            {refreshing ? <FiRefreshCw className="overview-spin" /> : <FiClock />}
-            {refreshing ? 'Syncing…' : `Synced ${lastUpdated ? getRelativeTime(lastUpdated) : 'just now'}`}
-          </span>
-        </div>
-      </section>
+        <span className="tw:flex tw:items-center tw:gap-1.5 tw:rounded-full tw:bg-slate-100 tw:px-3 tw:py-1.5 tw:text-xs tw:font-semibold tw:text-slate-600 tw:dark:bg-slate-800 tw:dark:text-slate-300">
+          {refreshing ? <RefreshCw className="tw:h-3.5 tw:w-3.5 tw:animate-spin" /> : <Clock className="tw:h-3.5 tw:w-3.5" />}
+          {refreshing ? 'Syncing…' : `Synced ${lastUpdated ? getRelativeTime(lastUpdated) : 'just now'}`}
+        </span>
+      </Card>
 
-      <section className="overview-stat-grid">
-        <article className="overview-stat-card">
-          <span className="overview-stat-icon"><FiBriefcase /></span>
-          <div>
-            <p>Faculties</p>
-            <h3>{stats?.overview?.totalFaculties || 0}</h3>
-            <span>Academic groups</span>
-          </div>
-        </article>
-        <article className="overview-stat-card">
-          <span className="overview-stat-icon"><FiBook /></span>
-          <div>
-            <p>Courses</p>
-            <h3>{stats?.overview?.totalCourses || 0}</h3>
-            <span>Course records</span>
-          </div>
-        </article>
-        <article className="overview-stat-card">
-          <span className="overview-stat-icon"><FiFileText /></span>
-          <div>
-            <p>Materials</p>
-            <h3>{stats?.overview?.totalMaterials || 0}</h3>
-            <span>Uploaded files</span>
-          </div>
-        </article>
-        <article className="overview-stat-card">
-          <span className="overview-stat-icon"><FiUsers /></span>
-          <div>
-            <p>Students</p>
-            <h3>{studentCount}</h3>
-            <span>Registered learners</span>
-          </div>
-        </article>
-        <article className="overview-stat-card">
-          <span className="overview-stat-icon"><FiShield /></span>
-          <div>
-            <p>Admins</p>
-            <h3>{adminCount}</h3>
-            <span>Workspace access</span>
-          </div>
-        </article>
-      </section>
-
-      <section className="overview-chart-section">
-        <article className="overview-panel chart-panel">
-          <div className="chart-head">
-            <h2><FiActivity /> User Registrations</h2>
-            <div className="chart-head-right">
-              {chartTrend && (
-                <span className="trend-chip">
-                  {chartTrend.direction === 'up' ? <FiArrowUpRight /> : <FiArrowDownRight />}
-                  {chartTrend.pct !== null ? `${chartTrend.pct}%` : 'New'}
-                </span>
-              )}
-              <div className="chart-toggle">
-                <button
-                  className={viewMode === 'day' ? 'active' : ''}
-                  onClick={() => setViewMode('day')}
-                  type="button"
-                >
-                  Date
-                </button>
-                <button
-                  className={viewMode === 'month' ? 'active' : ''}
-                  onClick={() => setViewMode('month')}
-                  type="button"
-                >
-                  Month
-                </button>
-                <button
-                  className={viewMode === 'year' ? 'active' : ''}
-                  onClick={() => setViewMode('year')}
-                  type="button"
-                >
-                  Year
-                </button>
-              </div>
+      <div className="tw:grid tw:grid-cols-2 tw:gap-3 tw:lg:grid-cols-5">
+        {statCards.map(({ icon: Icon, label, value, hint }) => (
+          <Card key={label} className="tw:flex tw:items-start tw:gap-3 tw:p-4">
+            <span className="tw:flex tw:h-9 tw:w-9 tw:shrink-0 tw:items-center tw:justify-center tw:rounded-xl tw:bg-brand-100 tw:text-brand-600 tw:dark:bg-brand-950 tw:dark:text-brand-300">
+              <Icon className="tw:h-4.5 tw:w-4.5" />
+            </span>
+            <div>
+              <p className="tw:text-xs tw:font-semibold tw:text-slate-500 tw:dark:text-slate-400">{label}</p>
+              <h3 className="tw:font-heading tw:text-lg tw:font-bold">{value}</h3>
+              <span className="tw:text-[11px] tw:text-slate-400">{hint}</span>
             </div>
-          </div>
-          <div className="chart-canvas">
-            <svg
-              className="trend-chart"
-              viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`}
-              preserveAspectRatio="none"
-            >
-              <path d={chartGeometry.area} className="trend-area" fill="var(--admin-page-accent-soft)" stroke="none" />
-              <path
-                d={chartGeometry.line}
-                className="trend-line"
-                fill="none"
-                stroke="var(--admin-page-accent-strong)"
-                strokeWidth="3"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                vectorEffect="non-scaling-stroke"
-              />
-              {chartGeometry.points.map((point) => (
-                <circle key={point.key} cx={point.x} cy={point.y} r="4" className="trend-dot">
-                  <title>{`${point.label}: ${point.value}`}</title>
-                </circle>
-              ))}
-            </svg>
-            <div className="chart-axis">
-              {chartData.map((point) => (
-                <span key={point.key}>{point.label}</span>
+          </Card>
+        ))}
+      </div>
+
+      <Card className="tw:p-5">
+        <div className="tw:flex tw:flex-wrap tw:items-center tw:justify-between tw:gap-3">
+          <h2 className="tw:flex tw:items-center tw:gap-2 tw:font-heading tw:text-sm tw:font-bold"><Activity className="tw:h-4 tw:w-4 tw:text-brand-600" /> User Registrations</h2>
+          <div className="tw:flex tw:items-center tw:gap-3">
+            {chartTrend && (
+              <span className={cn(
+                'tw:flex tw:items-center tw:gap-1 tw:rounded-full tw:px-2.5 tw:py-1 tw:text-xs tw:font-semibold',
+                chartTrend.direction === 'up'
+                  ? 'tw:bg-emerald-100 tw:text-emerald-700 tw:dark:bg-emerald-950 tw:dark:text-emerald-300'
+                  : 'tw:bg-red-100 tw:text-red-700 tw:dark:bg-red-500/15 tw:dark:text-red-300',
+              )}>
+                {chartTrend.direction === 'up' ? <ArrowUpRight className="tw:h-3 tw:w-3" /> : <ArrowDownRight className="tw:h-3 tw:w-3" />}
+                {chartTrend.pct !== null ? `${chartTrend.pct}%` : 'New'}
+              </span>
+            )}
+            <div className="tw:flex tw:rounded-xl tw:bg-slate-100 tw:p-1 tw:dark:bg-slate-800">
+              {[{ key: 'day', label: 'Date' }, { key: 'month', label: 'Month' }, { key: 'year', label: 'Year' }].map((option) => (
+                <button
+                  key={option.key}
+                  type="button"
+                  onClick={() => setViewMode(option.key)}
+                  className={cn(
+                    'tw:rounded-lg tw:px-3 tw:py-1.5 tw:text-xs tw:font-semibold tw:transition-colors',
+                    viewMode === option.key
+                      ? 'tw:bg-white tw:text-slate-900 tw:shadow-sm tw:dark:bg-slate-950 tw:dark:text-slate-100'
+                      : 'tw:text-slate-500 tw:dark:text-slate-400',
+                  )}
+                >
+                  {option.label}
+                </button>
               ))}
             </div>
           </div>
-        </article>
-      </section>
+        </div>
+        <div className="tw:mt-4">
+          <svg
+            viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`}
+            preserveAspectRatio="none"
+            className="tw:h-44 tw:w-full"
+          >
+            <path d={chartGeometry.area} fill={CHART_ACCENT_SOFT} stroke="none" />
+            <path
+              d={chartGeometry.line}
+              fill="none"
+              stroke={CHART_ACCENT}
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              vectorEffect="non-scaling-stroke"
+            />
+            {chartGeometry.points.map((point) => (
+              <circle key={point.key} cx={point.x} cy={point.y} r="4" fill={CHART_ACCENT}>
+                <title>{`${point.label}: ${point.value}`}</title>
+              </circle>
+            ))}
+          </svg>
+          <div className="tw:mt-1 tw:flex tw:justify-between tw:text-[11px] tw:text-slate-400">
+            {chartData.map((point) => (
+              <span key={point.key}>{point.label}</span>
+            ))}
+          </div>
+        </div>
+      </Card>
 
-      <section className="overview-content-grid overview-activity-grid">
-        <article className="overview-panel">
-          <h2><FiClock /> Recent Materials</h2>
+      <div className="tw:grid tw:grid-cols-1 tw:gap-4 tw:lg:grid-cols-2">
+        <Card className="tw:p-5">
+          <h2 className="tw:flex tw:items-center tw:gap-2 tw:font-heading tw:text-sm tw:font-bold"><Clock className="tw:h-4 tw:w-4 tw:text-brand-600" /> Recent Materials</h2>
           {recentMaterials.length ? (
-            <ul className="activity-list">
+            <ul className="tw:mt-3 tw:space-y-2">
               {recentMaterials.map((item) => (
-                <li key={item._id} className="activity-item">
-                  <span className="activity-icon"><FiFileText /></span>
-                  <div className="activity-body">
-                    <p className="activity-title">{item.title}</p>
-                    <p className="activity-meta">
+                <li key={item._id} className="tw:flex tw:items-center tw:gap-3 tw:rounded-xl tw:border tw:border-slate-200/70 tw:p-3 tw:dark:border-slate-800">
+                  <span className="tw:flex tw:h-8 tw:w-8 tw:shrink-0 tw:items-center tw:justify-center tw:rounded-lg tw:bg-brand-100 tw:text-brand-600 tw:dark:bg-brand-950 tw:dark:text-brand-300"><FileText className="tw:h-4 tw:w-4" /></span>
+                  <div className="tw:min-w-0 tw:flex-1">
+                    <p className="tw:truncate tw:text-sm tw:font-semibold">{item.title}</p>
+                    <p className="tw:truncate tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">
                       {item.courseId?.courseCode || 'Unassigned'} &middot; {item.uploadedBy?.name || 'Admin'}
                     </p>
                   </div>
-                  <span className="activity-time">{getRelativeTime(item.createdAt)}</span>
+                  <span className="tw:shrink-0 tw:text-[11px] tw:text-slate-400">{getRelativeTime(item.createdAt)}</span>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="overview-empty">No materials uploaded yet.</p>
+            <p className="tw:py-4 tw:text-center tw:text-sm tw:text-slate-400">No materials uploaded yet.</p>
           )}
-        </article>
+        </Card>
 
-        <article className="overview-panel">
-          <h2><FiAward /> Top Courses</h2>
+        <Card className="tw:p-5">
+          <h2 className="tw:flex tw:items-center tw:gap-2 tw:font-heading tw:text-sm tw:font-bold"><Award className="tw:h-4 tw:w-4 tw:text-brand-600" /> Top Courses</h2>
           {topCourses.length ? (
-            <ul className="rank-list">
+            <ul className="tw:mt-3 tw:space-y-2">
               {topCourses.map((course, index) => (
-                <li key={course._id} className="rank-item">
-                  <span className="rank-index">{index + 1}</span>
-                  <div className="rank-body">
-                    <p className="rank-title">{course.courseName}</p>
-                    <p className="rank-meta">{course.courseCode}</p>
-                    <div className="mini-progress">
+                <li key={course._id} className="tw:flex tw:items-center tw:gap-3 tw:rounded-xl tw:border tw:border-slate-200/70 tw:p-3 tw:dark:border-slate-800">
+                  <span className="tw:flex tw:h-7 tw:w-7 tw:shrink-0 tw:items-center tw:justify-center tw:rounded-full tw:bg-slate-100 tw:text-xs tw:font-bold tw:text-slate-600 tw:dark:bg-slate-800 tw:dark:text-slate-300">{index + 1}</span>
+                  <div className="tw:min-w-0 tw:flex-1">
+                    <p className="tw:truncate tw:text-sm tw:font-semibold">{course.courseName}</p>
+                    <p className="tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">{course.courseCode}</p>
+                    <div className="tw:mt-1.5 tw:h-1.5 tw:w-full tw:overflow-hidden tw:rounded-full tw:bg-slate-100 tw:dark:bg-slate-800">
                       <div
-                        className="mini-progress-fill"
+                        className="tw:h-full tw:rounded-full tw:bg-brand-600"
                         style={{ width: `${Math.round((course.materialCount / topCourseMax) * 100)}%` }}
                       />
                     </div>
                   </div>
-                  <span className="rank-count">{course.materialCount}</span>
+                  <span className="tw:shrink-0 tw:text-sm tw:font-bold">{course.materialCount}</span>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="overview-empty">No course activity yet.</p>
+            <p className="tw:py-4 tw:text-center tw:text-sm tw:text-slate-400">No course activity yet.</p>
           )}
-        </article>
-      </section>
+        </Card>
+      </div>
 
-      <section className="overview-quick-actions">
-        <Link to="/admin/broadcast" className="overview-action">
-          <span className="overview-action-icon"><FiGrid /></span>
-          <h3>Push Broadcast</h3>
-          <p>Send updates to all subscribed users.</p>
-        </Link>
-        <Link to="/admin/api-usage" className="overview-action">
-          <span className="overview-action-icon"><FiActivity /></span>
-          <h3>API Usage</h3>
-          <p>Monitor model calls, tokens, and operation health.</p>
-        </Link>
-        <Link to="/admin/upload?tab=materials" className="overview-action">
-          <span className="overview-action-icon"><FiUploadCloud /></span>
-          <h3>Upload Materials</h3>
-          <p>Add course files and trigger learning content workflows.</p>
-        </Link>
-        <Link to="/admin/users" className="overview-action">
-          <span className="overview-action-icon"><FiCheckCircle /></span>
-          <h3>Manage Users</h3>
-          <p>View profiles and invite trusted admins.</p>
-        </Link>
-      </section>
+      <div className="tw:grid tw:grid-cols-1 tw:gap-3 tw:sm:grid-cols-2 tw:lg:grid-cols-4">
+        {quickActions.map(({ to, icon: Icon, title, desc }) => (
+          <Link key={to} to={to} className="tw:block">
+            <Card interactive className="tw:flex tw:h-full tw:flex-col tw:gap-2 tw:p-4">
+              <span className="tw:flex tw:h-9 tw:w-9 tw:items-center tw:justify-center tw:rounded-xl tw:bg-brand-100 tw:text-brand-600 tw:dark:bg-brand-950 tw:dark:text-brand-300">
+                <Icon className="tw:h-4.5 tw:w-4.5" />
+              </span>
+              <h3 className="tw:font-heading tw:text-sm tw:font-bold">{title}</h3>
+              <p className="tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">{desc}</p>
+            </Card>
+          </Link>
+        ))}
+      </div>
     </div>
   );
 };
