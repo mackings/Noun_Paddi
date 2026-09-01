@@ -5,7 +5,10 @@ import { formatDate } from '../utils/dateHelper';
 import {
   CheckCircle2,
   FileText,
+  FolderOpen,
   PlusCircle,
+  Search,
+  Trash2,
   UploadCloud,
   Loader2,
 } from 'lucide-react';
@@ -47,6 +50,9 @@ const AdminTma = () => {
   const [message, setMessage] = useState({ type: '', text: '' });
   const [startingNewCourse, setStartingNewCourse] = useState(false);
   const [duplicateConflict, setDuplicateConflict] = useState(null);
+  const [selectedSourceId, setSelectedSourceId] = useState(null);
+  const [sourceSearch, setSourceSearch] = useState('');
+  const [deletingSourceId, setDeletingSourceId] = useState(null);
   const [uploadForm, setUploadForm] = useState({
     title: '',
     sourceType: 'course_material',
@@ -58,11 +64,18 @@ const AdminTma = () => {
   });
   const [answerResult, setAnswerResult] = useState(null);
 
+  // Refetches the sources list without the page-level loading spinner — used after a
+  // delete so the list, search term, and scroll position don't get blanked out for what
+  // is otherwise a small, single-row change.
+  const refreshSources = async () => {
+    const sourcesRes = await api.get('/tma/sources');
+    setSources(sourcesRes.data.data || []);
+  };
+
   const fetchData = async () => {
     try {
       setLoading(true);
-      const sourcesRes = await api.get('/tma/sources');
-      setSources(sourcesRes.data.data || []);
+      await refreshSources();
     } catch (error) {
       setMessage({ type: 'error', text: error.response?.data?.message || 'Failed to load TMA workspace' });
     } finally {
@@ -80,21 +93,78 @@ const AdminTma = () => {
     return { totalSources: sources.length, totalChunks, linked };
   }, [sources]);
 
-  const currentCourse = useMemo(() => {
-    if (!sources.length) return null;
-    const latest = sources[0];
-    return {
-      id: latest.courseId?._id || null,
-      code: latest.courseId?.courseCode || latest.detectedCourseCode || null,
-      name: latest.courseId?.courseName || latest.detectedCourseName || '',
-      updatedAt: latest.createdAt,
-    };
-  }, [sources]);
+  // Defaults to the most recently uploaded source, but an admin can pick any
+  // previously uploaded file from the "Existing Sources" list below to switch the
+  // Answer Question search to that file's course — without re-uploading anything.
+  const selectedSource = useMemo(
+    () => (selectedSourceId ? sources.find((source) => source._id === selectedSourceId) : null),
+    [sources, selectedSourceId]
+  );
 
+  // The file actually driving Answer Question right now — whichever was explicitly
+  // picked from Existing Sources, or the most recent upload otherwise.
+  const activeSource = useMemo(() => selectedSource || sources[0] || null, [selectedSource, sources]);
+
+  const currentCourse = useMemo(() => {
+    if (!activeSource) return null;
+    return {
+      id: activeSource.courseId?._id || null,
+      code: activeSource.courseId?.courseCode || activeSource.detectedCourseCode || null,
+      name: activeSource.courseId?.courseName || activeSource.detectedCourseName || '',
+      updatedAt: activeSource.createdAt,
+    };
+  }, [activeSource]);
+
+  // Matches what the backend actually searches: a real course pools every source linked
+  // to it, but a source with no resolved course is scoped to just that one file (see the
+  // sourceId fallback in handleAnswer) — so the count here must reflect that, not the
+  // full sources.length, or the UI would overstate what's actually being searched.
   const currentCourseSourceCount = useMemo(() => {
-    if (!currentCourse?.id) return sources.length;
-    return sources.filter((source) => source.courseId?._id === currentCourse.id).length;
-  }, [currentCourse, sources]);
+    if (currentCourse?.id) {
+      return sources.filter((source) => source.courseId?._id === currentCourse.id).length;
+    }
+    return activeSource ? 1 : sources.length;
+  }, [currentCourse, sources, activeSource]);
+
+  const filteredSources = useMemo(() => {
+    const term = sourceSearch.trim().toLowerCase();
+    if (!term) return sources;
+    return sources.filter((source) => {
+      const haystack = [
+        source.title,
+        source.courseId?.courseCode,
+        source.courseId?.courseName,
+        source.detectedCourseCode,
+        source.detectedCourseName,
+      ].filter(Boolean).join(' ').toLowerCase();
+      return haystack.includes(term);
+    });
+  }, [sources, sourceSearch]);
+
+  const handleUseSource = (source) => {
+    setSelectedSourceId(source._id);
+    setStartingNewCourse(false);
+    setMessage({ type: '', text: '' });
+  };
+
+  const handleDeleteSource = async (source) => {
+    if (!window.confirm(`Delete "${source.title}"? This removes it from TMA answering and cannot be undone.`)) {
+      return;
+    }
+    try {
+      setDeletingSourceId(source._id);
+      await api.delete(`/tma/sources/${source._id}`);
+      if (selectedSourceId === source._id) {
+        setSelectedSourceId(null);
+      }
+      setMessage({ type: 'success', text: `"${source.title}" was deleted.` });
+      await refreshSources();
+    } catch (error) {
+      setMessage({ type: 'error', text: error.response?.data?.message || 'Failed to delete this source.' });
+    } finally {
+      setDeletingSourceId(null);
+    }
+  };
 
   const answerOptionsCount = useMemo(
     () => answerForm.optionsText
@@ -173,6 +243,11 @@ const AdminTma = () => {
 
       const response = await api.post('/tma/answer', {
         courseId: currentCourse?.id || undefined,
+        // activeSource has no resolved course — scope the search to that one file
+        // instead of leaving it unscoped, which would pool every course's chunks
+        // together. Only relevant when courseId is absent; the backend ignores
+        // sourceId whenever a real courseId is present.
+        sourceId: !currentCourse?.id ? activeSource?._id || undefined : undefined,
         question: answerForm.question,
         options,
       });
@@ -232,6 +307,85 @@ const AdminTma = () => {
               {message.text}
             </div>
           )}
+
+          <Card className="tw:p-5">
+            <div className="tw:flex tw:flex-wrap tw:items-start tw:justify-between tw:gap-3">
+              <div className="tw:flex tw:items-start tw:gap-3">
+                <span className="tw:flex tw:h-9 tw:w-9 tw:shrink-0 tw:items-center tw:justify-center tw:rounded-xl tw:bg-brand-100 tw:text-brand-600 tw:dark:bg-brand-950 tw:dark:text-brand-300"><FolderOpen className="tw:h-4.5 tw:w-4.5" /></span>
+                <div>
+                  <h2 className="tw:font-heading tw:text-sm tw:font-bold">Existing Sources</h2>
+                  <p className="tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">
+                    Pick a previously uploaded file to switch Answer Question to its course — no re-upload needed.
+                  </p>
+                </div>
+              </div>
+              <div className="tw:relative tw:w-full tw:max-w-[220px]">
+                <Search className="tw:absolute tw:top-1/2 tw:left-3 tw:h-3.5 tw:w-3.5 tw:-translate-y-1/2 tw:text-slate-400" />
+                <Input
+                  type="search"
+                  value={sourceSearch}
+                  onChange={(event) => setSourceSearch(event.target.value)}
+                  placeholder="Search by course or title"
+                  className="tw:pl-8"
+                />
+              </div>
+            </div>
+
+            <div className="tw:mt-4 tw:max-h-72 tw:space-y-2 tw:overflow-y-auto">
+              {sources.length === 0 ? (
+                <p className="tw:py-6 tw:text-center tw:text-sm tw:text-slate-400">No sources uploaded yet — add one below to get started.</p>
+              ) : filteredSources.length === 0 ? (
+                <p className="tw:py-6 tw:text-center tw:text-sm tw:text-slate-400">No sources match "{sourceSearch}".</p>
+              ) : (
+                filteredSources.map((source) => {
+                  const isActive = selectedSource
+                    ? source._id === selectedSource._id
+                    : source._id === sources[0]?._id;
+                  const isDeleting = deletingSourceId === source._id;
+                  return (
+                    <div
+                      key={source._id}
+                      className={cn(
+                        'tw:flex tw:flex-wrap tw:items-center tw:justify-between tw:gap-3 tw:rounded-xl tw:border tw:p-3',
+                        isActive
+                          ? 'tw:border-brand-300 tw:bg-brand-50 tw:dark:border-brand-800 tw:dark:bg-brand-950/40'
+                          : 'tw:border-slate-200/70 tw:dark:border-slate-800',
+                      )}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => handleUseSource(source)}
+                        className="tw:flex tw:min-w-0 tw:flex-1 tw:items-start tw:gap-2.5 tw:text-left"
+                      >
+                        <FileText className="tw:mt-0.5 tw:h-4 tw:w-4 tw:shrink-0 tw:text-slate-400" />
+                        <span className="tw:min-w-0">
+                          <strong className="tw:block tw:truncate tw:text-sm">{source.title}</strong>
+                          <span className="tw:flex tw:flex-wrap tw:items-center tw:gap-x-2 tw:text-xs tw:text-slate-500 tw:dark:text-slate-400">
+                            <span className="tw:font-semibold tw:text-brand-600">{sourceTypeLabels[source.sourceType] || source.sourceType}</span>
+                            <span>{source.courseId?.courseCode || source.detectedCourseCode || 'Unlinked'}</span>
+                            <span>{formatDate(source.createdAt)}</span>
+                          </span>
+                        </span>
+                      </button>
+                      <div className="tw:flex tw:shrink-0 tw:items-center tw:gap-2">
+                        {isActive && <span className="tw:flex tw:items-center tw:gap-1 tw:text-xs tw:font-semibold tw:text-brand-600"><CheckCircle2 className="tw:h-3.5 tw:w-3.5" /> In use</span>}
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-sm"
+                          disabled={isDeleting}
+                          onClick={() => handleDeleteSource(source)}
+                          aria-label={`Delete ${source.title}`}
+                        >
+                          {isDeleting ? <Loader2 className="tw:h-3.5 tw:w-3.5 tw:animate-spin" /> : <Trash2 className="tw:h-3.5 tw:w-3.5 tw:text-red-500" />}
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </Card>
 
           <div className="tw:grid tw:grid-cols-1 tw:gap-4 tw:lg:grid-cols-[1.4fr_1fr]">
             <Card className="tw:p-5">
@@ -335,7 +489,12 @@ const AdminTma = () => {
                       <strong className="tw:text-sm">{currentCourse.code || 'Unlinked course'}{currentCourse.name ? ` — ${currentCourse.name}` : ''}</strong>
                       {currentCourse.updatedAt && <small className="tw:block tw:text-xs tw:text-slate-400">Last updated {formatDate(currentCourse.updatedAt)}</small>}
                     </div>
-                    <Button type="button" variant="outline" size="sm" onClick={() => setStartingNewCourse(true)}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => { setStartingNewCourse(true); setSelectedSourceId(null); }}
+                    >
                       <PlusCircle className="tw:h-3.5 tw:w-3.5" /> Start New Course
                     </Button>
                   </div>

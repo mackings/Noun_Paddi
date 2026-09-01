@@ -6,6 +6,15 @@ const tmaAnswerSchema = new mongoose.Schema({
     ref: 'Course',
     default: null,
   },
+  // Set only when the question was answered against a specific source that has no
+  // resolved courseId (see tmaController.answerTmaQuestion) — keeps the answer cache
+  // from being shared between two different unlinked sources that happen to share the
+  // same courseId: null and an identical question.
+  sourceId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'TmaSource',
+    default: null,
+  },
   question: {
     type: String,
     required: true,
@@ -73,5 +82,6 @@ const tmaAnswerSchema = new mongoose.Schema({
 });
 
 tmaAnswerSchema.index({ courseId: 1, createdAt: -1 });
+tmaAnswerSchema.index({ sourceId: 1, createdAt: -1 });
 
 module.exports = mongoose.model('TmaAnswer', tmaAnswerSchema);

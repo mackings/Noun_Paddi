@@ -45,7 +45,7 @@ function shouldUseAtlasVectorSearch() {
   return String(process.env.TMA_USE_ATLAS_VECTOR_SEARCH || '').toLowerCase() === 'true';
 }
 
-async function findChunksWithAtlasVectorSearch({ courseId, queryEmbedding }) {
+async function findChunksWithAtlasVectorSearch({ courseId, sourceId, queryEmbedding }) {
   if (!shouldUseAtlasVectorSearch() || !queryEmbedding) return [];
 
   const index = process.env.TMA_VECTOR_INDEX_NAME || 'tma_chunk_embedding_index';
@@ -59,8 +59,15 @@ async function findChunksWithAtlasVectorSearch({ courseId, queryEmbedding }) {
     limit,
   };
 
+  // A real courseId scopes the search across every source for that course (the intended
+  // pooling of course_material/past_question/tma_1/etc for one course). Falling back to
+  // sourceId keeps a source with no resolved course (e.g. detection couldn't match a real
+  // Course document) scoped to just that one file, instead of silently searching every
+  // course's chunks — see the no-filter case below.
   if (courseId && mongoose.Types.ObjectId.isValid(courseId)) {
     vectorSearch.filter = { courseId: new mongoose.Types.ObjectId(courseId) };
+  } else if (sourceId && mongoose.Types.ObjectId.isValid(sourceId)) {
+    vectorSearch.filter = { sourceId: new mongoose.Types.ObjectId(sourceId) };
   }
 
   const pipeline = [
@@ -427,6 +434,13 @@ exports.answerTmaQuestion = async (req, res) => {
     const question = compactText(req.body?.question);
     const options = normalizeOptionsFromRequest(req.body?.options);
     const courseId = req.body?.courseId || null;
+    // Sources without a resolved courseId (detection couldn't match a real Course
+    // document) have no course to pool by — an explicit sourceId keeps the search and
+    // the answer cache scoped to that one file instead of falling back to every course's
+    // chunks pooled together. Only used when courseId is absent; a real course always
+    // wins and keeps the existing multi-source-per-course pooling behavior.
+    const rawSourceId = courseId ? null : req.body?.sourceId || null;
+    const sourceId = rawSourceId && mongoose.Types.ObjectId.isValid(rawSourceId) ? rawSourceId : null;
     const questionType = detectQuestionType(question, options);
 
     if (!question || question.length < 8) {
@@ -438,6 +452,7 @@ exports.answerTmaQuestion = async (req, res) => {
 
     const cachedAnswer = await TmaAnswer.findOne({
       courseId: courseId || null,
+      sourceId: sourceId || null,
       question,
       options,
       questionType,
@@ -459,7 +474,7 @@ exports.answerTmaQuestion = async (req, res) => {
       });
     }
 
-    const filter = courseId ? { courseId } : {};
+    const filter = courseId ? { courseId } : (sourceId ? { sourceId } : {});
     const textQuery = queryTerms.slice(0, 14).join(' ');
 
     // Run embedding generation and text search in parallel — saves 0.5–2s
@@ -478,7 +493,7 @@ exports.answerTmaQuestion = async (req, res) => {
 
     if (queryEmbedding) {
       try {
-        chunks = await findChunksWithAtlasVectorSearch({ courseId, queryEmbedding });
+        chunks = await findChunksWithAtlasVectorSearch({ courseId, sourceId, queryEmbedding });
       } catch {
         chunks = [];
       }
@@ -582,6 +597,7 @@ exports.answerTmaQuestion = async (req, res) => {
 
     const saved = await TmaAnswer.create({
       courseId,
+      sourceId,
       question,
       options,
       questionType,
