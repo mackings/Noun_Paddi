@@ -157,3 +157,8 @@
     width: 80%;
   }
 }
+
+/* Collapse ad slots AdSense could not fill instead of leaving a blank gap. */
+ins.adsbygoogle[data-ad-status="unfilled"] {
+  display: none !important;
+}

@@ -5,6 +5,7 @@ import { formatDate } from '../utils/dateHelper';
 import { splitSummaryIntoSections, formatLine } from '../utils/formatSummary';
 import { trackFeatureVisit } from '../utils/featureTracking';
 import SEO from '../components/SEO';
+import AdSlot from '../components/AdSlot';
 import {
   BookOpen,
   FileText,
@@ -26,6 +27,20 @@ import './CourseDetail.css';
 
 const READING_ACTIVITY_TIMEOUT_MS = 15000;
 const READING_TICK_MS = 1000;
+
+const SUMMARY_AD_SLOT = process.env.REACT_APP_ADSENSE_SUMMARY_SLOT || '';
+const SECTIONS_PER_IN_SUMMARY_AD = 3;
+const MAX_IN_SUMMARY_ADS = 3;
+
+// An ad after every third section, never after the last one, capped so ads never outweigh the summary.
+const shouldShowInSummaryAd = (index, totalSections) => {
+  const position = index + 1;
+  return (
+    position % SECTIONS_PER_IN_SUMMARY_AD === 0 &&
+    position < totalSections &&
+    position / SECTIONS_PER_IN_SUMMARY_AD <= MAX_IN_SUMMARY_ADS
+  );
+};
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
@@ -532,6 +547,10 @@ const CourseDetail = () => {
                         <span className="tw:flex tw:items-center tw:gap-1"><Clock className="tw:h-3.5 tw:w-3.5" /> {formatDate(selectedMaterial.createdAt)}</span>
                       </div>
 
+                      {selectedMaterial.hasSummary && (
+                        <AdSlot key={`${selectedMaterial._id}-top`} slot={SUMMARY_AD_SLOT} className="tw:my-4" />
+                      )}
+
                       {selectedMaterial.hasSummary ? (
                         <div
                           className="summary-content"
@@ -544,96 +563,104 @@ const CourseDetail = () => {
                           tabIndex={0}
                         >
                           {summarySections.map((section, index) => (
-                            <div
-                              key={index}
-                              className="summary-section"
-                              data-section-index={index}
-                              ref={(node) => {
-                                sectionRefs.current[index] = node;
-                              }}
-                            >
-                              {section.title && <h3 className="section-title">{formatLine(section.title)}</h3>}
-                              <div className="section-content">
-                                {section.content.split('\n').map((line, lineIndex) => {
-                                  const trimmedLine = line.trim();
-                                  if (!trimmedLine) return null;
-
-                                  const cleanedLine = formatLine(trimmedLine);
-                                  const moduleMatch = cleanedLine.match(/^Module\s+\d+\s*:/i);
-                                  const unitMatch = cleanedLine.match(/^Unit\s+\d+\s*:/i);
-                                  const simpleMatch = cleanedLine.match(/^In simple terms[:,]/i);
-                                  const termMatch = trimmedLine.match(/^\*\*(.+?)\*\*:\s*(.+)$/);
-
-                                  if (moduleMatch) {
-                                    return (
-                                      <div key={lineIndex} className="module-title">
-                                        {cleanedLine}
-                                      </div>
-                                    );
-                                  }
-
-                                  if (unitMatch) {
-                                    return (
-                                      <div key={lineIndex} className="unit-title">
-                                        {cleanedLine}
-                                      </div>
-                                    );
-                                  }
-
-                                  if (simpleMatch) {
-                                    return (
-                                      <p key={lineIndex} className="simple-explain">
-                                        {cleanedLine}
-                                      </p>
-                                    );
-                                  }
-
-                                  if (termMatch) {
-                                    return (
-                                      <p key={lineIndex} className="key-term">
-                                        <span className="term">{formatLine(termMatch[1])}:</span> {formatLine(termMatch[2])}
-                                      </p>
-                                    );
-                                  }
-
-                                  // Check if line is a bullet point
-                                  if (trimmedLine.startsWith('•') || trimmedLine.startsWith('-') || trimmedLine.startsWith('*')) {
-                                    const cleanedText = formatLine(trimmedLine.replace(/^[-•*]\s*/, ''));
-                                    if (!cleanedText || cleanedText === '-' || cleanedText === '--') {
-                                      return null;
+                            <React.Fragment key={index}>
+                              <div
+                                className="summary-section"
+                                data-section-index={index}
+                                ref={(node) => {
+                                  sectionRefs.current[index] = node;
+                                }}
+                              >
+                                {section.title && <h3 className="section-title">{formatLine(section.title)}</h3>}
+                                <div className="section-content">
+                                  {section.content.split('\n').map((line, lineIndex) => {
+                                    const trimmedLine = line.trim();
+                                    if (!trimmedLine) return null;
+  
+                                    const cleanedLine = formatLine(trimmedLine);
+                                    const moduleMatch = cleanedLine.match(/^Module\s+\d+\s*:/i);
+                                    const unitMatch = cleanedLine.match(/^Unit\s+\d+\s*:/i);
+                                    const simpleMatch = cleanedLine.match(/^In simple terms[:,]/i);
+                                    const termMatch = trimmedLine.match(/^\*\*(.+?)\*\*:\s*(.+)$/);
+  
+                                    if (moduleMatch) {
+                                      return (
+                                        <div key={lineIndex} className="module-title">
+                                          {cleanedLine}
+                                        </div>
+                                      );
                                     }
-                                    const bulletTermMatch = cleanedText.match(/^([^:]{2,80}):\s*(.+)$/);
-                                    return (
-                                      <div key={lineIndex} className="bullet-point">
-                                        {bulletTermMatch ? (
-                                          <div className="bullet-block">
-                                            <div className="term">{bulletTermMatch[1]}:</div>
-                                            <div className="bullet-body">{bulletTermMatch[2]}</div>
-                                          </div>
-                                        ) : (
-                                          cleanedText
-                                        )}
-                                      </div>
-                                    );
-                                  }
-
-                                  // Check if line is a numbered list
-                                  const numberedMatch = trimmedLine.match(/^\d+\.\s+(.+)$/);
-                                  if (numberedMatch) {
-                                    const number = trimmedLine.match(/^\d+\./)[0];
-                                    const content = formatLine(numberedMatch[1]);
-                                    return (
-                                      <div key={lineIndex} className="numbered-item">
-                                        <span className="number">{number}</span> {content}
-                                      </div>
-                                    );
-                                  }
-
-                                  // Regular paragraph
-                                  return <p key={lineIndex}>{formatLine(trimmedLine)}</p>;
-                                })}
+  
+                                    if (unitMatch) {
+                                      return (
+                                        <div key={lineIndex} className="unit-title">
+                                          {cleanedLine}
+                                        </div>
+                                      );
+                                    }
+  
+                                    if (simpleMatch) {
+                                      return (
+                                        <p key={lineIndex} className="simple-explain">
+                                          {cleanedLine}
+                                        </p>
+                                      );
+                                    }
+  
+                                    if (termMatch) {
+                                      return (
+                                        <p key={lineIndex} className="key-term">
+                                          <span className="term">{formatLine(termMatch[1])}:</span> {formatLine(termMatch[2])}
+                                        </p>
+                                      );
+                                    }
+  
+                                    // Check if line is a bullet point
+                                    if (trimmedLine.startsWith('•') || trimmedLine.startsWith('-') || trimmedLine.startsWith('*')) {
+                                      const cleanedText = formatLine(trimmedLine.replace(/^[-•*]\s*/, ''));
+                                      if (!cleanedText || cleanedText === '-' || cleanedText === '--') {
+                                        return null;
+                                      }
+                                      const bulletTermMatch = cleanedText.match(/^([^:]{2,80}):\s*(.+)$/);
+                                      return (
+                                        <div key={lineIndex} className="bullet-point">
+                                          {bulletTermMatch ? (
+                                            <div className="bullet-block">
+                                              <div className="term">{bulletTermMatch[1]}:</div>
+                                              <div className="bullet-body">{bulletTermMatch[2]}</div>
+                                            </div>
+                                          ) : (
+                                            cleanedText
+                                          )}
+                                        </div>
+                                      );
+                                    }
+  
+                                    // Check if line is a numbered list
+                                    const numberedMatch = trimmedLine.match(/^\d+\.\s+(.+)$/);
+                                    if (numberedMatch) {
+                                      const number = trimmedLine.match(/^\d+\./)[0];
+                                      const content = formatLine(numberedMatch[1]);
+                                      return (
+                                        <div key={lineIndex} className="numbered-item">
+                                          <span className="number">{number}</span> {content}
+                                        </div>
+                                      );
+                                    }
+  
+                                    // Regular paragraph
+                                    return <p key={lineIndex}>{formatLine(trimmedLine)}</p>;
+                                  })}
+                                </div>
                               </div>
-                            </div>
+                              {shouldShowInSummaryAd(index, summarySections.length) && (
+                                <AdSlot
+                                  key={`${selectedMaterial._id}-ad-${index}`}
+                                  slot={SUMMARY_AD_SLOT}
+                                  className="tw:mb-4"
+                                />
+                              )}
+                            </React.Fragment>
                           ))}
                         </div>
                       ) : (
